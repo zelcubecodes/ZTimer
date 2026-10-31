@@ -3,4 +3,7 @@
 
     <!-- Pre-defined IDs allowing forward ID references for RelativeLayout of statistics table. -->
 
+    <!-- Container for the WCA Results / WCA Live child fragments. -->
+    <item name="wca_host_content" type="id" />
+
 </resources>
