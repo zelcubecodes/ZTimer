@@ -130,11 +130,11 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
      */
     public static final int GRAPH_PAGE = 2;
 
-    /** The WCA Results page (competitor lookup and previous results). */
-    public static final int RESULTS_PAGE = 3;
+    /** The trainer page (OLL, PLL and other case trainers). */
+    public static final int TRAINER_PAGE = 3;
 
-    /** The WCA Live page (competitions and live results). */
-    public static final int LIVE_PAGE = 4;
+    /** The WCA page. It holds WCA Results and WCA Live behind a switch at the top. */
+    public static final int WCA_PAGE = 4;
 
     /**
      * The total number of pages.
@@ -793,21 +793,23 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
             return;
         }
 
-        // The top bar stays on every page. The WCA pages swap the puzzle picker for their own title and
-        // shortcuts, and keep the settings button.
-        boolean wca = pageNum == RESULTS_PAGE || pageNum == LIVE_PAGE;
+        // The top bar stays on every page. The trainer and WCA pages swap the puzzle picker for their
+        // own title, and keep the settings button. Only the WCA page shows the records and rankings shortcuts.
+        boolean wca = pageNum == WCA_PAGE;
+        boolean trainer = pageNum == TRAINER_PAGE;
+        boolean titled = wca || trainer;
         mToolbar.setVisibility(View.VISIBLE);
         TextView wcaTitle = mToolbar.findViewById(R.id.wcaTitle);
         View recordsBtn = mToolbar.findViewById(R.id.nav_button_records);
         View rankingsBtn = mToolbar.findViewById(R.id.nav_button_rankings);
         if (wcaTitle != null && recordsBtn != null && rankingsBtn != null) {
-            fade(wcaTitle, wca);
+            fade(wcaTitle, titled);
             fade(recordsBtn, wca);
             fade(rankingsBtn, wca);
-            fade(puzzleSpinnerLayout, !wca);
-            fade(navButtonCategory, !wca);
-            if (wca) {
-                wcaTitle.setText(pageNum == RESULTS_PAGE ? "WCA Results" : "WCA Live");
+            fade(puzzleSpinnerLayout, !titled);
+            fade(navButtonCategory, !titled);
+            if (titled) {
+                wcaTitle.setText(wca ? "WCA" : getString(R.string.drawer_title_trainer));
                 recordsBtn.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(),
                         com.hatopigeon.cubictimer.activity.RecordsActivity.class)));
                 rankingsBtn.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(),
@@ -982,6 +984,35 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         return viewPager.getCurrentItem();
     }
 
+    /** The timer mode this screen is in: {@code TIMER_MODE_TIMER} or {@code TIMER_MODE_TRAINER}. */
+    public String getCurrentTimerMode() {
+        return currentTimerMode;
+    }
+
+    /** The trainer subset this screen was opened with (only meaningful in trainer mode). */
+    public TrainerScrambler.TrainerSubset getCurrentTrainerSubset() {
+        return currentPuzzleSubset;
+    }
+
+    /** Switches this screen into trainer mode for the subset, or back to the timer when {@code subset} is null. */
+    public void startTrainer(@Nullable TrainerScrambler.TrainerSubset subset) {
+        if (subset == null) {
+            mFragmentManager
+                    .beginTransaction()
+                    .replace(R.id.main_activity_container,
+                            TimerFragmentMain.newInstance(PuzzleUtils.TYPE_333, "Normal", 5, "reset",
+                                    TIMER_MODE_TIMER, TrainerScrambler.TrainerSubset.OLL, TIMER_PAGE), "fragment_main")
+                    .commit();
+        } else {
+            mFragmentManager
+                    .beginTransaction()
+                    .replace(R.id.main_activity_container,
+                            TimerFragmentMain.newInstance(subset.name(), "Normal", 5, "reset",
+                                    TIMER_MODE_TRAINER, subset, TIMER_PAGE), "fragment_main")
+                    .commit();
+        }
+    }
+
     protected class NavigationAdapter extends FragmentPagerAdapter {
 
         public NavigationAdapter(FragmentManager fm) {
@@ -1003,10 +1034,10 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                 case GRAPH_PAGE:
                     return TimerGraphFragment.newInstance(
                             currentPuzzle, currentPuzzleCategory, history);
-                case RESULTS_PAGE:
-                    return com.hatopigeon.cubictimer.wca.WcaResultsFragment.newInstance();
-                case LIVE_PAGE:
-                    return com.hatopigeon.cubictimer.wca.WcaLiveFragment.newInstance();
+                case TRAINER_PAGE:
+                    return TrainerHubFragment.newInstance();
+                case WCA_PAGE:
+                    return com.hatopigeon.cubictimer.wca.WcaHostFragment.newInstance();
             }
             return TimerFragment.newInstance(PuzzleUtils.TYPE_333, "Normal", 5, "", TIMER_MODE_TIMER, TrainerScrambler.TrainerSubset.OLL);
         }
