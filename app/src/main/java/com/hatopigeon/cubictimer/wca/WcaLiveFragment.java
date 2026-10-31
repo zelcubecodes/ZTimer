@@ -53,6 +53,14 @@ public class WcaLiveFragment extends Fragment {
         return new WcaLiveFragment();
     }
 
+    /** Top padding in dp. The WCA page passes a larger value to leave room for its Results / Live switch. */
+    public static final String ARG_TOP_PAD_DP = "top_pad_dp";
+
+    private int topPadDp() {
+        Bundle a = getArguments();
+        return a != null ? a.getInt(ARG_TOP_PAD_DP, 80) : 80;
+    }
+
     // ---- models
     private static class Comp {
         String id = "", wcaId = "", name = "", start = "", end = "";
@@ -171,7 +179,7 @@ public class WcaLiveFragment extends Fragment {
         FrameLayout frame = new FrameLayout(requireContext());
         frame.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        frame.setPadding(ui.dp(12), ui.dp(80), ui.dp(12), ui.dp(64));
+        frame.setPadding(ui.dp(12), ui.dp(topPadDp()), ui.dp(12), ui.dp(64));
 
         listPage = buildListPage();
         detailPage = buildDetailPage();
@@ -1794,7 +1802,7 @@ public class WcaLiveFragment extends Fragment {
         store.setPendingPerson(wcaId);
         View pager = requireActivity().findViewById(R.id.pager);
         if (pager instanceof androidx.viewpager.widget.ViewPager) {
-            ((androidx.viewpager.widget.ViewPager) pager).setCurrentItem(TimerFragmentMain.RESULTS_PAGE, true);
+            WcaHostFragment.open(this, WcaHostFragment.SUB_RESULTS);
         } else {
             store.takePendingPerson();
         }

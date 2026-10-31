@@ -52,6 +52,14 @@ public class WcaResultsFragment extends Fragment {
         return new WcaResultsFragment();
     }
 
+    /** Top padding in dp. The WCA page passes a larger value to leave room for its Results / Live switch. */
+    public static final String ARG_TOP_PAD_DP = "top_pad_dp";
+
+    private int topPadDp() {
+        Bundle a = getArguments();
+        return a != null ? a.getInt(ARG_TOP_PAD_DP, 80) : 80;
+    }
+
     private WcaUi ui;
     private WcaStore store;
     private EditText input;
@@ -92,7 +100,7 @@ public class WcaResultsFragment extends Fragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         scroll.setClipToPadding(false);
         scroll.setVerticalScrollBarEnabled(false);
-        scroll.setPadding(ui.dp(12), ui.dp(80), ui.dp(12), ui.dp(64));
+        scroll.setPadding(ui.dp(12), ui.dp(topPadDp()), ui.dp(12), ui.dp(64));
 
         LinearLayout page = new LinearLayout(requireContext());
         page.setOrientation(LinearLayout.VERTICAL);
@@ -1302,7 +1310,7 @@ public class WcaResultsFragment extends Fragment {
         store.setPendingComp(cid, name);
         View pager = requireActivity().findViewById(R.id.pager);
         if (pager instanceof androidx.viewpager.widget.ViewPager) {
-            ((androidx.viewpager.widget.ViewPager) pager).setCurrentItem(TimerFragmentMain.LIVE_PAGE, true);
+            WcaHostFragment.open(this, WcaHostFragment.SUB_LIVE);
         } else {
             store.takePendingComp();
             startActivity(new Intent(Intent.ACTION_VIEW,
