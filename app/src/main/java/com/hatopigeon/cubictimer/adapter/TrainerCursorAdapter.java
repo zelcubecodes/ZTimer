@@ -67,6 +67,21 @@ public class TrainerCursorAdapter extends AlgCursorAdapter {
         TrainerScrambler.saveSelectedItems(currentSubset, currentPuzzleCategory, selectedItems);
     }
 
+    /** True if every one of the named cases is selected. */
+    public boolean isGroupSelected(List<String> names) {
+        return selectedItems.containsAll(names);
+    }
+
+    /** Selects or deselects a whole group of cases at once and saves the choice. */
+    public void setGroupSelected(List<String> names, boolean selected) {
+        for (String name : names) {
+            selectedItems.remove(name);
+            if (selected) selectedItems.add(name);
+        }
+        TrainerScrambler.saveSelectedItems(currentSubset, currentPuzzleCategory, selectedItems);
+        notifyDataSetChanged();
+    }
+
     public void selectAll() {
         int size = selectedItems.size();
         Log.d("TRAINER","selecteditems: " + size);
