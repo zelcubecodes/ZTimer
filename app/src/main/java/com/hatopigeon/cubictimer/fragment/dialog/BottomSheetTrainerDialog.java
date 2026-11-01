@@ -168,7 +168,18 @@ public class BottomSheetTrainerDialog extends BottomSheetDialogFragment implemen
     @Override
     public void onDismiss(@NonNull DialogInterface dialog) {
         super.onDismiss(dialog);
-        broadcast(CATEGORY_UI_INTERACTIONS, ACTION_GENERATE_SCRAMBLE);
+        if (dismissListener != null) {
+            dismissListener.run();
+        } else {
+            broadcast(CATEGORY_UI_INTERACTIONS, ACTION_GENERATE_SCRAMBLE);
+        }
+    }
+
+    /** Optional. When set, this runs on dismiss instead of asking every timer to make a new scramble. */
+    private Runnable dismissListener;
+
+    public void setDismissListener(Runnable listener) {
+        this.dismissListener = listener;
     }
 
     @Override
