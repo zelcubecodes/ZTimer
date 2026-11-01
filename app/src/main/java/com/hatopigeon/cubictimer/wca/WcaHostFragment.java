@@ -145,10 +145,16 @@ public class WcaHostFragment extends Fragment {
         if (results == null || live == null) return;
 
         boolean pageVisible = getUserVisibleHint();
-        View rv = results.getView();
-        View lv = live.getView();
-        if (rv != null) rv.setVisibility(sub == SUB_RESULTS ? View.VISIBLE : View.GONE);
-        if (lv != null) lv.setVisibility(sub == SUB_LIVE ? View.VISIBLE : View.GONE);
+
+        // Show and hide through the fragment manager. It remembers this when a page's view is
+        // rebuilt (for example after swiping away and back), unlike plain view visibility.
+        FragmentTransaction tx = fm.beginTransaction();
+        if (sub == SUB_RESULTS) {
+            tx.show(results).hide(live);
+        } else {
+            tx.show(live).hide(results);
+        }
+        tx.commitNowAllowingStateLoss();
 
         if (pillResults != null) ui.stylePill(pillResults, sub == SUB_RESULTS);
         if (pillLive != null) ui.stylePill(pillLive, sub == SUB_LIVE);
