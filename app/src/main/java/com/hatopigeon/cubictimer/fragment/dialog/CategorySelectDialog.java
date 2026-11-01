@@ -26,6 +26,7 @@ import com.hatopigeon.cubictimer.fragment.TimerFragment;
 import com.hatopigeon.cubictimer.items.Solve;
 import com.hatopigeon.cubictimer.listener.DialogListenerMessage;
 import com.hatopigeon.cubictimer.puzzle.TrainerScrambler;
+import com.hatopigeon.cubictimer.puzzle.TrainerSets;
 import com.hatopigeon.cubictimer.utils.PuzzleUtils;
 import com.hatopigeon.cubictimer.utils.ThemeUtils;
 
@@ -82,6 +83,27 @@ public class CategorySelectDialog extends DialogFragment {
         args.putSerializable("subset", currentSubset);
         dialog.setArguments(args);
         return dialog;
+    }
+
+    /**
+     * The trainer rows offered on the times and graph pages, in order. Each is
+     * {set name, category, label}. The category is DatabaseHandler.SUBTYPE_ALL for a whole set,
+     * or the name of one group of it.
+     */
+    private List<String[]> trainerRows() {
+        List<String[]> rows = new java.util.ArrayList<>();
+        for (TrainerScrambler.TrainerSubset t : TrainerScrambler.TrainerSubset.values()) {
+            String title = getString(R.string.title_trainer, TrainerSets.displayName(t));
+            rows.add(new String[]{t.name(), com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL, title});
+            List<String> groups = TrainerSets.groupNames(t);
+            // A set with a single group would just repeat itself
+            if (groups.size() > 1) {
+                for (String group : groups) {
+                    rows.add(new String[]{t.name(), group, title + " \u00b7 " + group});
+                }
+            }
+        }
+        return rows;
     }
 
     /** Same as above. With {@code includeTrainer} the trainer sets (OLL, PLL, ...) are listed too. */
@@ -155,10 +177,9 @@ public class CategorySelectDialog extends DialogFragment {
         // select a subtype
         listView.setOnItemClickListener((parent, view1, position, id) -> {
             if (position >= subtypeList.size()) {
-                // A trainer set was selected
-                TrainerScrambler.TrainerSubset picked =
-                        TrainerScrambler.TrainerSubset.values()[position - subtypeList.size()];
-                dialogListenerMessage.onUpdateDialog(TRAINER_PREFIX + picked.name());
+                // A trainer set, or one group of it, was selected: "trainer:OLL:Edges Only"
+                String[] row = trainerRows().get(position - subtypeList.size());
+                dialogListenerMessage.onUpdateDialog(TRAINER_PREFIX + row[0] + ":" + row[1]);
                 dismiss();
                 return;
             }
@@ -252,9 +273,7 @@ public class CategorySelectDialog extends DialogFragment {
         int[] icons = {};
         List<String> shown = new java.util.ArrayList<>(subtypeList);
         if (includeTrainer) {
-            for (TrainerScrambler.TrainerSubset t : TrainerScrambler.TrainerSubset.values()) {
-                shown.add(getString(R.string.title_trainer, t.name()));
-            }
+            for (String[] row : trainerRows()) shown.add(row[2]);
         }
         mAdapter = new BottomSheetSpinnerAdapter(getContext(), shown.toArray(new String[0]), icons);
         listView.setAdapter(mAdapter);
