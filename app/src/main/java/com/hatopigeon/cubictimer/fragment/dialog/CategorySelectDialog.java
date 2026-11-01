@@ -44,6 +44,9 @@ public class CategorySelectDialog extends DialogFragment {
 
     private static final String KEY_SAVEDSUBTYPE = "savedSubtype";
 
+    /** Answer prefix for a trainer set, as opposed to a normal category name. */
+    public static final String TRAINER_PREFIX = "trainer:";
+
     @BindView(R.id.add_category)
     View addCategoryButton;
     @BindView(R.id.list)
@@ -55,6 +58,7 @@ public class CategorySelectDialog extends DialogFragment {
     private String                         currentTimerMode;
     private TrainerScrambler.TrainerSubset currentSubset;
     private List<String>                   subtypeList;
+    private boolean                        includeTrainer;
 
     // Subtype that's currently being edited
     private String currentEditSubtype = "";
@@ -77,6 +81,13 @@ public class CategorySelectDialog extends DialogFragment {
         args.putString("mode", currentTimerMode);
         args.putSerializable("subset", currentSubset);
         dialog.setArguments(args);
+        return dialog;
+    }
+
+    /** Same as above. With {@code includeTrainer} the trainer sets (OLL, PLL, ...) are listed too. */
+    public static CategorySelectDialog newInstance(String currentPuzzle, String currentPuzzleSubtype, String currentTimerMode, TrainerScrambler.TrainerSubset currentSubset, boolean includeTrainer) {
+        CategorySelectDialog dialog = newInstance(currentPuzzle, currentPuzzleSubtype, currentTimerMode, currentSubset);
+        dialog.getArguments().putBoolean("include_trainer", includeTrainer);
         return dialog;
     }
 
@@ -103,6 +114,7 @@ public class CategorySelectDialog extends DialogFragment {
         currentSubtype = getArguments().getString("subtype");
         currentTimerMode = getArguments().getString("mode");
         currentSubset = (TrainerScrambler.TrainerSubset) getArguments().getSerializable("subset");
+        includeTrainer = getArguments().getBoolean("include_trainer", false);
 
         DatabaseHandler dbHandler = CubicTimer.getDBHandler();
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
@@ -142,6 +154,14 @@ public class CategorySelectDialog extends DialogFragment {
         // click listeners
         // select a subtype
         listView.setOnItemClickListener((parent, view1, position, id) -> {
+            if (position >= subtypeList.size()) {
+                // A trainer set was selected
+                TrainerScrambler.TrainerSubset picked =
+                        TrainerScrambler.TrainerSubset.values()[position - subtypeList.size()];
+                dialogListenerMessage.onUpdateDialog(TRAINER_PREFIX + picked.name());
+                dismiss();
+                return;
+            }
             // A subtype was selected
             currentSubtype = subtypeList.get(position);
 
@@ -152,6 +172,8 @@ public class CategorySelectDialog extends DialogFragment {
         });
 
         listView.setOnItemLongClickListener((parent, view12, position, id) -> {
+            // Trainer sets can't be renamed or removed
+            if (position >= subtypeList.size()) return true;
             // Create a popup menu for each entry
             MenuBuilder menuBuilder = new MenuBuilder(context);
             MenuInflater inflater = new MenuInflater(context);
@@ -228,7 +250,13 @@ public class CategorySelectDialog extends DialogFragment {
     private void updateList(DatabaseHandler dbHandler) {
         subtypeList = dbHandler.getAllSubtypesFromType(currentPuzzle);
         int[] icons = {};
-        mAdapter = new BottomSheetSpinnerAdapter(getContext(), subtypeList.toArray(new String[0]), icons);
+        List<String> shown = new java.util.ArrayList<>(subtypeList);
+        if (includeTrainer) {
+            for (TrainerScrambler.TrainerSubset t : TrainerScrambler.TrainerSubset.values()) {
+                shown.add(getString(R.string.title_trainer, t.name()));
+            }
+        }
+        mAdapter = new BottomSheetSpinnerAdapter(getContext(), shown.toArray(new String[0]), icons);
         listView.setAdapter(mAdapter);
     }
 
