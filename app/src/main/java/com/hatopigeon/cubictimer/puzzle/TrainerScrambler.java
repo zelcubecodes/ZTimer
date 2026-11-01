@@ -48,21 +48,29 @@ public abstract class TrainerScrambler {
     // implementation, causing crashes.
     public static final String KEY_TRAINER = "TRAINER_V2";
 
+    /**
+     * The practice sets. OLL and PLL are trained from a list of cases. The others are generated:
+     * LL (a random last layer), ZBLL and CMLL (a last layer with a chosen corner orientation type),
+     * ZBLS (the last slot of F2L, with edges oriented) and LSE (the last six edges of Roux).
+     */
     public static enum TrainerSubset {
-        OLL, PLL
+        OLL, PLL, LL, ZBLL, ZBLS, CMLL, LSE
     };
 
-    /**
-     *  Amount of different variations for each registered subset
-     */
-    private static int getSubsetVariations(TrainerSubset subset) {
-        switch (subset) {
-            case OLL:
-                return 57;
-            case PLL:
-                return 0;
+    /** A generated practice case. */
+    public static final class TrainerCase {
+        /** The scramble that produces the case. */
+        public final String scramble;
+        /** The case that was picked (for example "OLL 21" or "Ua"), or null. */
+        public final String caseName;
+        /** The group the case belongs to, used as the category its solves are saved under. */
+        public final String group;
+
+        TrainerCase(String scramble, String caseName, String group) {
+            this.scramble = scramble;
+            this.caseName = caseName;
+            this.group = group;
         }
-        return 0;
     }
 
     /**
@@ -106,36 +114,266 @@ public abstract class TrainerScrambler {
      * @return
      */
     public static Set<String> fetchSelectedItems(TrainerSubset subset, String category) {
-        return Prefs.getPrefs()
-                .getStringSet(KEY_TRAINER + subset.name() + category, new HashSet<>());
+        String key = KEY_TRAINER + subset.name() + category;
+        // A generated set has only a few cases, so until the user chooses, all of them are on.
+        if (!TrainerSets.isAlgBased(subset) && !Prefs.getPrefs().contains(key)) {
+            return new HashSet<>(TrainerSets.allCases(subset));
+        }
+        return Prefs.getPrefs().getStringSet(key, new HashSet<>());
     }
 
     /**
      * Generates a random trainer case from the selected cases
      */
     public static String generateTrainerCase(Context context, TrainerSubset subset, String category) {
-        List<String> selectedItems = new ArrayList<>(fetchSelectedItems(subset, category));
-        String caseAlg = "";
-        String scramble = "";
+        return generateCase(context, subset, category).scramble;
+    }
 
-        CubePuzzle.CubeState state = null;
+    private static final String[] AUF = {"", "U", "U2", "U'"};
+    private static final String[] PLL_CASES = {"H", "Ua", "Ub", "Z", "Aa", "Ab", "E", "F", "Ga", "Gb",
+            "Gc", "Gd", "Ja", "Jb", "Na", "Nb", "Ra", "Rb", "T", "V", "Y"};
 
-        if (selectedItems.size() != 0) {
-            try {
-                // Fetch a random setup algorithm and set it as the cube state
-                caseAlg = fetchCaseAlgorithm(context, subset.name(), selectedItems.get(random.nextInt(selectedItems.size())));
-                state = (CubePuzzle.CubeState) solved.applyAlgorithm(caseAlg);
+    /**
+     * Setups for last layers that have all edges oriented and one corner orientation type. Every
+     * setup keeps the first two layers solved. They are taken from the trainer's own OLL data, but
+     * sorted by the corner pattern they actually produce, not by the case number they were filed
+     * under, because a few of those lists mix patterns.
+     */
+    private static final java.util.Map<String, String[]> CORNER_SETUPS = buildCornerSetups();
 
-                // Solve the state
-                scramble = ((ThreeByThreeCubePuzzle) puzzle).solveIn(state, 20, null, null);
-            } catch (InvalidScrambleException e) {
-                e.printStackTrace();
+    private static java.util.Map<String, String[]> buildCornerSetups() {
+        java.util.Map<String, String[]> map = new java.util.HashMap<>();
+        map.put("H", new String[]{
+                "B L2 B2 U2 B L2 B' U2 B2 L2 B'",
+                "B U2 B2 R2 F D2 F D2 F2 R2 B",
+                "B' U2 B U B' U' B U B' U B",
+                "L U L' U L U' L' U L U2 L'",
+                "L2 F D2 F' L2 U2 L2 B R2 B' L2",
+                "R B2 D2 L2 D' L2 D' B2 R2 U R",
+                "R B2 U' B2 U B2 U L R' U2 L'",
+                "R' F2 U F2 U' F2 U' L' R U2 L",
+                "R' U L U' R U' L' U' L U' L'",
+                "R' U' R U' R' U R U' R' U2 R"});
+        map.put("Pi", new String[]{
+                "B' U' B2 L2 D F2 D F2 D2 L2 B'",
+                "F L' D2 L F' U' F L' D2 L F'",
+                "F U2 B F' U' L2 U' L2 U L2 B'",
+                "F' U' L' U L F2 R U R' U' F'",
+                "L2 R D2 L2 U R2 U L2 D2 L2 R",
+                "R U2 R2 D U2 B2 U' B2 D' U' R",
+                "R' D U B2 U B2 D' U2 R2 U2 R'",
+                "B D' U2 R2 F2 D' L2 U' F2 D2 R2 B",
+                "B F' L2 B' L2 D F2 U F2 D' L2 F",
+                "B L' B' R B L2 U' L' U2 B' U' R'"});
+        map.put("U", new String[]{
+                "B L2 B2 F' U2 B F2 U2 F L2 F2",
+                "F L F' U' F L' F' U' L U2 L'",
+                "F' R' F U F' R F U R' U2 R",
+                "F2 R2 F' D F D' R2 D F' D' F'",
+                "L B' R2 B' L B R2 B' L' B2 L'",
+                "L D R' F2 R D' L' U2 L' U' L",
+                "R' D R2 U2 R' U R U R2 D' R",
+                "B L' B2 L2 B U' B' F' L F L2 B",
+                "F U2 B' U2 B U2 B' R2 B' R2 B2 F'",
+                "L' B' L' U2 R' U' L R B L' U2 L2"});
+        map.put("T", new String[]{
+                "B2 F2 L' F' R' F L F' R B2 F'",
+                "L2 R' U L2 U' R D F2 U' F2 D'",
+                "R U2 F U F' U R' U F U F'",
+                "R2 U2 B2 L' B2 L U2 B2 R B2 R",
+                "B' D' U L D' L' U' L D L' D B",
+                "B' U' B' D' F D B D' F' D U B",
+                "F D U' R D R' U R D' R' D' F'",
+                "F D2 L F' L' B' L F L' B D2 F'",
+                "F U F' U2 L' B' U' B L2 F' L' F",
+                "F U F2 U' F' L F U F2 U' F' L'"});
+        map.put("L", new String[]{
+                "B F' D' B' D F' D' B D B' F2",
+                "B L F' L F L2 U L U' L' B'",
+                "B' D2 F2 D F' R2 F' D2 B' D' B2",
+                "B' D2 L D R' D' L' D R D B",
+                "B2 R2 D' R' U2 R D R' U2 R' B2",
+                "F L F' U2 F L' F' U' L U' L'",
+                "F R U R' F' L' U L F U' F'",
+                "F U F' U R' U F U F' U' R",
+                "F U' R' U' R U F' U' R' U R",
+                "F' L' U' L U L2 B L B' L F"});
+        map.put("Sune", new String[]{
+                "B U2 B2 U' B2 U' B' U B' U B",
+                "B' R U R2 U R2 U2 R2 U R B",
+                "F2 L2 F' U2 F' U' F U' F L2 F2",
+                "L R B' L B R B' L' B L' R2",
+                "L R' U' R U R' F2 R' F2 L' R2",
+                "L U L' U L' U' L2 U' L2 U2 L",
+                "L2 R' F2 L' F2 L' U L U' L' R",
+                "R' F R U F' U' F' U L F L'",
+                "B D F' D' L2 D F2 U' F' D' U B'",
+                "B D2 B2 F2 D2 U2 B F2 U' B U' B'"});
+        map.put("Anti-Sune", new String[]{
+                "B U R' U2 R U R' U R U B'",
+                "B' F U F' U' F R2 F R2 B F2",
+                "B' F2 R' B' R F' R' B R B F'",
+                "B' U' B U' B U B2 U B2 U2 B'",
+                "F U F2 U' F2 U' F2 U2 F2 U2 F'",
+                "L R' F L F' R' F L' F' L' R2",
+                "L R' F2 R' F2 L' R2 U R' U R",
+                "L R2 B' L B R' B' L' B L' R'",
+                "L' U2 L2 U L2 U L U' L U' L'",
+                "B D2 U' F U F2 D' L2 D F D2 B'"});
+        return map;
+    }
+
+    /**
+     * The inverse of an algorithm: the moves in reverse order, each undone. The OLL and PLL lists
+     * hold algorithms that SOLVE each case. To practise a case, the cube has to start in the state
+     * the algorithm solves, which is what the inverse produces from a solved cube.
+     */
+    static String invertAlgorithm(String alg) {
+        String[] moves = alg.trim().split("\\s+");
+        StringBuilder inverse = new StringBuilder();
+        for (int i = moves.length - 1; i >= 0; i--) {
+            String move = moves[i];
+            if (move.isEmpty()) continue;
+            if (move.endsWith("'")) {
+                move = move.substring(0, move.length() - 1);
+            } else if (!move.endsWith("2")) {
+                move = move + "'";
             }
-        } else {
-            scramble = context.getString(R.string.trainer_help_message);
+            inverse.append(move).append(' ');
+        }
+        return inverse.toString().trim();
+    }
+
+    private static String randomAuf() {
+        return AUF[random.nextInt(4)];
+    }
+
+    private static String invertAuf(String auf) {
+        switch (auf) {
+            case "U":
+                return "U'";
+            case "U'":
+                return "U";
+            default:
+                return auf;
+        }
+    }
+
+    /** A random permutation of the last layer: a PLL setup with a U turn before and after. */
+    private static String randomPermutation(Context context) {
+        String pll = PLL_CASES[random.nextInt(PLL_CASES.length)];
+        return randomAuf() + " " + fetchCaseAlgorithm(context, "PLL", pll) + " " + randomAuf();
+    }
+
+    /**
+     * A last layer with all edges oriented and the given corner orientation type, in a random
+     * permutation. This is what ZBLL (and CMLL, which ignores the edges) practises. The corner type
+     * is applied after the permutation and turned by a random U move, so every position of the type
+     * can come up. Passing "Oriented" gives a pure permutation with all corners oriented.
+     */
+    private static String cornerTypeAlgorithm(Context context, String coType) {
+        String alg = randomPermutation(context);
+        String[] setups = CORNER_SETUPS.get(coType);
+        if (setups != null) {
+            String turn = randomAuf();
+            alg += " " + turn + " " + setups[random.nextInt(setups.length)] + " " + invertAuf(turn);
+        }
+        return alg;
+    }
+
+    /**
+     * Random moves that only disturb the last slot of F2L: R, U turns and R U R' style triggers.
+     * The cross and the other three slots stay solved, and every edge stays oriented.
+     */
+    private static String lastSlotAlgorithm() {
+        String[] turns = {"U", "U'", "U2"};
+        StringBuilder alg = new StringBuilder();
+        int triggers = 4 + random.nextInt(4);
+        for (int i = 0; i < triggers; i++) {
+            alg.append(randomAuf()).append(" R ").append(turns[random.nextInt(3)]).append(" R' ");
+        }
+        return alg.toString().trim();
+    }
+
+    /** Random M and U moves, which is all the last six edges of Roux can do. */
+    private static String lseScramble() {
+        String[] m = {"M", "M'", "M2"};
+        String[] u = {"U", "U'", "U2"};
+        StringBuilder alg = new StringBuilder();
+        boolean useM = random.nextBoolean();
+        int moves = 18 + random.nextInt(5);
+        for (int i = 0; i < moves; i++) {
+            alg.append(useM ? m[random.nextInt(3)] : u[random.nextInt(3)]).append(' ');
+            useM = !useM;
+        }
+        return alg.toString().trim();
+    }
+
+    /**
+     * Turns a setup algorithm into a scramble: puts the cube in that state and asks the solver for
+     * a way to reach it. If that fails the setup itself is a valid scramble.
+     */
+    private static String scrambleFor(String setup, int maxMoves) {
+        try {
+            CubePuzzle.CubeState state = (CubePuzzle.CubeState) solved.applyAlgorithm(setup);
+            String scramble = ((ThreeByThreeCubePuzzle) puzzle).solveIn(state, maxMoves, null, null);
+            if (scramble != null && !scramble.trim().isEmpty()) {
+                return scramble;
+            }
+        } catch (Exception e) {
+            Log.e("TRAINER_SCRAMBLE", "Solver failed: " + e);
+        }
+        return setup;
+    }
+
+    /**
+     * Generates a random trainer case from the selected cases, with the case and group it came from.
+     * Not thread safe inside the solver, so only one case is built at a time.
+     */
+    public static synchronized TrainerCase generateCase(Context context, TrainerSubset subset, String category) {
+        List<String> selectedItems = new ArrayList<>(fetchSelectedItems(subset, category));
+        if (selectedItems.isEmpty()) {
+            return new TrainerCase(context.getString(R.string.trainer_help_message), null, null);
         }
 
-        return PuzzleUtils.applyRotationForAlgorithm(scramble, Y_ROTATIONS[random.nextInt(4)]);
+        String caseName = selectedItems.get(random.nextInt(selectedItems.size()));
+        String group = TrainerSets.groupOf(subset, caseName);
+        String scramble;
+        boolean rotate = true;
+
+        switch (subset) {
+            case OLL:
+            case PLL:
+                // The lists hold solving algorithms, so start from the state each one solves.
+                scramble = scrambleFor(invertAlgorithm(fetchCaseAlgorithm(context, subset.name(), caseName)), 20);
+                break;
+            case LL: {
+                String oll = String.format(java.util.Locale.US, "OLL %02d", 1 + random.nextInt(57));
+                String setup = fetchCaseAlgorithm(context, "OLL", oll) + " " + randomAuf() + " "
+                        + randomPermutation(context);
+                scramble = scrambleFor(setup, 22);
+                break;
+            }
+            case ZBLL:
+            case CMLL:
+                scramble = scrambleFor(cornerTypeAlgorithm(context, caseName), 22);
+                break;
+            case ZBLS:
+                scramble = scrambleFor(lastSlotAlgorithm(), 22);
+                break;
+            case LSE:
+                // Already a scramble, and rotating it would turn the M slice into an S slice.
+                scramble = lseScramble();
+                rotate = false;
+                break;
+            default:
+                scramble = "";
+        }
+
+        if (rotate) {
+            scramble = PuzzleUtils.applyRotationForAlgorithm(scramble, Y_ROTATIONS[random.nextInt(4)]);
+        }
+        return new TrainerCase(scramble, caseName, group);
     }
 
     private static String fetchCaseAlgorithm(Context context, String subset, String name) {
