@@ -994,6 +994,27 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         return currentPuzzleSubset;
     }
 
+    /**
+     * Hides or restores the top and bottom bars and locks swiping and the drawer. The trainer tab
+     * calls this while its own timer runs. It does what a timer start/stop does, but without the
+     * broadcasts the normal timer listens to.
+     */
+    public void setTimingActive(boolean running) {
+        if (running) {
+            getMainActivity().setDrawerLock(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+            viewPager.setPagingEnabled(false);
+            activateTabLayout(false);
+            mToolbar.animate().translationY(-mToolbar.getHeight()).alpha(0).setDuration(mAnimationDuration);
+            tabView.animate().translationY(tabView.getHeight()).alpha(0).setDuration(mAnimationDuration);
+        } else {
+            getMainActivity().setDrawerLock(DrawerLayout.LOCK_MODE_UNDEFINED);
+            mToolbar.animate().translationY(0).alpha(1).setDuration(mAnimationDuration);
+            tabView.animate().translationY(0).alpha(1).setDuration(mAnimationDuration);
+            activateTabLayout(true);
+            viewPager.setPagingEnabled(pagerEnabled);
+        }
+    }
+
     /** Switches this screen into trainer mode for the subset, or back to the timer when {@code subset} is null. */
     public void startTrainer(@Nullable TrainerScrambler.TrainerSubset subset) {
         if (subset == null) {
