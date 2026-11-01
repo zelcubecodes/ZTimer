@@ -179,6 +179,18 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     private LinearLayout      tabStrip;
     private NavigationAdapter viewPagerAdapter;
 
+    /** Preference that remembers which trainer set (OLL, PLL, ...) the Trainer tab is on. */
+    public static final String PREF_TRAINER_SUBSET = "ztimer_trainer_last_subset";
+
+    /** The Trainer tab keeps its own solves under the set's name, in this category. */
+    private static final String TRAINER_CATEGORY = "Normal";
+
+    /** The set the Trainer tab trains. Independent of the Timer tab's puzzle. */
+    private TrainerScrambler.TrainerSubset trainerSubset = TrainerScrambler.TrainerSubset.OLL;
+
+    /** True while the shared statistics describe the Trainer tab instead of the Timer tab's puzzle. */
+    private boolean statsScopeTrainer = false;
+
     // Stores the current puzzle being timed/shown
     private String                         currentPuzzle;
     private String                         currentPuzzleCategory;
@@ -413,6 +425,56 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         puzzleNumber.setText(String.valueOf(currentMbldNum));
     }
 
+    /** Puts the Timer tab's puzzle and category back into the title, after leaving the Trainer tab. */
+    private void updatePuzzleSpinnerHeaderText() {
+        if (puzzleCategoryText == null || puzzleNameText == null) return;
+        puzzleCategoryText.setText(currentPuzzleCategory.toLowerCase());
+        if (currentTimerMode.equals(TIMER_MODE_TRAINER))
+            puzzleNameText.setText(getString(R.string.title_trainer, currentPuzzleSubset.name()));
+        else
+            puzzleNameText.setText(PuzzleUtils.getPuzzleNameFromType(currentPuzzle));
+    }
+
+    /** Shows the trainer set in the title, for example "OLL trainer". */
+    private void updateTrainerHeader() {
+        if (puzzleCategoryText == null || puzzleNameText == null) return;
+        puzzleNameText.setText(getString(R.string.title_trainer, trainerSubset.name()));
+        puzzleCategoryText.setText(TRAINER_CATEGORY.toLowerCase());
+    }
+
+    /** Switches the Trainer tab to another set. The Timer tab is not touched. */
+    public void setTrainerSubset(TrainerScrambler.TrainerSubset subset) {
+        if (subset == trainerSubset) return;
+        trainerSubset = subset;
+        PreferenceManager.getDefaultSharedPreferences(mContext).edit()
+                .putString(PREF_TRAINER_SUBSET, subset.name()).apply();
+        updateTrainerHeader();
+        // Rebuilds only the trainer page, see NavigationAdapter.getItemPosition.
+        viewPagerAdapter.notifyDataSetChanged();
+        if (statsScopeTrainer) handleStatisticsLoader();
+    }
+
+    /** Asks which trainer set to practise, or to choose the cases within the current one. */
+    private void showTrainerMenu() {
+        final TrainerScrambler.TrainerSubset[] all = TrainerScrambler.TrainerSubset.values();
+        final CharSequence[] items = new CharSequence[all.length + 1];
+        for (int i = 0; i < all.length; i++) items[i] = all[i].name();
+        items[all.length] = getString(R.string.trainer_hub_cases_button);
+        ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
+                .title(R.string.drawer_title_trainer)
+                .items(items)
+                .itemsCallback((dialog, itemView, position, text) -> {
+                    if (position < all.length) {
+                        setTrainerSubset(all[position]);
+                    } else {
+                        BottomSheetTrainerDialog sheet =
+                                BottomSheetTrainerDialog.newInstance(trainerSubset, TRAINER_CATEGORY);
+                        sheet.show(mFragmentManager, "trainer_dialog_fragment");
+                    }
+                })
+                .build());
+    }
+
     public TimerFragmentMain() {
         // Required empty public constructor
     }
@@ -452,6 +514,14 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
         mContext = getContext();
         mFragmentManager = getFragmentManager();
+
+        try {
+            trainerSubset = TrainerScrambler.TrainerSubset.valueOf(
+                    PreferenceManager.getDefaultSharedPreferences(mContext)
+                            .getString(PREF_TRAINER_SUBSET, TrainerScrambler.TrainerSubset.OLL.name()));
+        } catch (IllegalArgumentException e) {
+            trainerSubset = TrainerScrambler.TrainerSubset.OLL;
+        }
 
         // Retrieve arguments
         if (getArguments() != null) {
@@ -681,14 +751,16 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         if (DEBUG_ME)
             Log.d(TAG, "Puzzle and subtype: " + currentPuzzle + " // " + currentPuzzleCategory);
         if (DEBUG_ME) Log.d(TAG, "onActivityCreated -> restartLoader: STATISTICS_LOADER_ID");
+        final String statsPuzzle = statsScopeTrainer ? trainerSubset.name() : currentPuzzle;
+        final String statsCategory = statsScopeTrainer ? TRAINER_CATEGORY : currentPuzzleCategory;
         getLoaderManager().restartLoader(MainActivity.STATISTICS_LOADER_ID, null,
                                          new LoaderManager.LoaderCallbacks<Wrapper<Statistics>>() {
                                              @Override
                                              public Loader<Wrapper<Statistics>> onCreateLoader(int id, Bundle args) {
                                                  if (DEBUG_ME)
                                                      Log.d(TAG, "onCreateLoader: STATISTICS_LOADER_ID");
-                                                 return new StatisticsLoader(mContext, Statistics.newAllTimeStatistics(currentPuzzle),
-                                                                             currentPuzzle, currentPuzzleCategory);
+                                                 return new StatisticsLoader(mContext, Statistics.newAllTimeStatistics(statsPuzzle),
+                                                                             statsPuzzle, statsCategory);
                                              }
 
                                              @Override
@@ -793,23 +865,30 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
             return;
         }
 
-        // The top bar stays on every page. The trainer and WCA pages swap the puzzle picker for their
-        // own title, and keep the settings button. Only the WCA page shows the records and rankings shortcuts.
+        // The top bar stays on every page. The WCA page swaps the puzzle picker for its own title and
+        // shows the records and rankings shortcuts. The Trainer page keeps the picker, but it picks
+        // the trainer set instead of a puzzle.
         boolean wca = pageNum == WCA_PAGE;
         boolean trainer = pageNum == TRAINER_PAGE;
-        boolean titled = wca || trainer;
         mToolbar.setVisibility(View.VISIBLE);
+
+        // The shared statistics follow the tab: trainer solves on the Trainer tab, puzzle solves elsewhere.
+        if (trainer != statsScopeTrainer) {
+            statsScopeTrainer = trainer;
+            handleStatisticsLoader();
+        }
+
         TextView wcaTitle = mToolbar.findViewById(R.id.wcaTitle);
         View recordsBtn = mToolbar.findViewById(R.id.nav_button_records);
         View rankingsBtn = mToolbar.findViewById(R.id.nav_button_rankings);
         if (wcaTitle != null && recordsBtn != null && rankingsBtn != null) {
-            fade(wcaTitle, titled);
+            fade(wcaTitle, wca);
             fade(recordsBtn, wca);
             fade(rankingsBtn, wca);
-            fade(puzzleSpinnerLayout, !titled);
-            fade(navButtonCategory, !titled);
-            if (titled) {
-                wcaTitle.setText(wca ? "WCA" : getString(R.string.drawer_title_trainer));
+            fade(puzzleSpinnerLayout, !wca);
+            fade(navButtonCategory, !wca && !trainer);
+            if (wca) {
+                wcaTitle.setText("WCA");
                 recordsBtn.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(),
                         com.hatopigeon.cubictimer.activity.RecordsActivity.class)));
                 rankingsBtn.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(),
@@ -820,6 +899,15 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                 return;
             }
         }
+
+        if (trainer) {
+            updateTrainerHeader();
+            fade(navButtonHistory, false);
+            fade(navButtonBluetooth, false);
+            fade(puzzleNumber, false);
+            return;
+        }
+        updatePuzzleSpinnerHeaderText();
 
         switch (pageNum) {
             case TIMER_PAGE:
@@ -917,7 +1005,9 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
         // Setup action bar click listener
         puzzleSpinnerLayout.setOnClickListener(v -> {
-            if (currentTimerMode.equals(TimerFragment.TIMER_MODE_TRAINER)) {
+            if (viewPager != null && viewPager.getCurrentItem() == TRAINER_PAGE) {
+                showTrainerMenu();
+            } else if (currentTimerMode.equals(TimerFragment.TIMER_MODE_TRAINER)) {
                 BottomSheetTrainerDialog bottomSheetTrainerDialog = BottomSheetTrainerDialog.newInstance(currentPuzzleSubset, currentPuzzleCategory);
                 bottomSheetTrainerDialog.show(mFragmentManager, "trainer_dialog_fragment");
             }
@@ -1056,11 +1146,31 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                     return TimerGraphFragment.newInstance(
                             currentPuzzle, currentPuzzleCategory, history);
                 case TRAINER_PAGE:
-                    return TrainerHubFragment.newInstance();
+                    // A second, independent timer. Same screen and settings as the Timer tab, but
+                    // it trains the chosen set and saves its solves under that set's name.
+                    return TimerFragment.newInstance(trainerSubset.name(), TRAINER_CATEGORY,
+                            currentMbldNum, "", TIMER_MODE_TRAINER, trainerSubset);
                 case WCA_PAGE:
                     return com.hatopigeon.cubictimer.wca.WcaHostFragment.newInstance();
             }
             return TimerFragment.newInstance(PuzzleUtils.TYPE_333, "Normal", 5, "", TIMER_MODE_TIMER, TrainerScrambler.TrainerSubset.OLL);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            // A different id per set makes the pager build a fresh trainer page when the set changes.
+            return position == TRAINER_PAGE ? 100 + trainerSubset.ordinal() : position;
+        }
+
+        @Override
+        public int getItemPosition(@NonNull Object object) {
+            if (object instanceof TimerFragment) {
+                TimerFragment f = (TimerFragment) object;
+                if (f.isTrainerMode() && f.getTrainerSubset() != trainerSubset) {
+                    return POSITION_NONE;
+                }
+            }
+            return POSITION_UNCHANGED;
         }
 
         @Override

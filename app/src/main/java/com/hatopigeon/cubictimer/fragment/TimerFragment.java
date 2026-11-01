@@ -104,6 +104,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import butterknife.BindView;
@@ -448,6 +449,11 @@ public class TimerFragment extends BaseFragment
             = new TTFragmentBroadcastReceiver(this, CATEGORY_UI_INTERACTIONS) {
         @Override
         public void onReceiveWhileAdded(Context context, Intent intent) {
+            // The Timer tab and the Trainer tab each have their own timer. Only the one that is
+            // on screen reacts, so a new scramble or a finished solve never lands in both.
+            if (!ACTION_SCROLLED_PAGE.equals(intent.getAction()) && !isActiveTimer()) {
+                return;
+            }
             switch (Objects.requireNonNull(intent.getAction())) {
                 case ACTION_SCROLLED_PAGE:
                     if (holdEnabled) {
@@ -511,6 +517,47 @@ public class TimerFragment extends BaseFragment
             }
         }
     };
+
+    /** True if this timer belongs to the Trainer tab. */
+    public boolean isTrainerMode() {
+        return TIMER_MODE_TRAINER.equals(currentTimerMode);
+    }
+
+    /** The trainer set (OLL, PLL, ...) this timer trains. Only meaningful in trainer mode. */
+    public TrainerScrambler.TrainerSubset getTrainerSubset() {
+        return currentSubset;
+    }
+
+    /** The main screen this timer lives in, or null. */
+    private TimerFragmentMain findMain() {
+        Fragment p = getParentFragment();
+        while (p != null && !(p instanceof TimerFragmentMain)) p = p.getParentFragment();
+        return (TimerFragmentMain) p;
+    }
+
+    /**
+     * Whether this timer is the one that should react right now. The Trainer tab's timer reacts
+     * only while the Trainer tab is open, and the Timer tab's timer reacts on every other tab,
+     * which keeps its old behaviour (for example "use this scramble" from the times list).
+     */
+    private boolean isActiveTimer() {
+        TimerFragmentMain main = findMain();
+        if (main == null) return true;
+        if (TIMER_MODE_TRAINER.equals(main.getCurrentTimerMode())) return true; // old full-screen trainer
+        boolean onTrainerPage = main.getCurrentPage() == TimerFragmentMain.TRAINER_PAGE;
+        return isTrainerMode() == onTrainerPage;
+    }
+
+    /** True if this timer's own tab is the one showing. Used by the external timer handlers. */
+    private boolean isOnOwnPage() {
+        TimerFragmentMain main = findMain();
+        if (main == null) return true;
+        if (TIMER_MODE_TRAINER.equals(main.getCurrentTimerMode())) {
+            return main.getCurrentPage() == TimerFragmentMain.TIMER_PAGE;
+        }
+        return main.getCurrentPage() == (isTrainerMode()
+                ? TimerFragmentMain.TRAINER_PAGE : TimerFragmentMain.TIMER_PAGE);
+    }
 
     private Runnable holdRunnable;
     private Handler holdHandler;
@@ -2560,8 +2607,7 @@ public class TimerFragment extends BaseFragment
         }
 
         // If current page is not TIMER, do nothing
-        int currentPage = ((TimerFragmentMain)getParentFragment()).getCurrentPage();
-        if (currentPage != TimerFragmentMain.TIMER_PAGE) {
+        if (!isOnOwnPage()) {
             return;
         }
 
@@ -3350,8 +3396,7 @@ public class TimerFragment extends BaseFragment
         final int inspectionTime = Prefs.getInt(R.string.pk_inspection_time, 15);
 
         // If current page is not TIMER, do nothing
-        int currentPage = ((TimerFragmentMain)getParentFragment()).getCurrentPage();
-        if (currentPage != TimerFragmentMain.TIMER_PAGE) {
+        if (!isOnOwnPage()) {
             return;
         }
 
