@@ -403,10 +403,11 @@ public class MainActivity extends AppCompatActivity
                                 mDrawerToggle.runWhenIdle(new Runnable() {
                                     @Override
                                     public void run() {
+                                        com.hatopigeon.cubictimer.fragment.TrainerHubFragment.setPendingSubset(TrainerScrambler.TrainerSubset.OLL);
                                         fragmentManager
                                                 .beginTransaction()
                                                 .replace(R.id.main_activity_container,
-                                                         TimerFragmentMain.newInstance(TrainerScrambler.TrainerSubset.OLL.name(), "Normal", 5, "reset", TimerFragment.TIMER_MODE_TRAINER, TrainerScrambler.TrainerSubset.OLL, TIMER_PAGE), "fragment_main")
+                                                         TimerFragmentMain.newInstance(PuzzleUtils.TYPE_333, "Normal", 5, "reset", TimerFragment.TIMER_MODE_TIMER, TrainerScrambler.TrainerSubset.OLL, TimerFragmentMain.TRAINER_PAGE), "fragment_main")
                                                 .commit();
                                     }
                                 });
@@ -416,10 +417,11 @@ public class MainActivity extends AppCompatActivity
                                 mDrawerToggle.runWhenIdle(new Runnable() {
                                     @Override
                                     public void run() {
+                                        com.hatopigeon.cubictimer.fragment.TrainerHubFragment.setPendingSubset(TrainerScrambler.TrainerSubset.PLL);
                                         fragmentManager
                                                 .beginTransaction()
                                                 .replace(R.id.main_activity_container,
-                                                         TimerFragmentMain.newInstance(TrainerScrambler.TrainerSubset.PLL.name(), "Normal", 5, "reset", TimerFragment.TIMER_MODE_TRAINER, TrainerScrambler.TrainerSubset.PLL, TIMER_PAGE), "fragment_main")
+                                                         TimerFragmentMain.newInstance(PuzzleUtils.TYPE_333, "Normal", 5, "reset", TimerFragment.TIMER_MODE_TIMER, TrainerScrambler.TrainerSubset.PLL, TimerFragmentMain.TRAINER_PAGE), "fragment_main")
                                                 .commit();
                                     }
                                 });
