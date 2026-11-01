@@ -481,6 +481,7 @@
     <string name="trainer_hub_active">Training now</string>
     <string name="trainer_hub_exit">Stop training and go back to the timer</string>
     <string name="trainer_hub_cases_button">Cases</string>
+    <string name="trainer_stats_all">all</string>
     <string name="trainer_hub_undo">Undo last solve</string>
     <string name="trainer_hub_no_solves">No solves yet. Hold the screen, release when green.</string>
 
