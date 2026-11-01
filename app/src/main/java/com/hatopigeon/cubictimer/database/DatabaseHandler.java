@@ -35,6 +35,12 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public static final String KEY_ID       = "_id";
     public static final String KEY_TYPE     = "type";
     public static final String KEY_SUBTYPE  = "subtype";
+
+    /**
+     * Passed as a subtype (category) to mean "every category of this puzzle". The trainer sets store
+     * each solve under its case group, and this lets the pages also show the whole set at once.
+     */
+    public static final String SUBTYPE_ALL = "*";
     public static final String KEY_TIME     = "time";
     public static final String KEY_DATE     = "date";
     public static final String KEY_SCRAMBLE = "scramble";
@@ -226,9 +232,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
         String sqlSelection;
         sqlSelection =
-            " WHERE type =? AND subtype =? AND penalty!=" + PuzzleUtils.PENALTY_HIDETIME;
+            " WHERE type =? AND (subtype =? OR ?='*') AND penalty!=" + PuzzleUtils.PENALTY_HIDETIME;
 
-        return db.rawQuery("SELECT * FROM times" + sqlSelection, new String[] { type, subtype });
+        return db.rawQuery("SELECT * FROM times" + sqlSelection, new String[] { type, subtype, subtype });
     }
 
     /**
@@ -246,8 +252,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         values.put(KEY_HISTORY, true);
 
         // Updating row
-        return db.update(TABLE_TIMES, values, KEY_TYPE + " = ? AND " + KEY_SUBTYPE + " =?",
-            new String[] { type, subtype });
+        return db.update(TABLE_TIMES, values, KEY_TYPE + " = ? AND (" + KEY_SUBTYPE + " =? OR ?='*')",
+            new String[] { type, subtype, subtype });
     }
 
     /**
@@ -269,8 +275,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         return db.update(TABLE_TIMES, values,
                          KEY_ID + " IN (SELECT " + KEY_ID + " FROM " + TABLE_TIMES + " WHERE " +
                          KEY_PENALTY + " != " + PuzzleUtils.PENALTY_HIDETIME + " AND " +
-                         KEY_HISTORY + " =1 AND " + KEY_TYPE + " =? AND " + KEY_SUBTYPE + " =? ORDER BY " + KEY_DATE + " DESC LIMIT ?)" ,
-                         new String[] { type, subtype, String.valueOf(solves) });
+                         KEY_HISTORY + " =1 AND " + KEY_TYPE + " =? AND (" + KEY_SUBTYPE + " =? OR ?='*') ORDER BY " + KEY_DATE + " DESC LIMIT ?)" ,
+                         new String[] { type, subtype, subtype, String.valueOf(solves) });
     }
 
     /**
@@ -285,8 +291,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         long count = DatabaseUtils.
                 queryNumEntries(db, TABLE_TIMES,
                                 KEY_PENALTY + " != " + PuzzleUtils.PENALTY_HIDETIME + " AND " +
-                                KEY_TYPE + " =? AND " + KEY_SUBTYPE + " =? AND " + KEY_HISTORY + " =1",
-                                new String[] { type, subtype });
+                                KEY_TYPE + " =? AND (" + KEY_SUBTYPE + " =? OR ?='*') AND " + KEY_HISTORY + " =1",
+                                new String[] { type, subtype, subtype });
         db.close();
         return count;
     }
@@ -495,18 +501,17 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         // average is, in the end, calculated to be that of the most recent solves.
         if (isStatisticsForCurrentSessionOnly) {
             sql = "SELECT " + KEY_TIME + ", " + KEY_PENALTY + ", " + KEY_DATE + " FROM " + TABLE_TIMES
-                    + " WHERE " + KEY_TYPE + "=? AND " + KEY_SUBTYPE + "=? AND "
+                    + " WHERE " + KEY_TYPE + "=? AND (" + KEY_SUBTYPE + "=? OR ?='*') AND "
                     + KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME + " AND "
                     + KEY_HISTORY + "=0 ORDER BY " + KEY_DATE + " ASC";
         } else {
             sql = "SELECT " + KEY_TIME + ", " + KEY_PENALTY + ", " + KEY_HISTORY + ", " + KEY_DATE
-                    + " FROM " + TABLE_TIMES + " WHERE " + KEY_TYPE + "=? AND "
-                    + KEY_SUBTYPE + "=? AND " + KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME
+                    + " FROM " + TABLE_TIMES + " WHERE " + KEY_TYPE + "=? AND (" + KEY_SUBTYPE + "=? OR ?='*') AND " + KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME
                     + " ORDER BY " + KEY_DATE + " ASC";
         }
 
         final Cursor cursor
-                = getReadableDatabase().rawQuery(sql, new String[] { puzzleType, puzzleSubtype });
+                = getReadableDatabase().rawQuery(sql, new String[] { puzzleType, puzzleSubtype, puzzleSubtype });
 
         try {
             final int timeCol = cursor.getColumnIndex(KEY_TIME);
@@ -572,21 +577,19 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         // average is, in the end, calculated to be that of the most recent solves.
         if (isStatisticsForCurrentSessionOnly) {
             sql = "SELECT " + KEY_TIME + ", " + KEY_PENALTY + ", " + KEY_DATE
-                    + " FROM " + TABLE_TIMES + " WHERE " + KEY_TYPE + "=? AND "
-                    + KEY_SUBTYPE + "=? AND " + KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME
+                    + " FROM " + TABLE_TIMES + " WHERE " + KEY_TYPE + "=? AND (" + KEY_SUBTYPE + "=? OR ?='*') AND " + KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME
                     + " AND " + KEY_HISTORY + "=0 ORDER BY " + KEY_DATE + " ASC";
         } else {
             // NOTE: A change from the old approach: the "all time" option include those from the
             // current session, too. This is consistent with the way "all time statistics" are
             // calculated for the table of statistics.
             sql = "SELECT " + KEY_TIME + ", " + KEY_PENALTY + ", " + KEY_DATE
-                    + " FROM " + TABLE_TIMES + " WHERE " + KEY_TYPE + "=? AND "
-                    + KEY_SUBTYPE + "=? AND " + KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME
+                    + " FROM " + TABLE_TIMES + " WHERE " + KEY_TYPE + "=? AND (" + KEY_SUBTYPE + "=? OR ?='*') AND " + KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME
                     + " ORDER BY " + KEY_DATE + " ASC";
         }
 
         final Cursor cursor
-                = getReadableDatabase().rawQuery(sql, new String[] { puzzleType, puzzleSubtype });
+                = getReadableDatabase().rawQuery(sql, new String[] { puzzleType, puzzleSubtype, puzzleSubtype });
 
         try {
             final int timeCol = cursor.getColumnIndex(KEY_TIME);
@@ -706,7 +709,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     // Delete entries from session
     public int deleteAllFromSession(String type, String subtype) {
         SQLiteDatabase db = this.getWritableDatabase();
-        return db.delete(TABLE_TIMES, KEY_TYPE + "=? AND " + KEY_SUBTYPE + " = ? AND " + KEY_HISTORY + "=0", new String[] { type, subtype });
+        return db.delete(TABLE_TIMES, KEY_TYPE + "=? AND (" + KEY_SUBTYPE + " = ? OR ?='*') AND " + KEY_HISTORY + "=0", new String[] { type, subtype, subtype });
     }
 
     /**

@@ -35,10 +35,10 @@ public class TimeTaskLoader extends CursorLoader {
         return CubicTimer.getReadableDB().query(DatabaseHandler.TABLE_TIMES, null,
                 DatabaseHandler.KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME + " AND "
                         + DatabaseHandler.KEY_TYPE + "=?" + " AND "
-                        + DatabaseHandler.KEY_SUBTYPE + "=?" + " AND "
+                        + "(" + DatabaseHandler.KEY_SUBTYPE + "=? OR ?='*')" + " AND "
                         + DatabaseHandler.KEY_COMMENT + " LIKE ?" + " AND "
                         + DatabaseHandler.KEY_HISTORY + "=" + (history ? 1 : 0),
-                new String[]{puzzleType, puzzleSubtype, "%" + comment + "%"}, null, null,
+                new String[]{puzzleType, puzzleSubtype, puzzleSubtype, "%" + comment + "%"}, null, null,
                 orderByKey + " " + orderByDir, null);
     }
 }
