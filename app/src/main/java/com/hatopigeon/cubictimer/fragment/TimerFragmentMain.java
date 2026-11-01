@@ -24,6 +24,7 @@ import com.hatopigeon.cubictimer.fragment.dialog.CategorySelectDialog;
 import com.hatopigeon.cubictimer.fragment.dialog.BottomSheetTrainerDialog;
 import com.hatopigeon.cubictimer.fragment.dialog.PuzzleSelectDialog;
 import com.hatopigeon.cubictimer.listener.DialogListenerMessage;
+import com.hatopigeon.cubictimer.puzzle.TrainerSets;
 import com.hatopigeon.cubictimer.puzzle.TrainerScrambler;
 import com.hatopigeon.cubictimer.utils.InsetsUtils;
 import com.hatopigeon.cubictimer.utils.Prefs;
@@ -194,6 +195,9 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
      */
     private TrainerScrambler.TrainerSubset statsSubset = null;
 
+    /** With {@link #statsSubset}: one group of that set, or {@code DatabaseHandler.SUBTYPE_ALL} for all of it. */
+    private String statsGroup = com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL;
+
     /** Prefix that tells the category dialog's answer apart from a normal category name. */
     public static final String STATS_TRAINER_PREFIX = CategorySelectDialog.TRAINER_PREFIX;
 
@@ -279,9 +283,13 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         public void onUpdateDialog(String text) {
             if (text != null && text.startsWith(STATS_TRAINER_PREFIX)) {
                 // A trainer set was picked: only the times and graph pages change.
+                String rest = text.substring(STATS_TRAINER_PREFIX.length());
+                int split = rest.indexOf(':');
                 try {
-                    setStatsSubset(TrainerScrambler.TrainerSubset.valueOf(
-                            text.substring(STATS_TRAINER_PREFIX.length())));
+                    if (split > 0) {
+                        setStatsSubset(TrainerScrambler.TrainerSubset.valueOf(rest.substring(0, split)),
+                                rest.substring(split + 1));
+                    }
                 } catch (IllegalArgumentException ignored) {
                 }
                 return;
@@ -436,7 +444,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         updateHistorySwitchItem();
         puzzleCategoryText.setText(currentPuzzleCategory.toLowerCase());
         if (currentTimerMode.equals(TIMER_MODE_TRAINER))
-            puzzleNameText.setText(getString(R.string.title_trainer, currentPuzzleSubset.name()));
+            puzzleNameText.setText(getString(R.string.title_trainer, TrainerSets.displayName(currentPuzzleSubset)));
         else
             puzzleNameText.setText(PuzzleUtils.getPuzzleNameFromType(currentPuzzle));
         puzzleNumber.setText(String.valueOf(currentMbldNum));
@@ -447,7 +455,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         if (puzzleCategoryText == null || puzzleNameText == null) return;
         puzzleCategoryText.setText(currentPuzzleCategory.toLowerCase());
         if (currentTimerMode.equals(TIMER_MODE_TRAINER))
-            puzzleNameText.setText(getString(R.string.title_trainer, currentPuzzleSubset.name()));
+            puzzleNameText.setText(getString(R.string.title_trainer, TrainerSets.displayName(currentPuzzleSubset)));
         else
             puzzleNameText.setText(PuzzleUtils.getPuzzleNameFromType(currentPuzzle));
     }
@@ -455,15 +463,17 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     /** Shows the trainer set in the title, for example "OLL trainer". */
     private void updateTrainerHeader() {
         if (puzzleCategoryText == null || puzzleNameText == null) return;
-        puzzleNameText.setText(getString(R.string.title_trainer, trainerSubset.name()));
+        puzzleNameText.setText(getString(R.string.title_trainer, TrainerSets.displayName(trainerSubset)));
         puzzleCategoryText.setText(TRAINER_CATEGORY.toLowerCase());
     }
 
     /** Shows the trainer set in the title while the times or graph page is looking at it. */
     private void updateStatsHeader() {
         if (puzzleCategoryText == null || puzzleNameText == null || statsSubset == null) return;
-        puzzleNameText.setText(getString(R.string.title_trainer, statsSubset.name()));
-        puzzleCategoryText.setText(TRAINER_CATEGORY.toLowerCase());
+        puzzleNameText.setText(getString(R.string.title_trainer, TrainerSets.displayName(statsSubset)));
+        puzzleCategoryText.setText(
+                com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL.equals(statsGroup)
+                        ? getString(R.string.trainer_stats_all) : statsGroup.toLowerCase());
     }
 
     /** What the times and graph pages are showing: the Timer tab's puzzle, or a trainer set. */
@@ -472,13 +482,14 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     }
 
     private String statsCategory() {
-        return statsSubset != null ? TRAINER_CATEGORY : currentPuzzleCategory;
+        return statsSubset != null ? statsGroup : currentPuzzleCategory;
     }
 
     /** Points the times and graph pages at a trainer set (or back at the puzzle with null). */
-    private void setStatsSubset(TrainerScrambler.TrainerSubset subset) {
-        if (subset == statsSubset) return;
+    private void setStatsSubset(TrainerScrambler.TrainerSubset subset, String group) {
+        if (subset == statsSubset && java.util.Objects.equals(group, statsGroup)) return;
         statsSubset = subset;
+        statsGroup = group != null ? group : com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL;
         // Rebuilds only the times and graph pages, see NavigationAdapter.getItemPosition.
         viewPagerAdapter.notifyDataSetChanged();
         if (statsSubset != null) updateStatsHeader(); else updatePuzzleSpinnerHeaderText();
@@ -499,7 +510,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     private void showTrainerMenu() {
         final TrainerScrambler.TrainerSubset[] all = TrainerScrambler.TrainerSubset.values();
         final CharSequence[] items = new CharSequence[all.length + 1];
-        for (int i = 0; i < all.length; i++) items[i] = all[i].name();
+        for (int i = 0; i < all.length; i++) items[i] = TrainerSets.displayName(all[i]);
         items[all.length] = getString(R.string.trainer_hub_cases_button);
         ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
                 .title(R.string.drawer_title_trainer)
@@ -547,6 +558,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         outState.putString("mode", currentTimerMode);
         outState.putBoolean("history", history);
         outState.putSerializable("stats_subset", statsSubset);
+        outState.putString("stats_group", statsGroup);
     }
 
     @Override
@@ -567,6 +579,8 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
         if (savedInstanceState != null) {
             statsSubset = (TrainerScrambler.TrainerSubset) savedInstanceState.getSerializable("stats_subset");
+            String savedGroup = savedInstanceState.getString("stats_group");
+            if (savedGroup != null) statsGroup = savedGroup;
         }
 
         // Retrieve arguments
@@ -1205,7 +1219,8 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
             // A different id per set makes the pager build a fresh trainer page when the set changes.
             if (position == TRAINER_PAGE) return 100 + trainerSubset.ordinal();
             if ((position == LIST_PAGE || position == GRAPH_PAGE) && statsSubset != null) {
-                return position + 1000L * (1 + statsSubset.ordinal());
+                return position + 1000L * (1 + statsSubset.ordinal())
+                        + 100000L * (statsGroup.hashCode() & 0xFFFF);
             }
             return position;
         }
@@ -1219,11 +1234,13 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                 }
             }
             if (object instanceof TimerListFragment
-                    && !statsPuzzle().equals(((TimerListFragment) object).getScopePuzzle())) {
+                    && !(statsPuzzle().equals(((TimerListFragment) object).getScopePuzzle())
+                    && statsCategory().equals(((TimerListFragment) object).getScopeCategory()))) {
                 return POSITION_NONE;
             }
             if (object instanceof TimerGraphFragment
-                    && !statsPuzzle().equals(((TimerGraphFragment) object).getScopePuzzle())) {
+                    && !(statsPuzzle().equals(((TimerGraphFragment) object).getScopePuzzle())
+                    && statsCategory().equals(((TimerGraphFragment) object).getScopeCategory()))) {
                 return POSITION_NONE;
             }
             return POSITION_UNCHANGED;

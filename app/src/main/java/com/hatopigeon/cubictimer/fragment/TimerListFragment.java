@@ -316,6 +316,11 @@ public class TimerListFragment extends BaseFragment
         return currentPuzzle;
     }
 
+    /** The category (or trainer group) this page is showing. */
+    public String getScopeCategory() {
+        return currentPuzzleCategory;
+    }
+
     public static TimerListFragment newInstance(String puzzle, String puzzleType, int mbldNum, String scramble, boolean history) {
         TimerListFragment fragment = new TimerListFragment();
         Bundle args = new Bundle();

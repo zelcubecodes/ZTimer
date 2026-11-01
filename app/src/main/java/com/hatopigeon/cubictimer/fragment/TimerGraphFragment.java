@@ -178,6 +178,11 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
         return currentPuzzle;
     }
 
+    /** The category (or trainer group) this page is showing. */
+    public String getScopeCategory() {
+        return currentPuzzleSubtype;
+    }
+
     public static TimerGraphFragment newInstance(String puzzle, String puzzleType, boolean history) {
         TimerGraphFragment fragment = new TimerGraphFragment();
         Bundle args = new Bundle();

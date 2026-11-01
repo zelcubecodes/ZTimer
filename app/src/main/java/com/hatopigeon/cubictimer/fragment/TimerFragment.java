@@ -199,6 +199,12 @@ public class TimerFragment extends BaseFragment
 
     private String currentPuzzle;
     private String currentPuzzleCategory;
+
+    /**
+     * Trainer mode only: the group (for example "Edges Only") of the case being practised. Solves
+     * are saved under it, so the statistics can be seen per group.
+     */
+    private String currentTrainerGroup = null;
     private TrainerScrambler.TrainerSubset currentSubset;
     private int currentMbldNum = 7;
 
@@ -1248,7 +1254,8 @@ public class TimerFragment extends BaseFragment
         // event, so that it is received after "onCreateView" returns.
         if (isTrainerMode() && ScopedStatistics.isScoped(currentPuzzle)) {
             // The Trainer tab loads its own numbers, so it never shares or disturbs the Timer tab's.
-            ScopedStatistics.start(this, currentPuzzle, currentPuzzleCategory, this);
+            ScopedStatistics.start(this, currentPuzzle,
+                    com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL, this);
         } else {
             onStatisticsUpdated(StatisticsCache.getInstance().getStatistics());
             StatisticsCache.getInstance().registerObserver(this); // Unregistered in "onDestroyView".
@@ -1395,7 +1402,7 @@ public class TimerFragment extends BaseFragment
     private void addNewSolve() {
         currentSolve = new Solve(
                 chronometer.getElapsedTime(), // Includes any "+2" penalty. Is zero for "DNF".
-                currentPuzzle, currentPuzzleCategory,
+                currentPuzzle, solveCategory(),
                 System.currentTimeMillis(), currentScramble, currentPenalty, getLapComment(), false);
 
         if (currentPenalty != PENALTY_DNF) {
@@ -2036,6 +2043,7 @@ public class TimerFragment extends BaseFragment
     public void onDestroyView() {
         if (DEBUG_ME) Log.d(TAG, "onDestroyView()");
         cancelCountdowns();
+        if (trainerCaseAsync != null) trainerCaseAsync.cancel(true);
         if (isTrainerMode() && ScopedStatistics.isScoped(currentPuzzle)) {
             ScopedStatistics.stop(this);
         } else {
@@ -2087,6 +2095,14 @@ public class TimerFragment extends BaseFragment
         }
     }
 
+    /** The category a new solve is saved under: the case group in trainer mode, else the category. */
+    private String solveCategory() {
+        if (isTrainerMode() && currentTrainerGroup != null) {
+            return currentTrainerGroup;
+        }
+        return currentPuzzleCategory;
+    }
+
     /**
      * Generates a new scramble and handles everything.
      */
@@ -2096,9 +2112,36 @@ public class TimerFragment extends BaseFragment
             scrambleGeneratorAsync = new GenerateScrambleSequence();
             scrambleGeneratorAsync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } else if (currentTimerMode.equals(TIMER_MODE_TRAINER)) {
-            setScramble(TrainerScrambler.generateTrainerCase(getContext(), currentSubset, currentPuzzleCategory));
+            // Building a case can take a moment (the solver runs), so it is done off the UI thread.
+            if (trainerCaseAsync != null) trainerCaseAsync.cancel(true);
+            trainerCaseAsync = new GenerateTrainerCase();
+            trainerCaseAsync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
             canShowHint = false;
             hideButtons(true, true);
+        }
+    }
+
+    private GenerateTrainerCase trainerCaseAsync;
+
+    /** Builds the next trainer case in the background and shows it. */
+    private class GenerateTrainerCase extends AsyncTask<Void, Void, TrainerScrambler.TrainerCase> {
+        @Override
+        protected TrainerScrambler.TrainerCase doInBackground(Void... params) {
+            Context context = getContext();
+            if (context == null) return null;
+            try {
+                return TrainerScrambler.generateCase(
+                        context.getApplicationContext(), currentSubset, currentPuzzleCategory);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(TrainerScrambler.TrainerCase trainerCase) {
+            if (trainerCase == null || isCancelled() || !isAdded()) return;
+            currentTrainerGroup = trainerCase.group;
+            setScramble(trainerCase.scramble);
         }
     }
 
