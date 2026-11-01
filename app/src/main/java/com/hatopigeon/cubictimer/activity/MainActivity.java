@@ -403,7 +403,7 @@ public class MainActivity extends AppCompatActivity
                                 mDrawerToggle.runWhenIdle(new Runnable() {
                                     @Override
                                     public void run() {
-                                        com.hatopigeon.cubictimer.fragment.TrainerHubFragment.setPendingSubset(TrainerScrambler.TrainerSubset.OLL);
+                                        android.preference.PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit().putString(TimerFragmentMain.PREF_TRAINER_SUBSET, "OLL").apply();
                                         fragmentManager
                                                 .beginTransaction()
                                                 .replace(R.id.main_activity_container,
@@ -417,7 +417,7 @@ public class MainActivity extends AppCompatActivity
                                 mDrawerToggle.runWhenIdle(new Runnable() {
                                     @Override
                                     public void run() {
-                                        com.hatopigeon.cubictimer.fragment.TrainerHubFragment.setPendingSubset(TrainerScrambler.TrainerSubset.PLL);
+                                        android.preference.PreferenceManager.getDefaultSharedPreferences(MainActivity.this).edit().putString(TimerFragmentMain.PREF_TRAINER_SUBSET, "PLL").apply();
                                         fragmentManager
                                                 .beginTransaction()
                                                 .replace(R.id.main_activity_container,
