@@ -76,6 +76,7 @@ import com.hatopigeon.cubictimer.puzzle.TrainerScrambler;
 import com.hatopigeon.cubictimer.solver.RubiksCubeOptimalCross;
 import com.hatopigeon.cubictimer.solver.RubiksCubeOptimalXCross;
 import com.hatopigeon.cubictimer.stats.Statistics;
+import com.hatopigeon.cubictimer.stats.ScopedStatistics;
 import com.hatopigeon.cubictimer.stats.StatisticsCache;
 import com.hatopigeon.cubictimer.utils.CountdownWarning;
 import com.hatopigeon.cubictimer.utils.DefaultPrefs;
@@ -1245,8 +1246,13 @@ public class TimerFragment extends BaseFragment
         // If they are null (i.e., not yet loaded), nothing will be displayed until this fragment,
         // as a registered observer, is notified when loading is complete. Post the firing of the
         // event, so that it is received after "onCreateView" returns.
-        onStatisticsUpdated(StatisticsCache.getInstance().getStatistics());
-        StatisticsCache.getInstance().registerObserver(this); // Unregistered in "onDestroyView".
+        if (isTrainerMode() && ScopedStatistics.isScoped(currentPuzzle)) {
+            // The Trainer tab loads its own numbers, so it never shares or disturbs the Timer tab's.
+            ScopedStatistics.start(this, currentPuzzle, currentPuzzleCategory, this);
+        } else {
+            onStatisticsUpdated(StatisticsCache.getInstance().getStatistics());
+            StatisticsCache.getInstance().registerObserver(this); // Unregistered in "onDestroyView".
+        }
     }
 
     @Override
@@ -2030,7 +2036,11 @@ public class TimerFragment extends BaseFragment
     public void onDestroyView() {
         if (DEBUG_ME) Log.d(TAG, "onDestroyView()");
         cancelCountdowns();
-        StatisticsCache.getInstance().unregisterObserver(this);
+        if (isTrainerMode() && ScopedStatistics.isScoped(currentPuzzle)) {
+            ScopedStatistics.stop(this);
+        } else {
+            StatisticsCache.getInstance().unregisterObserver(this);
+        }
         mRecentStatistics = null;
         mUnbinder.unbind();
         super.onDestroyView();

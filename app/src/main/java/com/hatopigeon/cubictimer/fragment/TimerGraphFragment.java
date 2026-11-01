@@ -27,6 +27,7 @@ import com.hatopigeon.cubictimer.stats.ChartStatistics;
 import com.hatopigeon.cubictimer.stats.ChartStatisticsLoader;
 import com.hatopigeon.cubictimer.stats.ChartStyle;
 import com.hatopigeon.cubictimer.stats.Statistics;
+import com.hatopigeon.cubictimer.stats.ScopedStatistics;
 import com.hatopigeon.cubictimer.stats.StatisticsCache;
 import com.hatopigeon.cubictimer.utils.Prefs;
 import com.hatopigeon.cubictimer.utils.PuzzleUtils;
@@ -172,6 +173,11 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
     }
 
     // We have to put a boolean history here because it resets when we change puzzles.
+    /** The puzzle (or trainer set) this page is showing. */
+    public String getScopePuzzle() {
+        return currentPuzzle;
+    }
+
     public static TimerGraphFragment newInstance(String puzzle, String puzzleType, boolean history) {
         TimerGraphFragment fragment = new TimerGraphFragment();
         Bundle args = new Bundle();
@@ -401,8 +407,13 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
         // If they are null (i.e., not yet loaded), the progress bar will be displayed until this
         // fragment, as a registered observer, is notified when loading is complete. Post the
         // firing of the event, so that it is received after "onCreateView" returns.
-        onStatisticsUpdated(StatisticsCache.getInstance().getStatistics());
-        StatisticsCache.getInstance().registerObserver(this); // Unregistered in "onDestroyView".
+        if (ScopedStatistics.isScoped(currentPuzzle)) {
+            // A trainer set: load its own numbers so they never mix with the Timer tab's.
+            ScopedStatistics.start(this, currentPuzzle, currentPuzzleSubtype, this);
+        } else {
+            onStatisticsUpdated(StatisticsCache.getInstance().getStatistics());
+            StatisticsCache.getInstance().registerObserver(this); // Unregistered in "onDestroyView".
+        }
 
         // "restartLoader" ensures that any old loader with the wrong puzzle type/subtype will not
         // be reused. For now, those arguments are just passed via their respective fields to
@@ -446,7 +457,11 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
         if (DEBUG_ME) Log.d(TAG, "onDestroyView()");
         super.onDestroyView();
         mUnbinder.unbind();
-        StatisticsCache.getInstance().unregisterObserver(this);
+        if (ScopedStatistics.isScoped(currentPuzzle)) {
+            ScopedStatistics.stop(this);
+        } else {
+            StatisticsCache.getInstance().unregisterObserver(this);
+        }
     }
 
     /**

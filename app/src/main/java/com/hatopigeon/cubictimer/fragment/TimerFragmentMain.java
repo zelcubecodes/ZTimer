@@ -188,8 +188,14 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     /** The set the Trainer tab trains. Independent of the Timer tab's puzzle. */
     private TrainerScrambler.TrainerSubset trainerSubset = TrainerScrambler.TrainerSubset.OLL;
 
-    /** True while the shared statistics describe the Trainer tab instead of the Timer tab's puzzle. */
-    private boolean statsScopeTrainer = false;
+    /**
+     * When set, the times and graph pages show this trainer set instead of the Timer tab's puzzle.
+     * Chosen from the category list on those pages. The Timer tab is not affected.
+     */
+    private TrainerScrambler.TrainerSubset statsSubset = null;
+
+    /** Prefix that tells the category dialog's answer apart from a normal category name. */
+    public static final String STATS_TRAINER_PREFIX = CategorySelectDialog.TRAINER_PREFIX;
 
     // Stores the current puzzle being timed/shown
     private String                         currentPuzzle;
@@ -218,7 +224,9 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         public void onClick(View view) {
             switch (view.getId()) {
                 case R.id.nav_button_category:
-                    categoryDialog = CategorySelectDialog.newInstance(currentPuzzle, currentPuzzleCategory, currentTimerMode, currentPuzzleSubset);
+                    boolean onStatsPage = viewPager != null
+                            && (viewPager.getCurrentItem() == LIST_PAGE || viewPager.getCurrentItem() == GRAPH_PAGE);
+                    categoryDialog = CategorySelectDialog.newInstance(currentPuzzle, currentPuzzleCategory, currentTimerMode, currentPuzzleSubset, onStatsPage);
                     categoryDialog.setDialogListener(categoryDialogListener);
                     categoryDialog.show(mFragmentManager, TAG_CATEGORY_DIALOG);
                     break;
@@ -269,6 +277,15 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     private DialogListenerMessage categoryDialogListener = new DialogListenerMessage() {
         @Override
         public void onUpdateDialog(String text) {
+            if (text != null && text.startsWith(STATS_TRAINER_PREFIX)) {
+                // A trainer set was picked: only the times and graph pages change.
+                try {
+                    setStatsSubset(TrainerScrambler.TrainerSubset.valueOf(
+                            text.substring(STATS_TRAINER_PREFIX.length())));
+                } catch (IllegalArgumentException ignored) {
+                }
+                return;
+            }
             currentPuzzleCategory = text;
             broadcast(CATEGORY_UI_INTERACTIONS, ACTION_CHANGED_CATEGORY);
         }
@@ -442,6 +459,31 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         puzzleCategoryText.setText(TRAINER_CATEGORY.toLowerCase());
     }
 
+    /** Shows the trainer set in the title while the times or graph page is looking at it. */
+    private void updateStatsHeader() {
+        if (puzzleCategoryText == null || puzzleNameText == null || statsSubset == null) return;
+        puzzleNameText.setText(getString(R.string.title_trainer, statsSubset.name()));
+        puzzleCategoryText.setText(TRAINER_CATEGORY.toLowerCase());
+    }
+
+    /** What the times and graph pages are showing: the Timer tab's puzzle, or a trainer set. */
+    private String statsPuzzle() {
+        return statsSubset != null ? statsSubset.name() : currentPuzzle;
+    }
+
+    private String statsCategory() {
+        return statsSubset != null ? TRAINER_CATEGORY : currentPuzzleCategory;
+    }
+
+    /** Points the times and graph pages at a trainer set (or back at the puzzle with null). */
+    private void setStatsSubset(TrainerScrambler.TrainerSubset subset) {
+        if (subset == statsSubset) return;
+        statsSubset = subset;
+        // Rebuilds only the times and graph pages, see NavigationAdapter.getItemPosition.
+        viewPagerAdapter.notifyDataSetChanged();
+        if (statsSubset != null) updateStatsHeader(); else updatePuzzleSpinnerHeaderText();
+    }
+
     /** Switches the Trainer tab to another set. The Timer tab is not touched. */
     public void setTrainerSubset(TrainerScrambler.TrainerSubset subset) {
         if (subset == trainerSubset) return;
@@ -451,7 +493,6 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         updateTrainerHeader();
         // Rebuilds only the trainer page, see NavigationAdapter.getItemPosition.
         viewPagerAdapter.notifyDataSetChanged();
-        if (statsScopeTrainer) handleStatisticsLoader();
     }
 
     /** Asks which trainer set to practise, or to choose the cases within the current one. */
@@ -505,6 +546,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         outState.putSerializable("subset", currentPuzzleSubset);
         outState.putString("mode", currentTimerMode);
         outState.putBoolean("history", history);
+        outState.putSerializable("stats_subset", statsSubset);
     }
 
     @Override
@@ -521,6 +563,10 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                             .getString(PREF_TRAINER_SUBSET, TrainerScrambler.TrainerSubset.OLL.name()));
         } catch (IllegalArgumentException e) {
             trainerSubset = TrainerScrambler.TrainerSubset.OLL;
+        }
+
+        if (savedInstanceState != null) {
+            statsSubset = (TrainerScrambler.TrainerSubset) savedInstanceState.getSerializable("stats_subset");
         }
 
         // Retrieve arguments
@@ -751,8 +797,8 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         if (DEBUG_ME)
             Log.d(TAG, "Puzzle and subtype: " + currentPuzzle + " // " + currentPuzzleCategory);
         if (DEBUG_ME) Log.d(TAG, "onActivityCreated -> restartLoader: STATISTICS_LOADER_ID");
-        final String statsPuzzle = statsScopeTrainer ? trainerSubset.name() : currentPuzzle;
-        final String statsCategory = statsScopeTrainer ? TRAINER_CATEGORY : currentPuzzleCategory;
+        final String statsPuzzle = currentPuzzle;
+        final String statsCategory = currentPuzzleCategory;
         getLoaderManager().restartLoader(MainActivity.STATISTICS_LOADER_ID, null,
                                          new LoaderManager.LoaderCallbacks<Wrapper<Statistics>>() {
                                              @Override
@@ -872,12 +918,6 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         boolean trainer = pageNum == TRAINER_PAGE;
         mToolbar.setVisibility(View.VISIBLE);
 
-        // The shared statistics follow the tab: trainer solves on the Trainer tab, puzzle solves elsewhere.
-        if (trainer != statsScopeTrainer) {
-            statsScopeTrainer = trainer;
-            handleStatisticsLoader();
-        }
-
         TextView wcaTitle = mToolbar.findViewById(R.id.wcaTitle);
         View recordsBtn = mToolbar.findViewById(R.id.nav_button_records);
         View rankingsBtn = mToolbar.findViewById(R.id.nav_button_rankings);
@@ -907,7 +947,11 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
             fade(puzzleNumber, false);
             return;
         }
-        updatePuzzleSpinnerHeaderText();
+        if (statsSubset != null && (pageNum == LIST_PAGE || pageNum == GRAPH_PAGE)) {
+            updateStatsHeader();
+        } else {
+            updatePuzzleSpinnerHeaderText();
+        }
 
         switch (pageNum) {
             case TIMER_PAGE:
@@ -1141,10 +1185,10 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                             currentPuzzle, currentPuzzleCategory, currentMbldNum, currentScramble, currentTimerMode, currentPuzzleSubset);
                 case LIST_PAGE:
                     return TimerListFragment.newInstance(
-                            currentPuzzle, currentPuzzleCategory, currentMbldNum, currentScramble, history);
+                            statsPuzzle(), statsCategory(), currentMbldNum, currentScramble, history);
                 case GRAPH_PAGE:
                     return TimerGraphFragment.newInstance(
-                            currentPuzzle, currentPuzzleCategory, history);
+                            statsPuzzle(), statsCategory(), history);
                 case TRAINER_PAGE:
                     // A second, independent timer. Same screen and settings as the Timer tab, but
                     // it trains the chosen set and saves its solves under that set's name.
@@ -1159,7 +1203,11 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         @Override
         public long getItemId(int position) {
             // A different id per set makes the pager build a fresh trainer page when the set changes.
-            return position == TRAINER_PAGE ? 100 + trainerSubset.ordinal() : position;
+            if (position == TRAINER_PAGE) return 100 + trainerSubset.ordinal();
+            if ((position == LIST_PAGE || position == GRAPH_PAGE) && statsSubset != null) {
+                return position + 1000L * (1 + statsSubset.ordinal());
+            }
+            return position;
         }
 
         @Override
@@ -1169,6 +1217,14 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                 if (f.isTrainerMode() && f.getTrainerSubset() != trainerSubset) {
                     return POSITION_NONE;
                 }
+            }
+            if (object instanceof TimerListFragment
+                    && !statsPuzzle().equals(((TimerListFragment) object).getScopePuzzle())) {
+                return POSITION_NONE;
+            }
+            if (object instanceof TimerGraphFragment
+                    && !statsPuzzle().equals(((TimerGraphFragment) object).getScopePuzzle())) {
+                return POSITION_NONE;
             }
             return POSITION_UNCHANGED;
         }

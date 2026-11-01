@@ -44,6 +44,7 @@ import com.hatopigeon.cubictimer.database.DatabaseHandler;
 import com.hatopigeon.cubictimer.database.TimeTaskLoader;
 import com.hatopigeon.cubictimer.fragment.dialog.AddTimeDialog;
 import com.hatopigeon.cubictimer.stats.Statistics;
+import com.hatopigeon.cubictimer.stats.ScopedStatistics;
 import com.hatopigeon.cubictimer.stats.StatisticsCache;
 import com.hatopigeon.cubictimer.utils.Prefs;
 import com.hatopigeon.cubictimer.utils.PuzzleUtils;
@@ -310,6 +311,11 @@ public class TimerListFragment extends BaseFragment
     }
 
     // We have to put a boolean history here because it resets when we change puzzles.
+    /** The puzzle (or trainer set) this page is showing. */
+    public String getScopePuzzle() {
+        return currentPuzzle;
+    }
+
     public static TimerListFragment newInstance(String puzzle, String puzzleType, int mbldNum, String scramble, boolean history) {
         TimerListFragment fragment = new TimerListFragment();
         Bundle args = new Bundle();
@@ -386,8 +392,13 @@ public class TimerListFragment extends BaseFragment
 
         // If the statistics are already loaded, the update notification will have been missed,
         // so fire that notification now and start observing further updates.
-        onStatisticsUpdated(StatisticsCache.getInstance().getStatistics());
-        StatisticsCache.getInstance().registerObserver(this); // Unregistered in "onDestroyView".
+        if (ScopedStatistics.isScoped(currentPuzzle)) {
+            // A trainer set: load its own numbers so they never mix with the Timer tab's.
+            ScopedStatistics.start(this, currentPuzzle, currentPuzzleCategory, this);
+        } else {
+            onStatisticsUpdated(StatisticsCache.getInstance().getStatistics());
+            StatisticsCache.getInstance().registerObserver(this); // Unregistered in "onDestroyView".
+        }
 
         return rootView;
     }
@@ -403,7 +414,11 @@ public class TimerListFragment extends BaseFragment
         if (DEBUG_ME) Log.d(TAG, "onDestroyView()");
         super.onDestroyView();
         mUnbinder.unbind();
-        StatisticsCache.getInstance().unregisterObserver(this);
+        if (ScopedStatistics.isScoped(currentPuzzle)) {
+            ScopedStatistics.stop(this);
+        } else {
+            StatisticsCache.getInstance().unregisterObserver(this);
+        }
         mRecentStatistics = null;
     }
 
