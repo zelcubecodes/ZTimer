@@ -9,6 +9,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.hatopigeon.cubictimer.CubicTimer;
+import com.hatopigeon.cubictimer.database.DatabaseHandler;
 import com.hatopigeon.cubictimer.items.Solve;
 import com.hatopigeon.cubictimer.utils.PuzzleUtils;
 import com.hatopigeon.cubictimer.utils.TTIntent;
@@ -200,6 +201,16 @@ public class StatisticsLoader extends AsyncTaskLoader<Wrapper<Statistics>> {
      *     still be required to update the statistics.
      */
     private boolean deliverQuickResult(Intent intent) {
+        // A new solve for a different puzzle or category (for example an OLL trainer solve while
+        // the PLL statistics are open) has nothing to do with these statistics. Leave them alone.
+        final Solve newSolve = TTIntent.getSolve(intent);
+        if (newSolve != null
+                && !(mPuzzleType.equals(newSolve.getPuzzle())
+                && (DatabaseHandler.SUBTYPE_ALL.equals(mPuzzleSubtype)
+                || mPuzzleSubtype.equals(newSolve.getSubtype())))) {
+            return true;
+        }
+
         if (!mLoadedData.isEmpty()) {
             // All statistics were loaded previously from the database (because the wrapper is not
             // empty), so try a quick update.
