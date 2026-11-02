@@ -9,6 +9,7 @@ import android.util.Log;
 import com.hatopigeon.cubicify.R;
 import com.hatopigeon.cubictimer.items.Algorithm;
 import com.hatopigeon.cubictimer.utils.AlgUtils;
+import com.hatopigeon.cubictimer.utils.CsCases;
 import com.hatopigeon.cubictimer.utils.CsTimer;
 import com.hatopigeon.cubictimer.utils.CubeNet;
 import com.hatopigeon.cubictimer.utils.Prefs;
@@ -360,8 +361,21 @@ public abstract class TrainerScrambler {
             return new TrainerCase(context.getString(R.string.trainer_help_message), null, null);
         }
 
-        String caseName = selectedItems.get(random.nextInt(selectedItems.size()));
+        String caseName = pickCase(context, subset, category, selectedItems);
         String group = TrainerSets.groupOf(subset, caseName);
+
+        // OLL and PLL are built by csTimer too, by the number of the case. This always gives the
+        // case that was chosen. The algorithm based way further down is only the fallback.
+        if (subset == TrainerSubset.OLL || subset == TrainerSubset.PLL) {
+            int index = csOllPllIndex(context, subset, caseName);
+            if (index >= 0) {
+                String fromCsTimer = CsTimer.get(context).getScramble(subset == TrainerSubset.OLL ? "oll" : "pll", 0, index);
+                if (fromCsTimer != null) {
+                    return new TrainerCase(CubeNet.normalize(fromCsTimer), caseName, group);
+                }
+                Log.e("TRAINER_SCRAMBLE", "csTimer gave no OLL/PLL scramble, using the algorithm list");
+            }
+        }
 
         // Everything except OLL and PLL is scrambled by csTimer's own code.
         String csType = TrainerSets.csType(subset);
@@ -413,6 +427,77 @@ public abstract class TrainerScrambler {
         }
         scramble = CubeNet.normalize(scramble);
         return new TrainerCase(scramble, caseName, group);
+    }
+
+
+    // ---- How the next case is picked (csTimer's "Probabilities for training-scramble states") ----
+
+    public static final String PREF_PROBABILITY = "trainer_case_probability";
+    public static final String PROB_EQUAL = "equal";
+    public static final String PROB_ACTUAL = "actual";
+    public static final String PROB_ORDER = "order";
+
+    /** One of {@link #PROB_EQUAL} (default), {@link #PROB_ACTUAL} or {@link #PROB_ORDER}. */
+    public static String getProbabilityMode() {
+        String mode = Prefs.getPrefs().getString(PREF_PROBABILITY, PROB_EQUAL);
+        return PROB_ACTUAL.equals(mode) || PROB_ORDER.equals(mode) ? mode : PROB_EQUAL;
+    }
+
+    public static void setProbabilityMode(String mode) {
+        Prefs.getPrefs().edit().putString(PREF_PROBABILITY, mode).apply();
+    }
+
+    /** Cases still to come in "random order" mode, by set, category and selection. */
+    private static final java.util.Map<String, List<String>> BAGS = new java.util.HashMap<>();
+
+    private static int csOllPllIndex(Context context, TrainerSubset subset, String caseName) {
+        if (subset == TrainerSubset.OLL) {
+            try {
+                return Integer.parseInt(caseName.replaceAll("[^0-9]", ""));
+            } catch (NumberFormatException e) {
+                return -1;
+            }
+        }
+        return CsCases.names(context, "pll").indexOf(caseName);
+    }
+
+    /** csTimer's weight of a case: how many positions it stands for (1 if csTimer has no number). */
+    private static int caseWeight(Context context, TrainerSubset subset, String caseName) {
+        if (subset == TrainerSubset.OLL || subset == TrainerSubset.PLL) {
+            int index = csOllPllIndex(context, subset, caseName);
+            return CsCases.weightAt(context, subset == TrainerSubset.OLL ? "oll" : "pll", index);
+        }
+        String type = TrainerSets.csType(subset);
+        return type == null ? 1 : CsCases.weight(context, type, caseName);
+    }
+
+    private static String pickCase(Context context, TrainerSubset subset, String category, List<String> items) {
+        if (items.size() == 1) return items.get(0);
+        String mode = getProbabilityMode();
+        if (PROB_ORDER.equals(mode)) {
+            String key = subset.name() + "|" + category + "|" + new java.util.TreeSet<>(items).toString();
+            List<String> bag = BAGS.get(key);
+            if (bag == null || bag.isEmpty()) {
+                bag = new ArrayList<>(items);
+                java.util.Collections.shuffle(bag, random);
+                BAGS.put(key, bag);
+            }
+            return bag.remove(bag.size() - 1);
+        }
+        if (PROB_ACTUAL.equals(mode)) {
+            int[] weights = new int[items.size()];
+            int total = 0;
+            for (int i = 0; i < weights.length; i++) {
+                weights[i] = caseWeight(context, subset, items.get(i));
+                total += weights[i];
+            }
+            int roll = random.nextInt(Math.max(1, total));
+            for (int i = 0; i < weights.length; i++) {
+                roll -= weights[i];
+                if (roll < 0) return items.get(i);
+            }
+        }
+        return items.get(random.nextInt(items.size()));
     }
 
     private static String fetchCaseAlgorithm(Context context, String subset, String name) {
