@@ -167,6 +167,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     @BindView(R.id.nav_button_bluetooth) ImageView navButtonBluetooth;
     @BindView(R.id.nav_button_category) View      navButtonCategory;
     @BindView(R.id.nav_button_history) ImageView navButtonHistory;
+    @BindView(R.id.nav_button_cases) View        navButtonCases;
 
     @BindView(R.id.puzzleCategory) TextView puzzleCategoryText;
     @BindView(R.id.puzzleName) TextView puzzleNameText;
@@ -506,25 +507,24 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         viewPagerAdapter.notifyDataSetChanged();
     }
 
-    /** Asks which trainer set to practise, or to choose the cases within the current one. */
+    /** Asks which trainer set to practise. The sets are sorted into families. */
     private void showTrainerMenu() {
-        final TrainerScrambler.TrainerSubset[] all = TrainerScrambler.TrainerSubset.values();
-        final CharSequence[] items = new CharSequence[all.length + 1];
-        for (int i = 0; i < all.length; i++) items[i] = TrainerSets.displayName(all[i]);
-        items[all.length] = getString(R.string.trainer_hub_cases_button);
-        ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
+        final com.hatopigeon.cubictimer.adapter.TrainerSetListAdapter adapter =
+                new com.hatopigeon.cubictimer.adapter.TrainerSetListAdapter(mContext, trainerSubset);
+        android.widget.ListView list = new android.widget.ListView(mContext);
+        list.setAdapter(adapter);
+        list.setDivider(null);
+        final MaterialDialog dialog = ThemeUtils.roundDialog(mContext, new MaterialDialog.Builder(mContext)
                 .title(R.string.drawer_title_trainer)
-                .items(items)
-                .itemsCallback((dialog, itemView, position, text) -> {
-                    if (position < all.length) {
-                        setTrainerSubset(all[position]);
-                    } else {
-                        BottomSheetTrainerDialog sheet =
-                                BottomSheetTrainerDialog.newInstance(trainerSubset, TRAINER_CATEGORY);
-                        sheet.show(mFragmentManager, "trainer_dialog_fragment");
-                    }
-                })
+                .customView(list, false)
                 .build());
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            TrainerScrambler.TrainerSubset picked = adapter.setAt(position);
+            if (picked == null) return;
+            setTrainerSubset(picked);
+            dialog.dismiss();
+        });
+        dialog.show();
     }
 
     public TimerFragmentMain() {
@@ -664,6 +664,10 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         }
 
         navButtonCategory.setOnClickListener(clickListener);
+        navButtonCases.setOnClickListener(v -> {
+            BottomSheetTrainerDialog sheet = BottomSheetTrainerDialog.newInstance(trainerSubset, TRAINER_CATEGORY);
+            sheet.show(mFragmentManager, "trainer_dialog_fragment");
+        });
         navButtonHistory.setOnClickListener(clickListener);
         navButtonSettings.setOnClickListener(clickListener);
         navButtonBluetooth.setOnClickListener(clickListener);
@@ -941,6 +945,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
             fade(rankingsBtn, wca);
             fade(puzzleSpinnerLayout, !wca);
             fade(navButtonCategory, !wca && !trainer);
+            fade(navButtonCases, !wca && trainer);
             if (wca) {
                 wcaTitle.setText("WCA");
                 recordsBtn.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(),
