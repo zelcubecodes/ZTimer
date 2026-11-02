@@ -2245,6 +2245,12 @@ public class TimerFragment extends BaseFragment
             if (currentPuzzle.equals(PuzzleUtils.TYPE_OTHER))
                 return " ";
 
+            // The puzzles of the Non-WCA tab are scrambled by csTimer's code
+            if (generator != null && generator.isCsPuzzle()) {
+                String fromCsTimer = generator.generateCsScramble(CubicTimer.getAppContext());
+                return fromCsTimer != null ? fromCsTimer : "An error has occurred";
+            }
+
             try {
                 // MBLD : generate scramble multi times
                 if (currentPuzzle.equals(PuzzleUtils.TYPE_333MBLD)) {

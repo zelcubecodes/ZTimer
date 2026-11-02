@@ -447,7 +447,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         if (currentTimerMode.equals(TIMER_MODE_TRAINER))
             puzzleNameText.setText(getString(R.string.title_trainer, TrainerSets.displayName(currentPuzzleSubset)));
         else
-            puzzleNameText.setText(PuzzleUtils.getPuzzleNameFromType(currentPuzzle));
+            puzzleNameText.setText(PuzzleUtils.getPuzzleTitle(mContext, currentPuzzle));
         puzzleNumber.setText(String.valueOf(currentMbldNum));
     }
 
@@ -458,7 +458,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         if (currentTimerMode.equals(TIMER_MODE_TRAINER))
             puzzleNameText.setText(getString(R.string.title_trainer, TrainerSets.displayName(currentPuzzleSubset)));
         else
-            puzzleNameText.setText(PuzzleUtils.getPuzzleNameFromType(currentPuzzle));
+            puzzleNameText.setText(PuzzleUtils.getPuzzleTitle(mContext, currentPuzzle));
     }
 
     /** Shows the trainer set in the title, for example "OLL trainer". */
