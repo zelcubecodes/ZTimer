@@ -49,11 +49,24 @@
         android:layout_below="@id/title"
         android:background="@color/black_divider" />
 
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/category_tabs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/divider_01"
+        android:background="@android:color/transparent"
+        android:visibility="gone"
+        app:tabGravity="fill"
+        app:tabIndicatorColor="@color/md_blue_A700"
+        app:tabMode="fixed"
+        app:tabSelectedTextColor="@color/md_blue_A700"
+        app:tabTextColor="@color/md_light_primary_text" />
+
     <ListView
         android:id="@+id/list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/divider_01"
+        android:layout_below="@id/category_tabs"
         tools:layout_height="300dp">
 
     </ListView>
