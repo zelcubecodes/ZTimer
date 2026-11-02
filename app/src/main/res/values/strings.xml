@@ -476,6 +476,8 @@
     <string name="trainer_help_message">To start training, select the cases you want to train by tapping the title above\nYou can also create categories with different case sets</string>
     <string name="trainer_spinner_title">Select cases to train</string>
     <string name="trainer_select_all">Select all</string>
+    <string name="trainer_group_select">Select</string>
+    <string name="trainer_group_deselect">Deselect</string>
     <string name="trainer_hub_hint">Pick a set to practice. Tap the title at the top of the timer to choose which cases show up.</string>
     <string name="trainer_hub_cases">%1$d cases</string>
     <string name="trainer_hub_active">Training now</string>
