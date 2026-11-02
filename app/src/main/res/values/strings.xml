@@ -477,6 +477,11 @@
     <string name="trainer_spinner_title">Select cases to train</string>
     <string name="trainer_select_all">Select all</string>
     <string name="trainer_cstimer_failed">csTimer could not make a scramble. Try again or pick another set.</string>
+    <string name="category_tab_timer">Timer</string>
+    <string name="category_tab_trainer">Trainer</string>
+    <string name="trainer_pick_group">Which cases?</string>
+    <string name="trainer_all_cases">All %1$s</string>
+    <string name="trainer_cases_button_description">Choose cases</string>
     <string name="trainer_group_select">Select</string>
     <string name="trainer_group_deselect">Deselect</string>
     <string name="trainer_hub_hint">Pick a set to practice. Tap the title at the top of the timer to choose which cases show up.</string>
