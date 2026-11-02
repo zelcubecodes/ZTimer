@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@drawable/outline_background_card_top"
+    android:orientation="vertical">
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/title"
+        style="@style/BottomPanelListTitleTextStyle"
+        android:layout_width="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_height="wrap_content"
+        app:drawableRightCompat="@drawable/ic_outline_palette_24px"
+        android:textStyle="bold"
+        android:text="@string/drawer_title_changeTheme" />
+
+    <View
+        android:id="@+id/divider01"
+        android:layout_width="match_parent"
+        android:layout_below="@id/title"
+        android:layout_height="1dp"
+        android:layout_marginBottom="8dp"
+        android:background="@color/black_divider" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/button"
+        android:gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@id/divider01"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginTop="8dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/card_button_accent"
+        android:clickable="true"
+        app:drawableLeftCompat="@drawable/ic_category_add"
+        android:drawablePadding="8dp"
+        android:focusable="true"
+        android:paddingLeft="12dp"
+        android:paddingTop="0dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="0dp"
+        android:visibility="gone"
+        tools:visibility="visible"
+        android:text="Button"
+        android:textSize="12sp" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/probability"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/divider01"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/card_button_accent"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:padding="10dp"
+        android:textSize="13sp"
+        tools:text="Case probability: Equal" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/list"
+        android:layout_below="@id/probability"
+        android:layout_width="match_parent"
+        android:paddingBottom="32dp"
+        android:layout_height="wrap_content"/>
+
+</RelativeLayout>

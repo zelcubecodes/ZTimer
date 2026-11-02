@@ -17,6 +17,20 @@
         android:layout_alignParentTop="true"
         android:text="@string/dialog_select_puzzle" />
 
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/puzzle_tabs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/title"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:background="@android:color/transparent"
+        app:tabGravity="fill"
+        app:tabIndicatorColor="@color/md_blue_A700"
+        app:tabMode="fixed"
+        app:tabSelectedTextColor="@color/md_blue_A700"
+        app:tabTextColor="@color/md_light_primary_text" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"
         android:layout_width="match_parent"
@@ -24,7 +38,8 @@
         android:paddingLeft="6dp"
         android:paddingRight="6dp"
         android:paddingBottom="24dp"
-        android:layout_below="@id/title"
+        android:clipToPadding="false"
+        android:layout_below="@id/puzzle_tabs"
         tools:layout_height="300dp">
 
     </androidx.recyclerview.widget.RecyclerView>

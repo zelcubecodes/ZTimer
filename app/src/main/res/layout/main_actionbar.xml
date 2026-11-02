@@ -107,7 +107,7 @@
             android:padding="8dp"
             android:tint="?colorActionBarText"
             android:visibility="gone"
-            app:srcCompat="@drawable/ic_outline_cases_24"
+            app:srcCompat="@drawable/ic_trainer_checklist"
             tools:visibility="visible" />
 
         <ImageView
