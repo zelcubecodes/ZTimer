@@ -2,6 +2,10 @@ package com.hatopigeon.cubictimer.puzzle;
 
 import com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset;
 
+import android.content.Context;
+
+import com.hatopigeon.cubictimer.utils.CsCases;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,6 +22,58 @@ import java.util.Locale;
 public final class TrainerSets {
 
     private TrainerSets() {
+    }
+
+    private static Context appContext;
+
+    /** The case lists of the csTimer based sets are read from the app's assets, so they need a context. */
+    public static void setContext(Context context) {
+        if (context != null) appContext = context.getApplicationContext();
+    }
+
+    /**
+     * The csTimer scramble type behind a set, or null for OLL and PLL (which come from the
+     * algorithm database).
+     */
+    public static String csType(TrainerSubset subset) {
+        switch (subset) {
+            case LL:      return "ll";
+            case ZBLL:    return "zbll";
+            case ZBLS:    return "zbls";
+            case CMLL:    return "cmll";
+            case LSE:     return "lse";
+            case COLL:    return "coll";
+            case CLL:     return "cll";
+            case ELL:     return "ell";
+            case EOLS:    return "eols";
+            case WVLS:    return "wvls";
+            case VLS:     return "vls";
+            case TTLL:    return "ttll";
+            case ZZLL:    return "zzll";
+            case TWOGLL:  return "2gll";
+            case F2L:     return "f2l";
+            default:      return null;
+        }
+    }
+
+    /** True if csTimer lists the cases of this set one by one, so they can be chosen individually. */
+    public static boolean hasCaseList(TrainerSubset subset) {
+        String type = csType(subset);
+        return type != null && appContext != null && !CsCases.names(appContext, type).isEmpty();
+    }
+
+    /** The picture of a case in a csTimer based set, or null if it has none. */
+    public static String pictureFor(TrainerSubset subset, String caseName) {
+        String type = csType(subset);
+        if (type == null || appContext == null) return null;
+        return CsCases.state(appContext, type, caseName);
+    }
+
+    /** The position of a case in csTimer's list for its type, or -1. */
+    public static int csIndexOf(TrainerSubset subset, String caseName) {
+        String type = csType(subset);
+        if (type == null || appContext == null) return -1;
+        return CsCases.names(appContext, type).indexOf(caseName);
     }
 
     /** A named group of cases. */
@@ -41,6 +97,8 @@ public final class TrainerSets {
         switch (subset) {
             case LL:
                 return "Last Layer";
+            case TWOGLL:
+                return "2GLL";
             default:
                 return subset.name();
         }
@@ -72,48 +130,43 @@ public final class TrainerSets {
                 groups.add(list("Diagonal Swap", "Y", "Na", "Nb", "V"));
                 groups.add(list("G-Perms", "Ga", "Gb", "Gc", "Gd"));
                 break;
-            case LL:
-                groups.add(list("Last Layer", "Random LL"));
-                break;
-            case ZBLL:
-                for (String c : CO_TYPES) groups.add(list(c, c));
-                break;
-            case CMLL:
-                groups.add(list("Oriented", "Oriented"));
-                for (String c : CO_TYPES) groups.add(list(c, c));
-                break;
-            case ZBLS:
-                groups.add(list("ZBLS", "ZBLS"));
-                break;
-            case LSE:
-                groups.add(list("LSE", "Full LSE"));
+            default:
+                addCsGroups(groups, subset);
                 break;
         }
         return groups;
     }
 
-    /** Corner orientation types, in the order the last layer algorithm sets list them. */
-    public static final String[] CO_TYPES = {"H", "Pi", "U", "T", "L", "Sune", "Anti-Sune"};
-
-    /** The OLL case number that produces each corner orientation type with all edges oriented. */
-    public static int ocllCaseFor(String coType) {
-        switch (coType) {
-            case "H":
-                return 21;
-            case "Pi":
-                return 22;
-            case "U":
-                return 23;
-            case "T":
-                return 24;
-            case "L":
-                return 25;
-            case "Anti-Sune":
-                return 26;
-            case "Sune":
-                return 27;
+    /**
+     * The cases of a csTimer based set. Sets that csTimer lists case by case are grouped by the
+     * name csTimer gives them ("H-1" and "H-2" are both in "H"); the others are one random case.
+     */
+    private static void addCsGroups(List<Group> groups, TrainerSubset subset) {
+        String type = csType(subset);
+        List<String> names = type == null || appContext == null
+                ? new ArrayList<String>() : CsCases.names(appContext, type);
+        if (names.isEmpty()) {
+            groups.add(list(displayName(subset), randomCaseName(subset)));
+            return;
         }
-        return 0;
+        java.util.LinkedHashMap<String, List<String>> byGroup = new java.util.LinkedHashMap<>();
+        for (String name : names) {
+            String g = CsCases.groupOf(name);
+            if (!byGroup.containsKey(g)) byGroup.put(g, new ArrayList<String>());
+            byGroup.get(g).add(name);
+        }
+        for (java.util.Map.Entry<String, List<String>> e : byGroup.entrySet()) {
+            groups.add(new Group(e.getKey(), e.getValue()));
+        }
+    }
+
+    /** The single case of a set that csTimer does not list case by case. */
+    public static String randomCaseName(TrainerSubset subset) {
+        switch (subset) {
+            case LL:  return "Random LL";
+            case LSE: return "Full LSE";
+            default:  return "Random " + displayName(subset);
+        }
     }
 
     /** Every case in the set, in display order. */

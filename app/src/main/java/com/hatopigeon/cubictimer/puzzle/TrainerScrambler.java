@@ -9,6 +9,7 @@ import android.util.Log;
 import com.hatopigeon.cubicify.R;
 import com.hatopigeon.cubictimer.items.Algorithm;
 import com.hatopigeon.cubictimer.utils.AlgUtils;
+import com.hatopigeon.cubictimer.utils.CsTimer;
 import com.hatopigeon.cubictimer.utils.CubeNet;
 import com.hatopigeon.cubictimer.utils.Prefs;
 import com.hatopigeon.cubictimer.utils.PuzzleUtils;
@@ -55,7 +56,7 @@ public abstract class TrainerScrambler {
      * ZBLS (the last slot of F2L, with edges oriented) and LSE (the last six edges of Roux).
      */
     public static enum TrainerSubset {
-        OLL, PLL, LL, ZBLL, ZBLS, CMLL, LSE
+        OLL, PLL, LL, ZBLL, ZBLS, CMLL, LSE, COLL, CLL, ELL, EOLS, WVLS, VLS, TTLL, ZZLL, TWOGLL, F2L
     };
 
     /** A generated practice case. */
@@ -129,6 +130,11 @@ public abstract class TrainerScrambler {
     public static String generateTrainerCase(Context context, TrainerSubset subset, String category) {
         return generateCase(context, subset, category).scramble;
     }
+
+    /** Sets that can still be generated without csTimer if it fails to start. */
+    private static final java.util.Set<TrainerSubset> HAS_BUILT_IN_FALLBACK = new HashSet<>(
+            java.util.Arrays.asList(TrainerSubset.LL, TrainerSubset.ZBLL, TrainerSubset.ZBLS,
+                    TrainerSubset.CMLL, TrainerSubset.LSE));
 
     private static final String[] AUF = {"", "U", "U2", "U'"};
     private static final String[] PLL_CASES = {"H", "Ua", "Ub", "Z", "Aa", "Ab", "E", "F", "Ga", "Gb",
@@ -273,6 +279,17 @@ public abstract class TrainerScrambler {
      * is applied after the permutation and turned by a random U move, so every position of the type
      * can come up. Passing "Oriented" gives a pure permutation with all corners oriented.
      */
+    /** The corner type of a csTimer case name, for the built in generator ("Pi2-4" is "Pi"). */
+    private static String fallbackCornerType(String caseName) {
+        String g = com.hatopigeon.cubictimer.utils.CsCases.groupOf(caseName).replaceAll("[0-9]+$", "");
+        switch (g) {
+            case "S":  return "Sune";
+            case "aS": return "Anti-Sune";
+            case "O":  return "Oriented";
+            default:   return g; // H, Pi, U, T, L
+        }
+    }
+
     private static String cornerTypeAlgorithm(Context context, String coType) {
         String alg = randomPermutation(context);
         String[] setups = CORNER_SETUPS.get(coType);
@@ -333,13 +350,31 @@ public abstract class TrainerScrambler {
      * Not thread safe inside the solver, so only one case is built at a time.
      */
     public static synchronized TrainerCase generateCase(Context context, TrainerSubset subset, String category) {
+        TrainerSets.setContext(context);
         List<String> selectedItems = new ArrayList<>(fetchSelectedItems(subset, category));
+        // Drop choices that no longer exist (an older version listed different cases).
+        if (!TrainerSets.isAlgBased(subset)) {
+            selectedItems.retainAll(TrainerSets.allCases(subset));
+        }
         if (selectedItems.isEmpty()) {
             return new TrainerCase(context.getString(R.string.trainer_help_message), null, null);
         }
 
         String caseName = selectedItems.get(random.nextInt(selectedItems.size()));
         String group = TrainerSets.groupOf(subset, caseName);
+
+        // Everything except OLL and PLL is scrambled by csTimer's own code.
+        String csType = TrainerSets.csType(subset);
+        if (csType != null) {
+            String fromCsTimer = CsTimer.get(context).getScramble(csType, TrainerSets.csIndexOf(subset, caseName));
+            if (fromCsTimer != null) {
+                return new TrainerCase(CubeNet.normalize(fromCsTimer), caseName, group);
+            }
+            Log.e("TRAINER_SCRAMBLE", "csTimer gave no scramble for " + csType);
+            if (!HAS_BUILT_IN_FALLBACK.contains(subset)) {
+                return new TrainerCase(context.getString(R.string.trainer_cstimer_failed), null, null);
+            }
+        }
         String scramble;
         boolean rotate = true;
 
@@ -358,7 +393,7 @@ public abstract class TrainerScrambler {
             }
             case ZBLL:
             case CMLL:
-                scramble = scrambleFor(cornerTypeAlgorithm(context, caseName), 22);
+                scramble = scrambleFor(cornerTypeAlgorithm(context, fallbackCornerType(caseName)), 22);
                 break;
             case ZBLS:
                 scramble = scrambleFor(lastSlotAlgorithm(), 22);
