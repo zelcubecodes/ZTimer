@@ -56,6 +56,30 @@ public final class TrainerSets {
         }
     }
 
+    /** The families the sets are sorted into, in the order they are shown. */
+    public static final String[] FAMILIES = {"Last Layer", "ZB", "COLLs", "Roux", "F2L & Last Slot"};
+
+    private static final TrainerSubset[][] FAMILY_SETS = {
+            {TrainerSubset.OLL, TrainerSubset.PLL, TrainerSubset.LL, TrainerSubset.ZZLL,
+                    TrainerSubset.TTLL, TrainerSubset.TWOGLL},
+            {TrainerSubset.ZBLS, TrainerSubset.ZBLL},
+            {TrainerSubset.COLL, TrainerSubset.CLL, TrainerSubset.ELL},
+            {TrainerSubset.CMLL, TrainerSubset.LSE},
+            {TrainerSubset.F2L, TrainerSubset.EOLS, TrainerSubset.WVLS, TrainerSubset.VLS}};
+
+    /** The sets of a family, in display order. */
+    public static List<TrainerSubset> setsInFamily(int family) {
+        return new ArrayList<>(java.util.Arrays.asList(FAMILY_SETS[family]));
+    }
+
+    /** The name of the family a set belongs to. */
+    public static String familyOf(TrainerSubset subset) {
+        for (int i = 0; i < FAMILY_SETS.length; i++) {
+            for (TrainerSubset t : FAMILY_SETS[i]) if (t == subset) return FAMILIES[i];
+        }
+        return FAMILIES[0];
+    }
+
     /** True if csTimer lists the cases of this set one by one, so they can be chosen individually. */
     public static boolean hasCaseList(TrainerSubset subset) {
         String type = csType(subset);
