@@ -85,8 +85,9 @@ public class TrainerSetListAdapter extends BaseAdapter {
         if (set == null) {
             TextView header = convertView instanceof TextView ? (TextView) convertView : new TextView(context);
             int pad = ThemeUtils.dpToPix(context, 8);
-            header.setPadding(pad * 2, pad * 2, pad * 2, pad / 2);
+            header.setPadding(pad * 3, pad * 2, pad * 2, pad / 2);
             header.setTextSize(12);
+            header.setLetterSpacing(0.08f);
             header.setAllCaps(true);
             header.setTypeface(null, Typeface.BOLD);
             header.setTextColor(ThemeUtils.fetchAttrColor(context, R.attr.colorItemListText));
@@ -96,10 +97,19 @@ public class TrainerSetListAdapter extends BaseAdapter {
         }
         View view = convertView != null && convertView.findViewById(R.id.item) != null
                 ? convertView
-                : LayoutInflater.from(context).inflate(R.layout.item_bottom_spinner, parent, false);
+                : LayoutInflater.from(context).inflate(R.layout.item_trainer_set, parent, false);
         TextView title = view.findViewById(R.id.item);
         title.setText(TrainerSets.displayName(set));
         title.setTypeface(null, set == current ? Typeface.BOLD : Typeface.NORMAL);
+        // The set that is open gets a soft pill behind it
+        title.setBackgroundResource(R.drawable.trainer_set_item_background);
+        if (set == current) {
+            android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
+            pill.setColor(0x1F2962FF);
+            pill.setCornerRadius(ThemeUtils.dpToPix(context, 16));
+            title.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{
+                    pill, context.getResources().getDrawable(R.drawable.trainer_set_item_background)}));
+        }
         return view;
     }
 }
