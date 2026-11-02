@@ -89,6 +89,7 @@ public class TrainerCursorAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     public TrainerCursorAdapter(Context context, Fragment listFragment, TrainerScrambler.TrainerSubset subset, String category) {
         this.mContext = context;
+        TrainerSets.setContext(context);
         this.fragmentManager = listFragment.getFragmentManager();
         this.currentSubset = subset;
         this.currentPuzzleCategory = category;
@@ -304,10 +305,7 @@ public class TrainerCursorAdapter extends RecyclerView.Adapter<RecyclerView.View
             if (TrainerSets.isAlgBased(currentSubset)) {
                 state = AlgUtils.getCaseState(mContext, currentSubset.name(), row.name);
             } else {
-                int oll = TrainerSets.ocllCaseFor(row.name);
-                if (oll > 0) {
-                    state = AlgUtils.getCaseState(mContext, "OLL", String.format(java.util.Locale.US, "OLL %02d", oll));
-                }
+                state = TrainerSets.pictureFor(currentSubset, row.name);
             }
         } catch (Exception ignored) {
         }
