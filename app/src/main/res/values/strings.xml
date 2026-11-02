@@ -463,6 +463,15 @@
     <string name="pref_time_limit_alert_title">Alert time limit</string>
     <string name="pref_time_limit_alert_summary">Timer will alert you when the time limit has elapsed in FMC or MBLD</string>
     <string name="dialog_scramble_details">Scramble details</string>
+    <string name="puzzle_tab_wca">WCA</string>
+    <string name="puzzle_tab_non_wca">Non-WCA</string>
+    <string name="trainer_probability_title">Case probability</string>
+    <string name="trainer_probability_actual">Actual</string>
+    <string name="trainer_probability_equal">Equal</string>
+    <string name="trainer_probability_order">Random order</string>
+    <string name="trainer_probability_actual_desc">Cases with more positions come up more often (csTimer\'s real probabilities)</string>
+    <string name="trainer_probability_equal_desc">Every selected case is equally likely</string>
+    <string name="trainer_probability_order_desc">Every selected case once in a random order, then again</string>
     <string name="dialog_select_puzzle">Select a puzzle</string>
     <string name="dialog_hint_title">Hint</string>
     <string name="category_select_dialog_title">Select a category</string>
