@@ -10171,7 +10171,7 @@ var scramble_333 = (function(getNPerm, setNPerm, getNParity, rn, rndEl) {
 
 	function getCMLLScramble(type, length, cases) {
 		var cocase = coll_map[scrMgr.fixCase(cases, coprobs)];
-		var rnd4 = rn(4);
+		var rnd4 = 0; /* ZTimer: never add a random cube rotation (x, x', x2) to the scramble */
 		var presuff = [];
 		for (var i = 0; i < aufsuff.length; i++) {
 			presuff.push(aufsuff[i].concat(rlpresuff[rnd4]));
@@ -10299,7 +10299,7 @@ var scramble_333 = (function(getNPerm, setNPerm, getNParity, rn, rndEl) {
 	}
 
 	function getLSEScramble() {
-		var rnd4 = rn(4);
+		var rnd4 = 0; /* ZTimer: never add a random cube rotation (x, x', x2) to the scramble */
 		return getAnyScramble(0xba98f6f4ffff, 0x0000f0f0ffff, 0x76543210, 0x00000000, 0, [rlpresuff[rnd4]], aufsuff) + rlappsuff[rnd4];
 	}
 
