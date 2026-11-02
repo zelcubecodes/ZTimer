@@ -52,6 +52,12 @@ public class CategorySelectDialog extends DialogFragment {
     View addCategoryButton;
     @BindView(R.id.list)
     ListView listView;
+    @BindView(R.id.category_tabs)
+    com.google.android.material.tabs.TabLayout tabs;
+
+    /** True while the Trainer tab is showing, false for the Timer tab. */
+    private boolean trainerTab;
+    private com.hatopigeon.cubictimer.adapter.TrainerSetListAdapter trainerAdapter;
 
     // Puzzle and subtypes that are currently selected
     private String                         currentPuzzle;
@@ -83,27 +89,6 @@ public class CategorySelectDialog extends DialogFragment {
         args.putSerializable("subset", currentSubset);
         dialog.setArguments(args);
         return dialog;
-    }
-
-    /**
-     * The trainer rows offered on the times and graph pages, in order. Each is
-     * {set name, category, label}. The category is DatabaseHandler.SUBTYPE_ALL for a whole set,
-     * or the name of one group of it.
-     */
-    private List<String[]> trainerRows() {
-        List<String[]> rows = new java.util.ArrayList<>();
-        for (TrainerScrambler.TrainerSubset t : TrainerScrambler.TrainerSubset.values()) {
-            String title = getString(R.string.title_trainer, TrainerSets.displayName(t));
-            rows.add(new String[]{t.name(), com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL, title});
-            List<String> groups = TrainerSets.groupNames(t);
-            // A set with a single group would just repeat itself
-            if (groups.size() > 1) {
-                for (String group : groups) {
-                    rows.add(new String[]{t.name(), group, title + " \u00b7 " + group});
-                }
-            }
-        }
-        return rows;
     }
 
     /** Same as above. With {@code includeTrainer} the trainer sets (OLL, PLL, ...) are listed too. */
@@ -175,12 +160,52 @@ public class CategorySelectDialog extends DialogFragment {
 
         // click listeners
         // select a subtype
+        // Timer / Trainer tabs, only on the times and graph pages
+        if (includeTrainer) {
+            tabs.setVisibility(View.VISIBLE);
+            tabs.addTab(tabs.newTab().setText(R.string.category_tab_timer));
+            tabs.addTab(tabs.newTab().setText(R.string.category_tab_trainer));
+            tabs.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+                @Override
+                public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                    trainerTab = tab.getPosition() == 1;
+                    updateList(dbHandler);
+                }
+
+                @Override
+                public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                }
+
+                @Override
+                public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                }
+            });
+        }
+
         listView.setOnItemClickListener((parent, view1, position, id) -> {
-            if (position >= subtypeList.size()) {
-                // A trainer set, or one group of it, was selected: "trainer:OLL:Edges Only"
-                String[] row = trainerRows().get(position - subtypeList.size());
-                dialogListenerMessage.onUpdateDialog(TRAINER_PREFIX + row[0] + ":" + row[1]);
-                dismiss();
+            if (trainerTab) {
+                // A trainer set was selected: ask which group of it, if it has several
+                final TrainerScrambler.TrainerSubset set = trainerAdapter.setAt(position);
+                if (set == null) return;
+                final List<String> groups = TrainerSets.groupNames(set);
+                if (groups.size() <= 1) {
+                    dialogListenerMessage.onUpdateDialog(TRAINER_PREFIX + set.name() + ":" + DatabaseHandler.SUBTYPE_ALL);
+                    dismiss();
+                    return;
+                }
+                final List<String> choices = new java.util.ArrayList<>();
+                choices.add(getString(R.string.trainer_all_cases, TrainerSets.displayName(set)));
+                choices.addAll(groups);
+                ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
+                        .title(R.string.trainer_pick_group)
+                        .items(choices)
+                        .itemsCallback((dialog, itemView, which, text) -> {
+                            String group = which == 0 ? DatabaseHandler.SUBTYPE_ALL : groups.get(which - 1);
+                            dialogListenerMessage.onUpdateDialog(TRAINER_PREFIX + set.name() + ":" + group);
+                            dialog.dismiss();
+                            dismiss();
+                        })
+                        .build());
                 return;
             }
             // A subtype was selected
@@ -194,7 +219,7 @@ public class CategorySelectDialog extends DialogFragment {
 
         listView.setOnItemLongClickListener((parent, view12, position, id) -> {
             // Trainer sets can't be renamed or removed
-            if (position >= subtypeList.size()) return true;
+            if (trainerTab || position >= subtypeList.size()) return true;
             // Create a popup menu for each entry
             MenuBuilder menuBuilder = new MenuBuilder(context);
             MenuInflater inflater = new MenuInflater(context);
@@ -270,12 +295,15 @@ public class CategorySelectDialog extends DialogFragment {
 
     private void updateList(DatabaseHandler dbHandler) {
         subtypeList = dbHandler.getAllSubtypesFromType(currentPuzzle);
-        int[] icons = {};
-        List<String> shown = new java.util.ArrayList<>(subtypeList);
-        if (includeTrainer) {
-            for (String[] row : trainerRows()) shown.add(row[2]);
+        if (trainerTab) {
+            trainerAdapter = new com.hatopigeon.cubictimer.adapter.TrainerSetListAdapter(getContext(), currentSubset);
+            listView.setAdapter(trainerAdapter);
+            addCategoryButton.setVisibility(View.INVISIBLE);
+            return;
         }
-        mAdapter = new BottomSheetSpinnerAdapter(getContext(), shown.toArray(new String[0]), icons);
+        addCategoryButton.setVisibility(View.VISIBLE);
+        int[] icons = {};
+        mAdapter = new BottomSheetSpinnerAdapter(getContext(), subtypeList.toArray(new String[0]), icons);
         listView.setAdapter(mAdapter);
     }
 
