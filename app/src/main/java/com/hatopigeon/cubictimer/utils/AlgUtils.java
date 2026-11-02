@@ -67,6 +67,7 @@ public final class AlgUtils {
                 );
 
                 colorStates = res.getStringArray(resId);
+                mSubset = subset;
             } catch (Exception e) {
                 Log.e("ALGUTILS", "Error retrieving subset: " + e);
             }

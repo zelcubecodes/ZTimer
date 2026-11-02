@@ -124,6 +124,18 @@ public class ScrambleGenerator {
         return sp.getString(PuzzleUtils.colorInfo.get(id).face + colorSchemeName, PuzzleUtils.colorInfo.get(id).defaultColor);
     }
 
+    /** Draws a 3x3 scramble with {@link CubeNet}, using the user's colour scheme. */
+    private String drawOwn(SharedPreferences sp, String scramble, String colorSchemeName) {
+        String[] colors = {
+                getColorHex(sp, R.id.top, colorSchemeName),
+                getColorHex(sp, R.id.left, colorSchemeName),
+                getColorHex(sp, R.id.front, colorSchemeName),
+                getColorHex(sp, R.id.right, colorSchemeName),
+                getColorHex(sp, R.id.back, colorSchemeName),
+                getColorHex(sp, R.id.down, colorSchemeName)};
+        return CubeNet.drawSvg(scramble, colors);
+    }
+
     /**
      * Returns a scramble drawable showing the puzzled scrambled
      * Uses Tnoodle lib
@@ -220,10 +232,26 @@ public class ScrambleGenerator {
                 break;
             }
 
-            try {
-                cubeImg = puzzle.drawScramble(scramble, colorScheme).toString();
-            } catch (InvalidScrambleException e) {
-                e.printStackTrace();
+            // 3x3 scrambles: fix missing or doubled spaces ("L'F'"), and draw slice moves (M, E, S),
+            // wide moves and rotations ourselves, because TNoodle's drawer rejects them.
+            final boolean isThreeByThree = puzzle instanceof ThreeByThreeCubePuzzle
+                    || puzzle instanceof NoInspectionThreeByThreeCubePuzzle
+                    || puzzle instanceof ThreeByThreeCubeFewestMovesPuzzle;
+            boolean drawn = false;
+            if (isThreeByThree) {
+                scramble = CubeNet.normalize(scramble);
+                if (CubeNet.needsOwnDrawing(scramble)) {
+                    cubeImg = drawOwn(sp, scramble, colorSchemeName);
+                    drawn = true;
+                }
+            }
+            if (!drawn) {
+                try {
+                    cubeImg = puzzle.drawScramble(scramble, colorScheme).toString();
+                } catch (InvalidScrambleException e) {
+                    e.printStackTrace();
+                    if (isThreeByThree) cubeImg = drawOwn(sp, scramble, colorSchemeName);
+                }
             }
         } else {
             cubeImg = "";

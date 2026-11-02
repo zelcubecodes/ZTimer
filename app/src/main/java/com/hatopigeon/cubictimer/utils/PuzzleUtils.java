@@ -826,7 +826,8 @@ public class PuzzleUtils {
         StringBuilder rotated = new StringBuilder();
         Character move;
 
-        for (String turn : str.split(" ")) {
+        for (String turn : str.trim().split("\\s+")) {
+            if (turn.isEmpty()) continue;
             // If a turn is a prime move, get only the first char (F' becomes F)
             move = turn.charAt(0);
             if (map.containsKey(move.toString()))
