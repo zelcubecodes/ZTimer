@@ -26,6 +26,7 @@ public final class CsCases {
 
     private static final Map<String, List<String>> NAMES = new HashMap<>();
     private static final Map<String, List<String>> PICTURES = new HashMap<>();
+    private static final Map<String, List<Integer>> WEIGHTS = new HashMap<>();
     private static boolean loaded;
 
     private static synchronized void load(Context context) {
@@ -48,8 +49,15 @@ public final class CsCases {
                     nameList.add(names.getString(i));
                     picList.add(pics.isNull(i) ? null : pics.getString(i));
                 }
+                // How many positions csTimer counts for each case (its "actual" probability).
+                JSONArray probs = entry.optJSONArray("probs");
+                List<Integer> weightList = new ArrayList<>();
+                for (int i = 0; i < names.length(); i++) {
+                    weightList.add(probs == null ? 1 : Math.max(1, probs.optInt(i, 1)));
+                }
                 NAMES.put(type, nameList);
                 PICTURES.put(type, picList);
+                WEIGHTS.put(type, weightList);
             }
             loaded = true;
         } catch (Exception e) {
@@ -68,6 +76,26 @@ public final class CsCases {
         load(context);
         List<String> names = NAMES.get(type);
         return names == null ? Collections.<String>emptyList() : names;
+    }
+
+    /**
+     * csTimer's own weight of a case: how often it comes up when csTimer picks a case by its real
+     * probability (a case with more positions is more likely). 1 if the case or type is unknown.
+     */
+    public static int weight(Context context, String type, String caseName) {
+        load(context);
+        List<String> names = NAMES.get(type);
+        List<Integer> weights = WEIGHTS.get(type);
+        if (names == null || weights == null) return 1;
+        int index = names.indexOf(caseName);
+        return index < 0 || index >= weights.size() ? 1 : weights.get(index);
+    }
+
+    /** The weight of a case by its position in csTimer's list for that type. */
+    public static int weightAt(Context context, String type, int index) {
+        load(context);
+        List<Integer> weights = WEIGHTS.get(type);
+        return weights == null || index < 0 || index >= weights.size() ? 1 : weights.get(index);
     }
 
     /** The group a case belongs to: its name without the trailing number ("H-2" is in "H"). */

@@ -341,6 +341,16 @@ public class PuzzleUtils {
         }
     }
 
+    /**
+     * The name of any puzzle as text. Puzzles of the "Non-WCA" tab ({@link CsPuzzles}) have no
+     * string resource, so this is what to use when the puzzle might be one of them.
+     */
+    public static String getPuzzleTitle(android.content.Context context, String puzzle) {
+        CsPuzzles.Entry cs = CsPuzzles.get(puzzle);
+        if (cs != null) return cs.name;
+        return context.getString(getPuzzleNameFromType(puzzle));
+    }
+
     public static @StringRes int getPuzzleNameFromType(String puzzle) {
         // IMPORTANT: Keep this in sync with the order in "R.array.puzzles".
         switch (puzzle) {
@@ -1081,6 +1091,11 @@ public class PuzzleUtils {
             case "fto":
             case "ftoso":
                 return TYPE_FTO;
+        }
+
+        // The extra puzzles of the Non-WCA tab keep their own type, so imported solves land there.
+        if (CsPuzzles.get(CsPuzzles.PREFIX + scrambleType) != null) {
+            return CsPuzzles.PREFIX + scrambleType;
         }
 
         return TYPE_OTHER;

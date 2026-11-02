@@ -6,6 +6,7 @@ import android.graphics.drawable.PictureDrawable;
 import android.util.Log;
 
 import com.hatopigeon.cubicify.R;
+import com.hatopigeon.cubictimer.CubicTimer;
 import com.hatopigeon.cubictimer.fragment.dialog.SchemeSelectDialogMain;
 import com.hatopigeon.cubictimer.puzzle.BabyFtoPuzzle;
 import com.hatopigeon.cubictimer.puzzle.FtoPuzzle;
@@ -41,6 +42,11 @@ public class ScrambleGenerator {
 
     public ScrambleGenerator(String type) {
         puzzleType = type;
+        if (CsPuzzles.isCs(type)) {
+            // Scrambles and pictures of these puzzles come from csTimer, see generateCsScramble.
+            puzzle = null;
+            return;
+        }
         try {
             switch (type) {
                 case PuzzleUtils.TYPE_222:
@@ -116,6 +122,36 @@ public class ScrambleGenerator {
         return puzzle;
     }
 
+    /** True if this generator makes the scramble of a puzzle from the Non-WCA tab (csTimer). */
+    public boolean isCsPuzzle() {
+        return CsPuzzles.isCs(puzzleType);
+    }
+
+    /**
+     * A scramble of a puzzle from the Non-WCA tab, made by csTimer's own code. Waits for csTimer, so
+     * it must run on a background thread.
+     */
+    public String generateCsScramble(android.content.Context context) {
+        CsPuzzles.Entry entry = CsPuzzles.get(puzzleType);
+        if (entry == null) return null;
+        String scramble = CsTimer.get(context).getScramble(entry.csType, entry.length, -1);
+        // The Gigaminx and Kilominx scramble is several lines with a lot of padding.
+        return scramble == null ? null : scramble.replaceAll("[ \\t]+\\n", "\n").replaceAll("\\n{2,}", "\n").trim();
+    }
+
+    private Drawable generateCsImage(String scramble) {
+        CsPuzzles.Entry entry = CsPuzzles.get(puzzleType);
+        if (entry == null || !entry.hasImage || scramble == null) return null;
+        try {
+            String svg = CsTimer.get(CubicTimer.getAppContext()).getImage(entry.csType, scramble);
+            if (svg == null) return null;
+            return new PictureDrawable(SVG.getFromString(svg).renderToPicture());
+        } catch (Exception e) {
+            Log.e("CSPUZZLE", "No picture for " + puzzleType + ": " + e);
+            return null;
+        }
+    }
+
     public void setPuzzle(Puzzle puzzle) {
         this.puzzle = puzzle;
     }
@@ -143,6 +179,10 @@ public class ScrambleGenerator {
      * @return
      */
     public Drawable generateImageFromScramble(SharedPreferences sp, String scramble) {
+        if (isCsPuzzle()) {
+            return generateCsImage(scramble);
+        }
+
         HashMap<String, Color> colorScheme = new HashMap<String, Color>();
         String colorSchemeName = PuzzleUtils.getColorSchemeName(puzzleType);
 

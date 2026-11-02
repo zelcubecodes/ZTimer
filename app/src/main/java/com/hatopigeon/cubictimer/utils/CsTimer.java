@@ -9,6 +9,7 @@ import android.webkit.ValueCallback;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.ByteArrayOutputStream;
@@ -93,15 +94,45 @@ public final class CsTimer {
      * @return the scramble, or null if csTimer could not produce one
      */
     public String getScramble(String type, int caseIndex) {
+        return getScramble(type, 0, caseIndex);
+    }
+
+    /**
+     * Same as {@link #getScramble(String, int)}, with the scramble length csTimer should use. Some
+     * types (8x8x8, Gear Cube, Gigaminx, ...) need a length, csTimer's own default for each is in
+     * {@link CsPuzzles}.
+     */
+    public String getScramble(String type, int length, int caseIndex) {
+        String call = "(function(){try{return cstimerModule.getScramble('" + type + "'," + Math.max(0, length) + ","
+                + (caseIndex >= 0 ? String.valueOf(caseIndex) : "undefined")
+                + ");}catch(e){return 'ERR:'+e;}})()";
+        String scramble = evaluate(call);
+        if (scramble == null || scramble.startsWith("ERR:") || scramble.trim().isEmpty()) {
+            Log.e(TAG, "csTimer failed for " + type + ": " + scramble);
+            return null;
+        }
+        return scramble.trim();
+    }
+
+    /**
+     * Asks csTimer to draw a scramble. Returns an SVG document, or null if csTimer has no picture
+     * for that type. Never call it from the main thread.
+     */
+    public String getImage(String type, String scramble) {
+        if (scramble == null) return null;
+        String call = "(function(){try{var r=cstimerModule.getImage(" + JSONObject.quote(scramble) + ",'" + type
+                + "');return (typeof r==='string')?r:'';}catch(e){return '';}})()";
+        String svg = evaluate(call);
+        return svg == null || !svg.contains("<svg") ? null : svg;
+    }
+
+    /** Runs a piece of JavaScript in csTimer's WebView and waits for its string result. */
+    private String evaluate(String call) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            throw new IllegalStateException("CsTimer.getScramble must not run on the main thread");
+            throw new IllegalStateException("CsTimer must not be used on the main thread");
         }
         try {
             if (!ready.await(TIMEOUT_SECONDS, TimeUnit.SECONDS) || failed || web == null) return null;
-
-            final String call = "(function(){try{return cstimerModule.getScramble('" + type + "',0,"
-                    + (caseIndex >= 0 ? String.valueOf(caseIndex) : "undefined")
-                    + ");}catch(e){return 'ERR:'+e;}})()";
             final String[] result = new String[1];
             final CountDownLatch done = new CountDownLatch(1);
             main.post(() -> web.evaluateJavascript(call, (ValueCallback<String>) value -> {
@@ -114,12 +145,7 @@ public final class CsTimer {
                 done.countDown();
             }));
             if (!done.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)) return null;
-            String scramble = result[0];
-            if (scramble == null || scramble.startsWith("ERR:") || scramble.trim().isEmpty()) {
-                Log.e(TAG, "csTimer failed for " + type + ": " + scramble);
-                return null;
-            }
-            return scramble.trim();
+            return result[0];
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
