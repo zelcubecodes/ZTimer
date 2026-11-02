@@ -46,7 +46,7 @@ import androidx.loader.app.LoaderManager;
 import androidx.loader.content.Loader;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.StaggeredGridLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat;
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -145,111 +145,18 @@ public class BottomSheetTrainerDialog extends BottomSheetDialogFragment implemen
         button.setText(R.string.trainer_select_all);
         button.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
         button.setOnClickListener(v -> {
-            if (TrainerSets.isAlgBased(currentSubset)) {
-                trainerCursorAdapter.selectAll();
-                recyclerView.setAdapter(trainerCursorAdapter);
-            } else {
-                // Generated sets have no list: toggle every case on or off
-                List<String> all = TrainerSets.allCases(currentSubset);
-                Set<String> chosen = new HashSet<>(TrainerScrambler.fetchSelectedItems(currentSubset, currentCategory));
-                if (chosen.containsAll(all)) chosen.removeAll(all); else chosen.addAll(all);
-                TrainerScrambler.saveSelectedItems(currentSubset, currentCategory, chosen);
-            }
+            // Selects every case, or clears them all if everything was already selected
+            trainerCursorAdapter.selectAll();
             dismiss();
         });
 
         setupRecyclerView();
         getLoaderManager().initLoader(MainActivity.ALG_LIST_LOADER_ID, null, this);
-        setupGroupChips(dialogView);
 
         registerReceiver(mAlgDataChangedReceiver);
         registerReceiver(mUIInteractionReceiver);
 
         return dialogView;
-    }
-
-    private void resetRecyclerView() {
-
-    }
-
-    private final List<TextView> groupChips = new ArrayList<>();
-
-    /**
-     * Adds a row of chips above the list, one per group of cases (for example "T Shapes"). Tapping a
-     * chip selects or deselects its whole group. For the generated sets the chips are the cases
-     * themselves and there is no list.
-     */
-    private void setupGroupChips(View dialogView) {
-        if (!(dialogView instanceof RelativeLayout) || getContext() == null) return;
-        final Context context = getContext();
-        final boolean algBased = TrainerSets.isAlgBased(currentSubset);
-
-        HorizontalScrollView scroll = new HorizontalScrollView(context);
-        scroll.setId(View.generateViewId());
-        scroll.setHorizontalScrollBarEnabled(false);
-        LinearLayout row = new LinearLayout(context);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        int pad = ThemeUtils.dpToPix(context, 8);
-        row.setPadding(pad, pad, pad, pad);
-        scroll.addView(row);
-
-        groupChips.clear();
-        for (final TrainerSets.Group group : TrainerSets.groups(currentSubset)) {
-            TextView chip = new TextView(context);
-            chip.setText(group.name);
-            chip.setTextSize(14);
-            chip.setPadding(pad * 2, pad, pad * 2, pad);
-            chip.setTextColor(ThemeUtils.fetchAttrColor(context, android.R.attr.textColorPrimary));
-            chip.setTag(group);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.setMargins(0, 0, pad, 0);
-            chip.setLayoutParams(lp);
-            chip.setOnClickListener(v -> toggleGroup(group, algBased));
-            row.addView(chip);
-            groupChips.add(chip);
-        }
-
-        RelativeLayout.LayoutParams scrollParams = new RelativeLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        scrollParams.addRule(RelativeLayout.BELOW, R.id.divider01);
-        ((RelativeLayout) dialogView).addView(scroll, scrollParams);
-
-        // The list goes below the chips. The generated sets have no list at all.
-        if (algBased) {
-            RelativeLayout.LayoutParams listParams = (RelativeLayout.LayoutParams) recyclerView.getLayoutParams();
-            listParams.addRule(RelativeLayout.BELOW, scroll.getId());
-            recyclerView.setLayoutParams(listParams);
-        } else {
-            recyclerView.setVisibility(View.GONE);
-        }
-        refreshGroupChips();
-    }
-
-    private void toggleGroup(TrainerSets.Group group, boolean algBased) {
-        if (algBased) {
-            boolean full = trainerCursorAdapter.isGroupSelected(group.cases);
-            trainerCursorAdapter.setGroupSelected(group.cases, !full);
-        } else {
-            Set<String> chosen = new HashSet<>(TrainerScrambler.fetchSelectedItems(currentSubset, currentCategory));
-            if (chosen.containsAll(group.cases)) chosen.removeAll(group.cases); else chosen.addAll(group.cases);
-            TrainerScrambler.saveSelectedItems(currentSubset, currentCategory, chosen);
-        }
-        refreshGroupChips();
-    }
-
-    /** Highlights the chips whose cases are all selected. */
-    private void refreshGroupChips() {
-        if (getContext() == null) return;
-        Set<String> chosen = new HashSet<>(TrainerScrambler.fetchSelectedItems(currentSubset, currentCategory));
-        Drawable normal = ThemeUtils.createSquareDrawable(getContext(),
-                ThemeUtils.fetchAttrColor(getContext(), R.attr.colorItemListBackground), 0, 14, 0);
-        Drawable selected = ThemeUtils.createSquareDrawable(getContext(),
-                ThemeUtils.fetchAttrColor(getContext(), R.attr.colorItemListBackgroundSelected), Color.BLACK, 14, 2);
-        for (TextView chip : groupChips) {
-            TrainerSets.Group group = (TrainerSets.Group) chip.getTag();
-            chip.setBackground(chosen.containsAll(group.cases) ? selected : normal);
-        }
     }
 
     @Override
@@ -287,33 +194,30 @@ public class BottomSheetTrainerDialog extends BottomSheetDialogFragment implemen
 
     @Override
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        trainerCursorAdapter.swapCursor(cursor);
-        recyclerView.getAdapter().notifyDataSetChanged();
+        trainerCursorAdapter.setCursor(cursor);
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> cursorLoader) {
-        trainerCursorAdapter.swapCursor(null);
+        trainerCursorAdapter.setCursor(null);
     }
 
     private void setupRecyclerView() {
         Activity parentActivity = getActivity();
 
-        trainerCursorAdapter = new TrainerCursorAdapter(getActivity(), null, this, currentSubset, currentCategory);
+        trainerCursorAdapter = new TrainerCursorAdapter(getActivity(), this, currentSubset, currentCategory);
 
-        // Set different managers to support different orientations
-        StaggeredGridLayoutManager gridLayoutManagerHorizontal =
-                new StaggeredGridLayoutManager(4, StaggeredGridLayoutManager.VERTICAL);
-        StaggeredGridLayoutManager gridLayoutManagerVertical =
-                new StaggeredGridLayoutManager(3, StaggeredGridLayoutManager.VERTICAL);
-
-        // Adapt to orientation
-        if (parentActivity.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
-            recyclerView.setLayoutManager(gridLayoutManagerVertical);
-        else
-            recyclerView.setLayoutManager(gridLayoutManagerHorizontal);
-
+        // Three columns in portrait, four in landscape. Group headers take the whole row.
+        final int spans = parentActivity.getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_PORTRAIT ? 3 : 4;
+        GridLayoutManager layoutManager = new GridLayoutManager(parentActivity, spans);
+        layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                return trainerCursorAdapter.isHeader(position) ? spans : 1;
+            }
+        });
+        recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(trainerCursorAdapter);
     }
 }
-
