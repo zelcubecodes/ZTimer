@@ -9,6 +9,7 @@ import android.util.Log;
 import com.hatopigeon.cubicify.R;
 import com.hatopigeon.cubictimer.items.Algorithm;
 import com.hatopigeon.cubictimer.utils.AlgUtils;
+import com.hatopigeon.cubictimer.utils.CubeNet;
 import com.hatopigeon.cubictimer.utils.Prefs;
 import com.hatopigeon.cubictimer.utils.PuzzleUtils;
 
@@ -229,10 +230,11 @@ public abstract class TrainerScrambler {
      * the algorithm solves, which is what the inverse produces from a solved cube.
      */
     static String invertAlgorithm(String alg) {
-        String[] moves = alg.trim().split("\\s+");
+        // Tokenize instead of splitting on spaces, so a missing space ("L'F'") cannot merge two moves.
+        java.util.List<String> moves = CubeNet.tokenize(alg);
         StringBuilder inverse = new StringBuilder();
-        for (int i = moves.length - 1; i >= 0; i--) {
-            String move = moves[i];
+        for (int i = moves.size() - 1; i >= 0; i--) {
+            String move = moves.get(i);
             if (move.isEmpty()) continue;
             if (move.endsWith("'")) {
                 move = move.substring(0, move.length() - 1);
@@ -370,9 +372,11 @@ public abstract class TrainerScrambler {
                 scramble = "";
         }
 
+        scramble = CubeNet.normalize(scramble);
         if (rotate) {
             scramble = PuzzleUtils.applyRotationForAlgorithm(scramble, Y_ROTATIONS[random.nextInt(4)]);
         }
+        scramble = CubeNet.normalize(scramble);
         return new TrainerCase(scramble, caseName, group);
     }
 
