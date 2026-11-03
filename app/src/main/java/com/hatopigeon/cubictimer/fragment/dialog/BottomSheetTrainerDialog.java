@@ -77,8 +77,6 @@ public class BottomSheetTrainerDialog extends BottomSheetDialogFragment implemen
     RecyclerView      recyclerView;
     @BindView(R.id.button)
     AppCompatTextView button;
-    @BindView(R.id.probability)
-    AppCompatTextView probabilityButton;
 
     private Unbinder mUnbinder;
     TrainerScrambler.TrainerSubset currentSubset;
@@ -135,7 +133,7 @@ public class BottomSheetTrainerDialog extends BottomSheetDialogFragment implemen
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View dialogView = inflater.inflate(R.layout.dialog_bottomsheet_trainer_cases, container);
+        View dialogView = inflater.inflate(R.layout.dialog_bottomsheet_recycler, container);
         mUnbinder = ButterKnife.bind(this, dialogView);
 
         titleView.setText(R.string.trainer_spinner_title);
@@ -152,9 +150,6 @@ public class BottomSheetTrainerDialog extends BottomSheetDialogFragment implemen
             dismiss();
         });
 
-        updateProbabilityButton();
-        probabilityButton.setOnClickListener(v -> showProbabilityChooser());
-
         setupRecyclerView();
         getLoaderManager().initLoader(MainActivity.ALG_LIST_LOADER_ID, null, this);
 
@@ -169,37 +164,6 @@ public class BottomSheetTrainerDialog extends BottomSheetDialogFragment implemen
         super.onDestroyView();
         mUnbinder.unbind();
         getLoaderManager().destroyLoader(MainActivity.ALG_LIST_LOADER_ID);
-    }
-
-    private static String probabilityName(Context context, String mode) {
-        switch (mode) {
-            case TrainerScrambler.PROB_ACTUAL: return context.getString(R.string.trainer_probability_actual);
-            case TrainerScrambler.PROB_ORDER:  return context.getString(R.string.trainer_probability_order);
-            default:                           return context.getString(R.string.trainer_probability_equal);
-        }
-    }
-
-    private void updateProbabilityButton() {
-        probabilityButton.setText(getString(R.string.trainer_probability_title) + ": "
-                + probabilityName(getContext(), TrainerScrambler.getProbabilityMode()));
-    }
-
-    /** Actual / Equal / Random order, like csTimer's setting for training scrambles. */
-    private void showProbabilityChooser() {
-        final String[] modes = {TrainerScrambler.PROB_EQUAL, TrainerScrambler.PROB_ACTUAL, TrainerScrambler.PROB_ORDER};
-        final String[] labels = {
-                getString(R.string.trainer_probability_equal) + "\n" + getString(R.string.trainer_probability_equal_desc),
-                getString(R.string.trainer_probability_actual) + "\n" + getString(R.string.trainer_probability_actual_desc),
-                getString(R.string.trainer_probability_order) + "\n" + getString(R.string.trainer_probability_order_desc)};
-        int selected = java.util.Arrays.asList(modes).indexOf(TrainerScrambler.getProbabilityMode());
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(getContext());
-        builder.setTitle(R.string.trainer_probability_title)
-                .setSingleChoiceItems(labels, selected, (dialog, which) -> {
-                    TrainerScrambler.setProbabilityMode(modes[which]);
-                    updateProbabilityButton();
-                    dialog.dismiss();
-                })
-                .show();
     }
 
     public void reloadList() {
