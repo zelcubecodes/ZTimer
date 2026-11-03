@@ -530,6 +530,11 @@ public class TimerFragment extends BaseFragment
         return TIMER_MODE_TRAINER.equals(currentTimerMode);
     }
 
+    /** The trainer category (a case selection of the set) this timer trains. */
+    public String getTrainerCategory() {
+        return currentPuzzleCategory;
+    }
+
     /** The trainer set (OLL, PLL, ...) this timer trains. Only meaningful in trainer mode. */
     public TrainerScrambler.TrainerSubset getTrainerSubset() {
         return currentSubset;

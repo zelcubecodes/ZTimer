@@ -73,6 +73,7 @@ import com.hatopigeon.cubictimer.utils.PuzzleUtils;
 import com.hatopigeon.cubictimer.utils.Wrapper;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
@@ -168,6 +169,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     @BindView(R.id.nav_button_category) View      navButtonCategory;
     @BindView(R.id.nav_button_history) ImageView navButtonHistory;
     @BindView(R.id.nav_button_cases) View        navButtonCases;
+    @BindView(R.id.nav_button_stats_mode) ImageView navButtonStatsMode;
 
     @BindView(R.id.puzzleCategory) TextView puzzleCategoryText;
     @BindView(R.id.puzzleName) TextView puzzleNameText;
@@ -229,6 +231,10 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         public void onClick(View view) {
             switch (view.getId()) {
                 case R.id.nav_button_category:
+                    if (viewPager != null && viewPager.getCurrentItem() == TRAINER_PAGE) {
+                        showTrainerCategoryDialog();
+                        break;
+                    }
                     boolean onStatsPage = viewPager != null
                             && (viewPager.getCurrentItem() == LIST_PAGE || viewPager.getCurrentItem() == GRAPH_PAGE);
                     categoryDialog = CategorySelectDialog.newInstance(currentPuzzle, currentPuzzleCategory, currentTimerMode, currentPuzzleSubset, onStatsPage);
@@ -465,7 +471,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     private void updateTrainerHeader() {
         if (puzzleCategoryText == null || puzzleNameText == null) return;
         puzzleNameText.setText(getString(R.string.title_trainer, TrainerSets.displayName(trainerSubset)));
-        puzzleCategoryText.setText(TRAINER_CATEGORY.toLowerCase());
+        puzzleCategoryText.setText(trainerCategory().toLowerCase());
     }
 
     /** Shows the trainer set in the title while the times or graph page is looking at it. */
@@ -494,6 +500,129 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         // Rebuilds only the times and graph pages, see NavigationAdapter.getItemPosition.
         viewPagerAdapter.notifyDataSetChanged();
         if (statsSubset != null) updateStatsHeader(); else updatePuzzleSpinnerHeaderText();
+        if (viewPager != null) updateStatsModeButton(viewPager.getCurrentItem());
+    }
+
+    // ---- Trainer categories: separate case selections for one set, chosen from the top bar ----
+
+    private static final String PREF_TRAINER_CATEGORY = "ztimer_trainer_category_";
+    private static final String PREF_TRAINER_CATEGORIES = "ztimer_trainer_categories_";
+
+    /** The trainer category of the open set. */
+    private String trainerCategory() {
+        return PreferenceManager.getDefaultSharedPreferences(mContext)
+                .getString(PREF_TRAINER_CATEGORY + trainerSubset.name(), TRAINER_CATEGORY);
+    }
+
+    private List<String> trainerCategories() {
+        java.util.Set<String> saved = PreferenceManager.getDefaultSharedPreferences(mContext)
+                .getStringSet(PREF_TRAINER_CATEGORIES + trainerSubset.name(), new java.util.HashSet<String>());
+        List<String> list = new ArrayList<>(saved);
+        list.remove(TRAINER_CATEGORY);
+        java.util.Collections.sort(list, String.CASE_INSENSITIVE_ORDER);
+        list.add(0, TRAINER_CATEGORY);
+        return list;
+    }
+
+    private void saveTrainerCategories(List<String> categories) {
+        PreferenceManager.getDefaultSharedPreferences(mContext).edit()
+                .putStringSet(PREF_TRAINER_CATEGORIES + trainerSubset.name(), new java.util.HashSet<>(categories)).apply();
+    }
+
+    private void selectTrainerCategory(String category) {
+        if (category.equals(trainerCategory())) return;
+        PreferenceManager.getDefaultSharedPreferences(mContext).edit()
+                .putString(PREF_TRAINER_CATEGORY + trainerSubset.name(), category).apply();
+        updateTrainerHeader();
+        // Rebuilds only the trainer page, see NavigationAdapter.getItemPosition.
+        viewPagerAdapter.notifyDataSetChanged();
+    }
+
+    /** Lists the categories of the open trainer set. Long press renames or removes one. */
+    private void showTrainerCategoryDialog() {
+        final List<String> categories = trainerCategories();
+        final android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                mContext, android.R.layout.simple_list_item_single_choice, categories);
+        final android.widget.ListView list = new android.widget.ListView(mContext);
+        list.setChoiceMode(android.widget.ListView.CHOICE_MODE_SINGLE);
+        list.setAdapter(adapter);
+        list.setItemChecked(Math.max(0, categories.indexOf(trainerCategory())), true);
+        final MaterialDialog dialog = ThemeUtils.roundDialog(mContext, new MaterialDialog.Builder(mContext)
+                .title(getString(R.string.trainer_category_title) + " - " + TrainerSets.displayName(trainerSubset))
+                .customView(list, false)
+                .positiveText(R.string.trainer_category_new)
+                .negativeText(R.string.action_cancel)
+                .onPositive((d, which) -> ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
+                        .title(R.string.enter_type_name)
+                        .inputRange(2, 32)
+                        .input(R.string.enter_type_name, 0, false, (d2, input) -> {
+                            List<String> all = trainerCategories();
+                            String name = input.toString().trim();
+                            if (!all.contains(name)) all.add(name);
+                            saveTrainerCategories(all);
+                            selectTrainerCategory(name);
+                        })
+                        .build()))
+                .build());
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            selectTrainerCategory(categories.get(position));
+            dialog.dismiss();
+        });
+        list.setOnItemLongClickListener((parent, view, position, id) -> {
+            final String name = categories.get(position);
+            if (name.equals(TRAINER_CATEGORY)) return true; // the default one stays
+            ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
+                    .title(name)
+                    .items(getString(R.string.trainer_category_rename), getString(R.string.trainer_category_remove))
+                    .itemsCallback((d, v, which, text) -> {
+                        List<String> all = trainerCategories();
+                        if (which == 0) {
+                            ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
+                                    .title(R.string.enter_new_name_dialog)
+                                    .inputRange(2, 32)
+                                    .input("", name, false, (d2, input) -> {
+                                        String newName = input.toString().trim();
+                                        TrainerScrambler.renameCategory(trainerSubset, name, newName);
+                                        all.remove(name);
+                                        if (!all.contains(newName)) all.add(newName);
+                                        saveTrainerCategories(all);
+                                        if (name.equals(trainerCategory())) selectTrainerCategory(newName);
+                                    })
+                                    .build());
+                        } else {
+                            all.remove(name);
+                            saveTrainerCategories(all);
+                            if (name.equals(trainerCategory())) selectTrainerCategory(TRAINER_CATEGORY);
+                        }
+                        dialog.dismiss();
+                    })
+                    .build());
+            return true;
+        });
+        dialog.show();
+    }
+
+    /** The cases button is only there for sets that have cases to choose from. */
+    private void updateCasesButton() {
+        if (navButtonCases == null || viewPager == null) return;
+        boolean show = viewPager.getCurrentItem() == TRAINER_PAGE && TrainerSets.hasChoosableCases(trainerSubset);
+        fade(navButtonCases, show);
+    }
+
+    /** One tap on the stats pages: switch between the Timer's solves and the Trainer's solves. */
+    private void updateStatsModeButton(int pageNum) {
+        if (navButtonStatsMode == null) return;
+        boolean stats = pageNum == LIST_PAGE || pageNum == GRAPH_PAGE;
+        fade(navButtonStatsMode, stats);
+        if (!stats) return;
+        boolean showingTrainer = statsSubset != null;
+        navButtonStatsMode.setImageResource(showingTrainer ? R.drawable.ic_outline_timer_24px : R.drawable.ic_outline_control_camera_24px);
+        navButtonStatsMode.setContentDescription(getString(showingTrainer ? R.string.stats_switch_to_timer : R.string.stats_switch_to_trainer));
+        navButtonStatsMode.setOnClickListener(v -> {
+            if (statsSubset != null) setStatsSubset(null, null);
+            else setStatsSubset(trainerSubset, com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL);
+            updateStatsModeButton(viewPager.getCurrentItem());
+        });
     }
 
     /** Switches the Trainer tab to another set. The Timer tab is not touched. */
@@ -503,6 +632,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         PreferenceManager.getDefaultSharedPreferences(mContext).edit()
                 .putString(PREF_TRAINER_SUBSET, subset.name()).apply();
         updateTrainerHeader();
+        updateCasesButton();
         // Rebuilds only the trainer page, see NavigationAdapter.getItemPosition.
         viewPagerAdapter.notifyDataSetChanged();
     }
@@ -665,7 +795,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
         navButtonCategory.setOnClickListener(clickListener);
         navButtonCases.setOnClickListener(v -> {
-            BottomSheetTrainerDialog sheet = BottomSheetTrainerDialog.newInstance(trainerSubset, TRAINER_CATEGORY);
+            BottomSheetTrainerDialog sheet = BottomSheetTrainerDialog.newInstance(trainerSubset, trainerCategory());
             sheet.show(mFragmentManager, "trainer_dialog_fragment");
         });
         navButtonHistory.setOnClickListener(clickListener);
@@ -935,6 +1065,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         boolean wca = pageNum == WCA_PAGE;
         boolean trainer = pageNum == TRAINER_PAGE;
         mToolbar.setVisibility(View.VISIBLE);
+        updateStatsModeButton(pageNum);
 
         TextView wcaTitle = mToolbar.findViewById(R.id.wcaTitle);
         View recordsBtn = mToolbar.findViewById(R.id.nav_button_records);
@@ -944,8 +1075,8 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
             fade(recordsBtn, wca);
             fade(rankingsBtn, wca);
             fade(puzzleSpinnerLayout, !wca);
-            fade(navButtonCategory, !wca && !trainer);
-            fade(navButtonCases, !wca && trainer);
+            fade(navButtonCategory, !wca);
+            fade(navButtonCases, trainer && TrainerSets.hasChoosableCases(trainerSubset));
             if (wca) {
                 wcaTitle.setText("WCA");
                 recordsBtn.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(),
@@ -1211,7 +1342,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                 case TRAINER_PAGE:
                     // A second, independent timer. Same screen and settings as the Timer tab, but
                     // it trains the chosen set and saves its solves under that set's name.
-                    return TimerFragment.newInstance(trainerSubset.name(), TRAINER_CATEGORY,
+                    return TimerFragment.newInstance(trainerSubset.name(), trainerCategory(),
                             currentMbldNum, "", TIMER_MODE_TRAINER, trainerSubset);
                 case WCA_PAGE:
                     return com.hatopigeon.cubictimer.wca.WcaHostFragment.newInstance();
@@ -1222,7 +1353,9 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         @Override
         public long getItemId(int position) {
             // A different id per set makes the pager build a fresh trainer page when the set changes.
-            if (position == TRAINER_PAGE) return 100 + trainerSubset.ordinal();
+            if (position == TRAINER_PAGE) {
+                return 100 + trainerSubset.ordinal() + 1000000L * (1 + (trainerCategory().hashCode() & 0xFFFF));
+            }
             if ((position == LIST_PAGE || position == GRAPH_PAGE) && statsSubset != null) {
                 return position + 1000L * (1 + statsSubset.ordinal())
                         + 100000L * (statsGroup.hashCode() & 0xFFFF);
@@ -1234,7 +1367,8 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         public int getItemPosition(@NonNull Object object) {
             if (object instanceof TimerFragment) {
                 TimerFragment f = (TimerFragment) object;
-                if (f.isTrainerMode() && f.getTrainerSubset() != trainerSubset) {
+                if (f.isTrainerMode() && (f.getTrainerSubset() != trainerSubset
+                        || !trainerCategory().equals(f.getTrainerCategory()))) {
                     return POSITION_NONE;
                 }
             }
