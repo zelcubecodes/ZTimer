@@ -24,9 +24,15 @@ public final class WcaHttp {
         void onError(String message);
     }
 
-    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(3);
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(2);
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final String USER_AGENT = "Ztimer/1.0 (Android; open-source speedcubing timer)";
+
+    /** Answers to GET requests, kept for a short time so a screen that asks twice does not hit the server twice. */
+    private static final java.util.Map<String, Object[]> CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long CACHE_MILLIS = 2 * 60 * 1000L;
+    /** How many times a request is repeated when the WCA server says "too many requests". */
+    private static final int MAX_RETRIES = 3;
 
     private WcaHttp() {}
 
@@ -76,40 +82,67 @@ public final class WcaHttp {
             return "No internet access";
         }
         if (m.startsWith("HTTP 404")) return "Not found on the WCA server";
+        if (m.startsWith("HTTP 429")) return "The WCA server is busy (too many requests). Wait a few seconds and try again";
         if (m.startsWith("HTTP")) return "WCA server error (" + m + "). Try again later";
         return "Could not reach the WCA server";
     }
 
     private static void request(String method, String url, String body, Callback cb) {
+        if (method.equals("GET")) {
+            Object[] cached = CACHE.get(url);
+            if (cached != null && System.currentTimeMillis() - (Long) cached[0] < CACHE_MILLIS) {
+                final String text = (String) cached[1];
+                MAIN.post(() -> cb.onSuccess(text));
+                return;
+            }
+        }
         EXECUTOR.execute(() -> {
-            HttpURLConnection conn = null;
-            try {
-                conn = (HttpURLConnection) new URL(url).openConnection();
-                conn.setRequestMethod(method);
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(20000);
-                conn.setRequestProperty("User-Agent", USER_AGENT);
-                conn.setRequestProperty("Accept", "application/json");
-                if (body != null) {
-                    conn.setDoOutput(true);
-                    conn.setRequestProperty("Content-Type", "application/json");
-                    try (OutputStream os = conn.getOutputStream()) {
-                        os.write(body.getBytes(StandardCharsets.UTF_8));
+            int attempt = 0;
+            while (true) {
+                HttpURLConnection conn = null;
+                try {
+                    conn = (HttpURLConnection) new URL(url).openConnection();
+                    conn.setRequestMethod(method);
+                    conn.setConnectTimeout(15000);
+                    conn.setReadTimeout(20000);
+                    conn.setRequestProperty("User-Agent", USER_AGENT);
+                    conn.setRequestProperty("Accept", "application/json");
+                    if (body != null) {
+                        conn.setDoOutput(true);
+                        conn.setRequestProperty("Content-Type", "application/json");
+                        try (OutputStream os = conn.getOutputStream()) {
+                            os.write(body.getBytes(StandardCharsets.UTF_8));
+                        }
                     }
+                    int code = conn.getResponseCode();
+                    // 429 = too many requests, 503 = busy. Wait a moment and ask again.
+                    if ((code == 429 || code == 503) && attempt < MAX_RETRIES) {
+                        long wait = 1500L * (1L << attempt);
+                        String retryAfter = conn.getHeaderField("Retry-After");
+                        try {
+                            if (retryAfter != null) wait = Math.max(wait, Long.parseLong(retryAfter.trim()) * 1000L);
+                        } catch (NumberFormatException ignored) {
+                        }
+                        attempt++;
+                        conn.disconnect();
+                        Thread.sleep(Math.min(wait, 8000L));
+                        continue;
+                    }
+                    InputStream in = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+                    String text = in == null ? "" : read(in);
+                    if (code >= 200 && code < 300) {
+                        if (method.equals("GET")) CACHE.put(url, new Object[]{System.currentTimeMillis(), text});
+                        MAIN.post(() -> cb.onSuccess(text));
+                    } else {
+                        MAIN.post(() -> cb.onError("HTTP " + code));
+                    }
+                } catch (Exception e) {
+                    String msg = e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage());
+                    MAIN.post(() -> cb.onError(msg));
+                } finally {
+                    if (conn != null) conn.disconnect();
                 }
-                int code = conn.getResponseCode();
-                InputStream in = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
-                String text = in == null ? "" : read(in);
-                if (code >= 200 && code < 300) {
-                    MAIN.post(() -> cb.onSuccess(text));
-                } else {
-                    MAIN.post(() -> cb.onError("HTTP " + code));
-                }
-            } catch (Exception e) {
-                String msg = e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage());
-                MAIN.post(() -> cb.onError(msg));
-            } finally {
-                if (conn != null) conn.disconnect();
+                return;
             }
         });
     }
