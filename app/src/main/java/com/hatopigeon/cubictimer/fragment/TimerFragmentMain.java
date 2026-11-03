@@ -538,68 +538,49 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         viewPagerAdapter.notifyDataSetChanged();
     }
 
-    /** Lists the categories of the open trainer set. Long press renames or removes one. */
+    /** The category popup of the Trainer page, the same one the Timer has. */
     private void showTrainerCategoryDialog() {
-        final List<String> categories = trainerCategories();
-        final android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
-                mContext, android.R.layout.simple_list_item_single_choice, categories);
-        final android.widget.ListView list = new android.widget.ListView(mContext);
-        list.setChoiceMode(android.widget.ListView.CHOICE_MODE_SINGLE);
-        list.setAdapter(adapter);
-        list.setItemChecked(Math.max(0, categories.indexOf(trainerCategory())), true);
-        final MaterialDialog dialog = ThemeUtils.roundDialog(mContext, new MaterialDialog.Builder(mContext)
-                .title(getString(R.string.trainer_category_title) + " - " + TrainerSets.displayName(trainerSubset))
-                .customView(list, false)
-                .positiveText(R.string.trainer_category_new)
-                .negativeText(R.string.action_cancel)
-                .onPositive((d, which) -> ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
-                        .title(R.string.enter_type_name)
-                        .inputRange(2, 32)
-                        .input(R.string.enter_type_name, 0, false, (d2, input) -> {
-                            List<String> all = trainerCategories();
-                            String name = input.toString().trim();
-                            if (!all.contains(name)) all.add(name);
-                            saveTrainerCategories(all);
-                            selectTrainerCategory(name);
-                        })
-                        .build()))
-                .build());
-        list.setOnItemClickListener((parent, view, position, id) -> {
-            selectTrainerCategory(categories.get(position));
-            dialog.dismiss();
+        com.hatopigeon.cubictimer.fragment.dialog.TrainerCategoryDialog dialog =
+                com.hatopigeon.cubictimer.fragment.dialog.TrainerCategoryDialog.newInstance();
+        dialog.setHost(new com.hatopigeon.cubictimer.fragment.dialog.TrainerCategoryDialog.Host() {
+            @Override
+            public List<String> categories() {
+                return trainerCategories();
+            }
+
+            @Override
+            public void onAdd(String name) {
+                List<String> all = trainerCategories();
+                if (!all.contains(name)) all.add(name);
+                saveTrainerCategories(all);
+                selectTrainerCategory(name);
+            }
+
+            @Override
+            public void onSelect(String name) {
+                selectTrainerCategory(name);
+            }
+
+            @Override
+            public void onRename(String oldName, String newName) {
+                if (newName.isEmpty() || newName.equals(oldName)) return;
+                TrainerScrambler.renameCategory(trainerSubset, oldName, newName);
+                List<String> all = trainerCategories();
+                all.remove(oldName);
+                if (!all.contains(newName)) all.add(newName);
+                saveTrainerCategories(all);
+                if (oldName.equals(trainerCategory())) selectTrainerCategory(newName);
+            }
+
+            @Override
+            public void onRemove(String name) {
+                List<String> all = trainerCategories();
+                all.remove(name);
+                saveTrainerCategories(all);
+                if (name.equals(trainerCategory())) selectTrainerCategory(TRAINER_CATEGORY);
+            }
         });
-        list.setOnItemLongClickListener((parent, view, position, id) -> {
-            final String name = categories.get(position);
-            if (name.equals(TRAINER_CATEGORY)) return true; // the default one stays
-            ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
-                    .title(name)
-                    .items(getString(R.string.trainer_category_rename), getString(R.string.trainer_category_remove))
-                    .itemsCallback((d, v, which, text) -> {
-                        List<String> all = trainerCategories();
-                        if (which == 0) {
-                            ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
-                                    .title(R.string.enter_new_name_dialog)
-                                    .inputRange(2, 32)
-                                    .input("", name, false, (d2, input) -> {
-                                        String newName = input.toString().trim();
-                                        TrainerScrambler.renameCategory(trainerSubset, name, newName);
-                                        all.remove(name);
-                                        if (!all.contains(newName)) all.add(newName);
-                                        saveTrainerCategories(all);
-                                        if (name.equals(trainerCategory())) selectTrainerCategory(newName);
-                                    })
-                                    .build());
-                        } else {
-                            all.remove(name);
-                            saveTrainerCategories(all);
-                            if (name.equals(trainerCategory())) selectTrainerCategory(TRAINER_CATEGORY);
-                        }
-                        dialog.dismiss();
-                    })
-                    .build());
-            return true;
-        });
-        dialog.show();
+        dialog.show(mFragmentManager, "trainer_category_dialog");
     }
 
     /** The cases button is only there for sets that have cases to choose from. */
