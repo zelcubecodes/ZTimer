@@ -37,8 +37,11 @@ public final class CsPuzzles {
         public final boolean hasImage;
         public final int fillColor;
         public final int textColor;
+        /** Name of the icon drawable ("ic_cs_gear"), or null to draw the label on a coloured tile. */
+        public final String icon;
 
-        Entry(String csType, String name, String label, int length, boolean hasImage, int group) {
+        Entry(String csType, String name, String label, int length, boolean hasImage, int group, String icon) {
+            this.icon = icon;
             this.type = PREFIX + csType;
             this.csType = csType;
             this.name = name;
@@ -59,28 +62,28 @@ public final class CsPuzzles {
 
     static {
         List<Entry> list = new ArrayList<>();
-        list.add(new Entry("333ft", "3x3 Feet", "Feet", 0, true, CUBE));
-        list.add(new Entry("mrbl", "Mirror Blocks", "Mirror", 0, true, CUBE));
-        list.add(new Entry("223", "2x2x3 Tower", "2x2x3", 0, false, SHAPE));
-        list.add(new Entry("233", "2x3x3 Domino", "2x3x3", 25, false, SHAPE));
-        list.add(new Entry("133", "Floppy Cube", "1x3x3", 0, false, SHAPE));
-        list.add(new Entry("334", "3x3x4", "3x3x4", 40, false, SHAPE));
-        list.add(new Entry("888", "8x8 Cube", "8x8", 120, true, BIG));
-        list.add(new Entry("999", "9x9 Cube", "9x9", 120, true, BIG));
-        list.add(new Entry("101010", "10x10 Cube", "10x10", 120, true, BIG));
-        list.add(new Entry("111111", "11x11 Cube", "11x11", 120, true, BIG));
-        list.add(new Entry("giga", "Gigaminx", "Giga", 300, true, MINX));
-        list.add(new Entry("klmp", "Kilominx", "Kilo", 30, true, MINX));
-        list.add(new Entry("mpyr", "Master Pyraminx", "Master", 42, true, MINX));
-        list.add(new Entry("sq2", "Square-2", "Sq-2", 20, true, SQUARE));
-        list.add(new Entry("15prp", "15 Puzzle", "15", 0, true, PUZZLE));
-        list.add(new Entry("8prp", "8 Puzzle", "8", 0, true, PUZZLE));
-        list.add(new Entry("gear", "Gear Cube", "Gear", 10, true, SHAPE));
-        list.add(new Entry("heli", "Helicopter Cube", "Heli", 40, true, SHAPE));
-        list.add(new Entry("redi", "Redi Cube", "Redi", 20, true, SHAPE));
-        list.add(new Entry("dinoo", "Dino Cube", "Dino", 0, true, SHAPE));
-        list.add(new Entry("crz3a", "Crazy 3x3", "Crazy", 30, true, SHAPE));
-        list.add(new Entry("ivy", "Ivy Cube", "Ivy", 10, false, SHAPE));
+        list.add(new Entry("333ft", "3x3 Feet", "Feet", 0, true, CUBE, "ic_cs_feet"));
+        list.add(new Entry("mrbl", "Mirror Blocks", "Mirror", 0, true, CUBE, "ic_cs_mirror"));
+        list.add(new Entry("223", "2x2x3 Tower", "2x2x3", 0, false, SHAPE, "ic_cs_tower"));
+        list.add(new Entry("233", "2x3x3 Domino", "2x3x3", 25, false, SHAPE, "ic_cs_domino"));
+        list.add(new Entry("133", "Floppy Cube", "1x3x3", 0, false, SHAPE, "ic_cs_floppy"));
+        list.add(new Entry("334", "3x3x4", "3x3x4", 40, false, SHAPE, "ic_cs_334"));
+        list.add(new Entry("888", "8x8 Cube", "8", 120, true, CUBE, null));
+        list.add(new Entry("999", "9x9 Cube", "9", 120, true, CUBE, null));
+        list.add(new Entry("101010", "10x10 Cube", "10", 120, true, CUBE, null));
+        list.add(new Entry("111111", "11x11 Cube", "11", 120, true, CUBE, null));
+        list.add(new Entry("giga", "Gigaminx", "Giga", 300, true, MINX, "ic_cs_giga"));
+        list.add(new Entry("klmp", "Kilominx", "Kilo", 30, true, MINX, "ic_cs_kilo"));
+        list.add(new Entry("mpyr", "Master Pyraminx", "Master", 42, true, MINX, "ic_cs_master"));
+        list.add(new Entry("sq2", "Square-2", "Sq-2", 20, true, SQUARE, "ic_cs_sq2"));
+        list.add(new Entry("15prp", "15 Puzzle", "15", 0, true, PUZZLE, "ic_cs_15"));
+        list.add(new Entry("8prp", "8 Puzzle", "8", 0, true, PUZZLE, "ic_cs_8"));
+        list.add(new Entry("gear", "Gear Cube", "Gear", 10, true, SHAPE, "ic_cs_gear"));
+        list.add(new Entry("heli", "Helicopter Cube", "Heli", 40, true, SHAPE, "ic_cs_heli"));
+        list.add(new Entry("redi", "Redi Cube", "Redi", 20, true, SHAPE, "ic_cs_redi"));
+        list.add(new Entry("dinoo", "Dino Cube", "Dino", 0, true, SHAPE, "ic_cs_dino"));
+        list.add(new Entry("crz3a", "Crazy 3x3", "Crazy", 30, true, SHAPE, "ic_cs_crazy"));
+        list.add(new Entry("ivy", "Ivy Cube", "Ivy", 10, false, SHAPE, "ic_cs_ivy"));
         ALL = Collections.unmodifiableList(list);
     }
 

@@ -98,6 +98,32 @@ public final class CsCases {
         return weights == null || index < 0 || index >= weights.size() ? 1 : weights.get(index);
     }
 
+    private static JSONObject svgs;
+
+    /**
+     * csTimer's own picture (an SVG document) of a case in the sets that have no letter picture:
+     * ZBLS, EOLS, WVLS and VLS. Null if there is none.
+     */
+    public static synchronized String svg(Context context, String type, String caseName) {
+        load(context);
+        if (svgs == null) {
+            try (java.io.InputStream in = context.getAssets().open("trainer_case_svgs.json")) {
+                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[16384];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                svgs = new JSONObject(out.toString("UTF-8"));
+            } catch (Exception e) {
+                svgs = new JSONObject();
+            }
+        }
+        List<String> names = NAMES.get(type);
+        JSONArray array = svgs.optJSONArray(type);
+        if (names == null || array == null) return null;
+        int index = names.indexOf(caseName);
+        return index < 0 || array.isNull(index) ? null : array.optString(index, null);
+    }
+
     /** The group a case belongs to: its name without the trailing number ("H-2" is in "H"). */
     public static String groupOf(String caseName) {
         int dash = caseName.lastIndexOf('-');
