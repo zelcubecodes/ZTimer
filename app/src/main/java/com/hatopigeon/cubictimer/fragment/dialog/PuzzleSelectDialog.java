@@ -69,6 +69,16 @@ public class PuzzleSelectDialog extends DialogFragment {
         return new PuzzleSelectDialog();
     }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        // Make the popup wide enough for three icons per row and the two tab names
+        if (getDialog() != null && getDialog().getWindow() != null) {
+            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.92f);
+            getDialog().getWindow().setLayout(width, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
