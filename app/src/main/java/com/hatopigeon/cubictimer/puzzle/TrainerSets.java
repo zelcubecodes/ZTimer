@@ -93,6 +93,21 @@ public final class TrainerSets {
         return CsCases.state(appContext, type, caseName);
     }
 
+    /** csTimer's picture (SVG) of a case in a set that has no letter picture, or null. */
+    public static String svgFor(TrainerSubset subset, String caseName) {
+        String type = csType(subset);
+        if (type == null || appContext == null) return null;
+        return CsCases.svg(appContext, type, caseName);
+    }
+
+    /**
+     * True if the set has cases to choose from: OLL and PLL, and the sets csTimer lists case by
+     * case. The other sets (Last Layer, LSE, ...) are one random case, so there is nothing to pick.
+     */
+    public static boolean hasChoosableCases(TrainerSubset subset) {
+        return isAlgBased(subset) || hasCaseList(subset);
+    }
+
     /** The position of a case in csTimer's list for its type, or -1. */
     public static int csIndexOf(TrainerSubset subset, String caseName) {
         String type = csType(subset);
@@ -123,6 +138,10 @@ public final class TrainerSets {
                 return "Last Layer";
             case TWOGLL:
                 return "2GLL";
+            case F2L:
+                return "Solved Cross";
+            case ELL:
+                return "Edges of Last Layer";
             default:
                 return subset.name();
         }
