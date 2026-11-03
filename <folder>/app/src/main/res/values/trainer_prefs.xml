@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_category_title_trainer">Trainer</string>
+
+    <string-array name="pref_array_trainer_probability">
+        <item>@string/trainer_probability_equal</item>
+        <item>@string/trainer_probability_actual</item>
+        <item>@string/trainer_probability_order</item>
+    </string-array>
+
+    <string-array name="pk_pref_array_trainer_probability" translatable="false">
+        <item>equal</item>
+        <item>actual</item>
+        <item>order</item>
+    </string-array>
+</resources>
