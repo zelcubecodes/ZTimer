@@ -31,7 +31,7 @@ class LabelIconDrawable extends Drawable {
         r.inset(inset, inset);
         canvas.drawRoundRect(r, r.width() * 0.2f, r.width() * 0.2f, fill);
         // Largest text that fits inside the square
-        float size = r.height() * 0.5f;
+        float size = r.height() * (label.length() <= 2 ? 0.66f : 0.42f);
         text.setTextSize(size);
         float width = text.measureText(label);
         float max = r.width() * 0.84f;

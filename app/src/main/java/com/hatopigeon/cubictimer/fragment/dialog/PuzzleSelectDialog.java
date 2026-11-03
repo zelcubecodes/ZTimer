@@ -109,7 +109,10 @@ public class PuzzleSelectDialog extends DialogFragment {
         otherItems = new java.util.ArrayList<>();
         otherItems.add(new Item(getString(R.string.cube_bfto), R.drawable.ic_bfto, PuzzleUtils.TYPE_BFTO));
         for (CsPuzzles.Entry e : CsPuzzles.all()) {
-            otherItems.add(new Item(e.name, new LabelIconDrawable(e.label, e.fillColor, e.textColor), e.type));
+            int iconRes = e.icon == null ? 0
+                    : getResources().getIdentifier(e.icon, "drawable", mContext.getPackageName());
+            if (iconRes != 0) otherItems.add(new Item(e.name, iconRes, e.type));
+            else otherItems.add(new Item(e.name, new LabelIconDrawable(e.label, e.fillColor, e.textColor), e.type));
         }
         otherItems.add(new Item(getString(R.string.cube_other), R.drawable.ic_other, PuzzleUtils.TYPE_OTHER));
 
@@ -118,6 +121,7 @@ public class PuzzleSelectDialog extends DialogFragment {
 
         puzzleAdapter = new PuzzleSelectAdapter(dialogListener, lastTab == 0 ? wcaItems : otherItems);
         puzzleRecycler.setAdapter(puzzleAdapter);
+        puzzleRecycler.scrollToPosition(0);
 
         tabs.addTab(tabs.newTab().setText(R.string.puzzle_tab_wca), lastTab == 0);
         tabs.addTab(tabs.newTab().setText(R.string.puzzle_tab_non_wca), lastTab == 1);
@@ -126,6 +130,7 @@ public class PuzzleSelectDialog extends DialogFragment {
             public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
                 lastTab = tab.getPosition();
                 puzzleAdapter.setItems(lastTab == 0 ? wcaItems : otherItems);
+                puzzleRecycler.scrollToPosition(0);
             }
 
             @Override public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
