@@ -16,6 +16,20 @@
 
     <Preference android:layout="@layout/divider_preference_category" />
 
+    <PreferenceCategory android:title="@string/pref_category_title_trainer">
+
+        <ListPreference
+            android:defaultValue="equal"
+            android:entries="@array/pref_array_trainer_probability"
+            android:entryValues="@array/pk_pref_array_trainer_probability"
+            android:key="trainer_case_probability"
+            android:summary="%s"
+            android:title="@string/trainer_probability_title" />
+
+    </PreferenceCategory>
+
+    <Preference android:layout="@layout/divider_preference_category" />
+
     <PreferenceCategory android:title="@string/pref_category_title_timer">
 
         <!-- Pseudo-preference that will trigger the opening of the sub-settings. -->
