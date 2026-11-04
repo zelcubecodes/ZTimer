@@ -8,10 +8,10 @@
       android:pathData="M6,2.6 h12 a3.4,3.4 0 0 1 3.4,3.4 v12 a3.4,3.4 0 0 1 -3.4,3.4 h-12 a3.4,3.4 0 0 1 -3.4,-3.4 v-12 a3.4,3.4 0 0 1 3.4,-3.4 z"
       android:fillColor="#D5F2D5"/>
   <group
-      android:translateX="5.5"
-      android:translateY="5.5"
-      android:scaleX="0.026"
-      android:scaleY="0.026">
+      android:translateX="3.2"
+      android:translateY="3.2"
+      android:scaleX="0.035"
+      android:scaleY="0.035">
     <path
         android:pathData="M470 470H84c231-65 321-155 386-386zM30 30h386C185 95 95 185 30 416z"
         android:fillColor="#8ACB8D"/>
