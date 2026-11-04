@@ -11,7 +11,8 @@ public final class WcaFormat {
             {"333oh", "3x3x3 One-Handed"}, {"clock", "Clock"}, {"minx", "Megaminx"},
             {"pyram", "Pyraminx"}, {"skewb", "Skewb"}, {"sq1", "Square-1"},
             {"444bf", "4x4x4 Blindfolded"}, {"555bf", "5x5x5 Blindfolded"},
-            {"333mbf", "3x3x3 Multi-Blind"}, {"fto", "FTO"}
+            {"333mbf", "3x3x3 Multi-Blind"}, {"fto", "FTO"},
+            {"333ft", "3x3x3 With Feet"}, {"magic", "Magic"}, {"mmagic", "Master Magic"}
     };
 
     private WcaFormat() {}
