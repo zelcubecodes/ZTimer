@@ -52,11 +52,6 @@ public class CategorySelectDialog extends DialogFragment {
     View addCategoryButton;
     @BindView(R.id.list)
     ListView listView;
-    @BindView(R.id.category_tabs)
-    com.google.android.material.tabs.TabLayout tabs;
-
-    /** True while the Trainer tab is showing, false for the Timer tab. */
-    private boolean trainerTab;
     private com.hatopigeon.cubictimer.adapter.TrainerSetListAdapter trainerAdapter;
 
     // Puzzle and subtypes that are currently selected
@@ -160,30 +155,17 @@ public class CategorySelectDialog extends DialogFragment {
 
         // click listeners
         // select a subtype
-        // Timer / Trainer tabs, only on the times and graph pages
-        if (includeTrainer) {
-            tabs.setVisibility(View.VISIBLE);
-            tabs.addTab(tabs.newTab().setText(R.string.category_tab_timer));
-            tabs.addTab(tabs.newTab().setText(R.string.category_tab_trainer));
-            tabs.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
-                @Override
-                public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
-                    trainerTab = tab.getPosition() == 1;
-                    updateList(dbHandler);
-                }
-
-                @Override
-                public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {
-                }
-
-                @Override
-                public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {
-                }
-            });
-        }
-
         listView.setOnItemClickListener((parent, view1, position, id) -> {
-            if (trainerTab) {
+            if (trainerAdapter != null) {
+                final String category = trainerAdapter.categoryAt(position);
+                if (category != null) {
+                    currentSubtype = category;
+                    editor.putString(KEY_SAVEDSUBTYPE + currentPuzzle, currentSubtype);
+                    editor.apply();
+                    dialogListenerMessage.onUpdateDialog(currentSubtype);
+                    dismiss();
+                    return;
+                }
                 // A trainer set was selected: ask which group of it, if it has several
                 final TrainerScrambler.TrainerSubset set = trainerAdapter.setAt(position);
                 if (set == null) return;
@@ -217,9 +199,16 @@ public class CategorySelectDialog extends DialogFragment {
             dismiss();
         });
 
-        listView.setOnItemLongClickListener((parent, view12, position, id) -> {
+        listView.setOnItemLongClickListener((parent, view12, pos, id) -> {
+            int position = pos;
             // Trainer sets can't be renamed or removed
-            if (trainerTab || position >= subtypeList.size()) return true;
+            if (trainerAdapter != null) {
+                String category = trainerAdapter.categoryAt(position);
+                if (category == null) return true;
+                position = subtypeList.indexOf(category);
+            }
+            final int fpos = position;
+            if (position < 0 || position >= subtypeList.size()) return true;
             // Create a popup menu for each entry
             MenuBuilder menuBuilder = new MenuBuilder(context);
             MenuInflater inflater = new MenuInflater(context);
@@ -233,7 +222,7 @@ public class CategorySelectDialog extends DialogFragment {
                 public boolean onMenuItemSelected(MenuBuilder menu, MenuItem item) {
                     switch (item.getItemId()) {
                         case R.id.rename:
-                            currentEditSubtype = subtypeList.get(position);
+                            currentEditSubtype = subtypeList.get(fpos);
                             //Rename subtype
                             ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
                                     .title(R.string.enter_new_name_dialog)
@@ -254,7 +243,7 @@ public class CategorySelectDialog extends DialogFragment {
                                     .build());
                             break;
                         case R.id.remove:
-                            currentEditSubtype = subtypeList.get(position);
+                            currentEditSubtype = subtypeList.get(fpos);
                             // Remove Subtype dialog
                             ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
                                     .title(R.string.remove_subtype_confirmation)
@@ -295,13 +284,13 @@ public class CategorySelectDialog extends DialogFragment {
 
     private void updateList(DatabaseHandler dbHandler) {
         subtypeList = dbHandler.getAllSubtypesFromType(currentPuzzle);
-        if (trainerTab) {
-            trainerAdapter = new com.hatopigeon.cubictimer.adapter.TrainerSetListAdapter(getContext(), currentSubset);
+        addCategoryButton.setVisibility(View.VISIBLE);
+        if (includeTrainer) {
+            // One list: the categories, then the trainer sets (starred ones first)
+            trainerAdapter = new com.hatopigeon.cubictimer.adapter.TrainerSetListAdapter(getContext(), currentSubset, subtypeList, currentSubtype);
             listView.setAdapter(trainerAdapter);
-            addCategoryButton.setVisibility(View.INVISIBLE);
             return;
         }
-        addCategoryButton.setVisibility(View.VISIBLE);
         int[] icons = {};
         mAdapter = new BottomSheetSpinnerAdapter(getContext(), subtypeList.toArray(new String[0]), icons);
         listView.setAdapter(mAdapter);
