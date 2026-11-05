@@ -135,6 +135,17 @@ public class TimeDialog extends DialogFragment {
                                     dismiss();
                                     break;
                                 case R.id.retry:
+                                    // A trainer solve goes back to the trainer, not the Timer tab
+                                    if (com.hatopigeon.cubictimer.stats.ScopedStatistics.isScoped(solve.getPuzzle())) {
+                                        androidx.fragment.app.Fragment mainFragment = requireActivity()
+                                                .getSupportFragmentManager().findFragmentByTag("fragment_main");
+                                        if (mainFragment instanceof com.hatopigeon.cubictimer.fragment.TimerFragmentMain) {
+                                            ((com.hatopigeon.cubictimer.fragment.TimerFragmentMain) mainFragment)
+                                                    .retrySolveInTrainer(solve);
+                                            dismiss();
+                                            break;
+                                        }
+                                    }
                                     new TTIntent.BroadcastBuilder(CATEGORY_UI_INTERACTIONS, ACTION_SET_SCRAMBLE)
                                             .solve(solve)
                                             .broadcast();
