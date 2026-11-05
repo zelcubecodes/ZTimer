@@ -235,9 +235,12 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                         showTrainerCategoryDialog();
                         break;
                     }
-                    boolean onStatsPage = viewPager != null
-                            && (viewPager.getCurrentItem() == LIST_PAGE || viewPager.getCurrentItem() == GRAPH_PAGE);
-                    categoryDialog = CategorySelectDialog.newInstance(currentPuzzle, currentPuzzleCategory, currentTimerMode, currentPuzzleSubset, onStatsPage);
+                    if (statsSubset != null && onStatsPages()) {
+                        // Trainer stats: the category button picks the group of the open set
+                        showStatsGroupDialog();
+                        break;
+                    }
+                    categoryDialog = CategorySelectDialog.newInstance(currentPuzzle, currentPuzzleCategory, currentTimerMode, currentPuzzleSubset, false);
                     categoryDialog.setDialogListener(categoryDialogListener);
                     categoryDialog.show(mFragmentManager, TAG_CATEGORY_DIALOG);
                     break;
@@ -481,6 +484,30 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         puzzleCategoryText.setText(
                 com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL.equals(statsGroup)
                         ? getString(R.string.trainer_stats_all) : statsGroup.toLowerCase());
+    }
+
+    /** True while the times or graph page is the one on screen. */
+    private boolean onStatsPages() {
+        return viewPager != null
+                && (viewPager.getCurrentItem() == LIST_PAGE || viewPager.getCurrentItem() == GRAPH_PAGE);
+    }
+
+    /** Asks which group of the open trainer set the times and graph pages should show. */
+    private void showStatsGroupDialog() {
+        final TrainerScrambler.TrainerSubset set = statsSubset;
+        if (set == null) return;
+        final List<String> groups = TrainerSets.groupNames(set);
+        final List<String> choices = new java.util.ArrayList<>();
+        choices.add(getString(R.string.trainer_all_cases, TrainerSets.displayName(set)));
+        choices.addAll(groups);
+        ThemeUtils.roundAndShowDialog(mContext, new MaterialDialog.Builder(mContext)
+                .title(R.string.trainer_pick_group)
+                .items(choices)
+                .itemsCallback((dialog, itemView, which, text) ->
+                        setStatsSubset(set, which == 0
+                                ? com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL
+                                : groups.get(which - 1)))
+                .build());
     }
 
     /** What the times and graph pages are showing: the Timer tab's puzzle, or a trainer set. */
@@ -1182,6 +1209,11 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         puzzleSpinnerLayout.setOnClickListener(v -> {
             if (viewPager != null && viewPager.getCurrentItem() == TRAINER_PAGE) {
                 showTrainerMenu();
+            } else if (statsSubset != null && onStatsPages()) {
+                // Trainer stats: the puzzle popup lists the trainer sets instead of puzzles
+                PuzzleSelectDialog trainerSelectDialog = PuzzleSelectDialog.newTrainerInstance(statsSubset.name());
+                trainerSelectDialog.setDialogListener(this);
+                trainerSelectDialog.show(mFragmentManager, TAG_PUZZLE_DIALOG);
             } else if (currentTimerMode.equals(TimerFragment.TIMER_MODE_TRAINER)) {
                 BottomSheetTrainerDialog bottomSheetTrainerDialog = BottomSheetTrainerDialog.newInstance(currentPuzzleSubset, currentPuzzleCategory);
                 bottomSheetTrainerDialog.show(mFragmentManager, "trainer_dialog_fragment");
@@ -1227,6 +1259,15 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     public void onUpdateDialog(String text) {
         // to avoid IllegalStateException on getString that reported by Android Vitals
         if (getActivity() == null) {
+            return;
+        }
+
+        // A trainer set picked in the puzzle popup: only the times and graph pages change
+        if (text != null && text.startsWith(STATS_TRAINER_PREFIX)) {
+            PuzzleSelectDialog trainerDialog = (PuzzleSelectDialog) mFragmentManager.findFragmentByTag(TAG_PUZZLE_DIALOG);
+            if (trainerDialog != null)
+                trainerDialog.dismiss();
+            categoryDialogListener.onUpdateDialog(text);
             return;
         }
 
