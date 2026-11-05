@@ -52,20 +52,70 @@ public final class TrainerSets {
             case ZZLL:    return "zzll";
             case TWOGLL:  return "2gll";
             case F2L:     return "f2l";
+            case LSLL2:   return "lsll2";
+            case ZBLLX2:  return "zbllx2";
+            case EOLINE:  return "eoline";
+            case EOCROSS: return "eocross";
+            case EASYC:   return "easyc";
+            case EASYXC:  return "easyxc";
+            case SBRX:    return "sbrx";
+            case LSEMU:   return "lsemu";
+            case MT3QB:   return "mt3qb";
+            case MTEOLE:  return "mteole";
+            case MTTDR:   return "mttdr";
+            case MT6CP:   return "mt6cp";
+            case MTCDRLL: return "mtcdrll";
+            case MTL5EP:  return "mtl5ep";
             default:      return null;
         }
     }
 
-    /** The families the sets are sorted into, in the order they are shown. */
-    public static final String[] FAMILIES = {"Last Layer", "ZB", "COLLs", "Roux", "F2L & Last Slot"};
+    /** The scramble length csTimer needs for a set (the easy cross sets are a few moves from solved), or 0. */
+    public static int csLength(TrainerSubset subset) {
+        switch (subset) {
+            case EASYC:  return 3;
+            case EASYXC: return 4;
+            default:     return 0;
+        }
+    }
+
+    /** The few characters drawn on a set's icon. */
+    public static String shortLabel(TrainerSubset subset) {
+        switch (subset) {
+            case TWOGLL:  return "2GLL";
+            case LSLL2:   return "LSLL";
+            case ZBLLX2:  return "ZBx2";
+            case EOLINE:  return "EOL";
+            case EOCROSS: return "EOX";
+            case EASYC:   return "Easy";
+            case EASYXC:  return "EasyX";
+            case SBRX:    return "2BLK";
+            case LSEMU:   return "MU";
+            case MT3QB:   return "3QB";
+            case MTEOLE:  return "EOLE";
+            case MTTDR:   return "TDR";
+            case MT6CP:   return "6CP";
+            case MTCDRLL: return "CDRLL";
+            case MTL5EP:  return "L5EP";
+            default:      return subset.name();
+        }
+    }
+
+    /** The groups the sets are sorted into, the same ones csTimer's scramble menu uses. */
+    public static final String[] FAMILIES = {"CFOP", "Roux", "Mehta"};
 
     private static final TrainerSubset[][] FAMILY_SETS = {
-            {TrainerSubset.OLL, TrainerSubset.PLL, TrainerSubset.LL, TrainerSubset.ZZLL,
-                    TrainerSubset.TTLL, TrainerSubset.TWOGLL},
-            {TrainerSubset.ZBLS, TrainerSubset.ZBLL},
-            {TrainerSubset.COLL, TrainerSubset.CLL, TrainerSubset.ELL},
-            {TrainerSubset.CMLL, TrainerSubset.LSE},
-            {TrainerSubset.F2L, TrainerSubset.EOLS, TrainerSubset.WVLS, TrainerSubset.VLS}};
+            // 3x3x3 CFOP
+            {TrainerSubset.PLL, TrainerSubset.OLL, TrainerSubset.LSLL2, TrainerSubset.LL,
+                    TrainerSubset.ZBLL, TrainerSubset.ZBLLX2, TrainerSubset.COLL, TrainerSubset.CLL,
+                    TrainerSubset.ELL, TrainerSubset.TWOGLL, TrainerSubset.ZZLL, TrainerSubset.ZBLS,
+                    TrainerSubset.EOLS, TrainerSubset.WVLS, TrainerSubset.VLS, TrainerSubset.F2L,
+                    TrainerSubset.EOLINE, TrainerSubset.EOCROSS, TrainerSubset.EASYC, TrainerSubset.EASYXC},
+            // 3x3x3 Roux
+            {TrainerSubset.SBRX, TrainerSubset.CMLL, TrainerSubset.LSE, TrainerSubset.LSEMU},
+            // 3x3x3 Mehta
+            {TrainerSubset.MT3QB, TrainerSubset.MTEOLE, TrainerSubset.MTTDR, TrainerSubset.MT6CP,
+                    TrainerSubset.MTCDRLL, TrainerSubset.MTL5EP, TrainerSubset.TTLL}};
 
     /** The sets of a family, in display order. */
     public static List<TrainerSubset> setsInFamily(int family) {
@@ -142,6 +192,34 @@ public final class TrainerSets {
                 return "Solved Cross";
             case ELL:
                 return "Edges of Last Layer";
+            case LSLL2:
+                return "LSLL";
+            case ZBLLX2:
+                return "ZBLLx2";
+            case EOLINE:
+                return "EOLine";
+            case EOCROSS:
+                return "EO Cross";
+            case EASYC:
+                return "Easy Cross";
+            case EASYXC:
+                return "Easy XCross";
+            case SBRX:
+                return "2nd Block";
+            case LSEMU:
+                return "LSE <M, U>";
+            case MT3QB:
+                return "3QB";
+            case MTEOLE:
+                return "EOLE";
+            case MTTDR:
+                return "TDR";
+            case MT6CP:
+                return "6CP";
+            case MTCDRLL:
+                return "CDRLL";
+            case MTL5EP:
+                return "L5EP";
             default:
                 return subset.name();
         }

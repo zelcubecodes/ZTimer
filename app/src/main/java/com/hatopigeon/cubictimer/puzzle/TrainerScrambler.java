@@ -57,7 +57,11 @@ public abstract class TrainerScrambler {
      * ZBLS (the last slot of F2L, with edges oriented) and LSE (the last six edges of Roux).
      */
     public static enum TrainerSubset {
-        OLL, PLL, LL, ZBLL, ZBLS, CMLL, LSE, COLL, CLL, ELL, EOLS, WVLS, VLS, TTLL, ZZLL, TWOGLL, F2L
+        OLL, PLL, LL, ZBLL, ZBLS, CMLL, LSE, COLL, CLL, ELL, EOLS, WVLS, VLS, TTLL, ZZLL, TWOGLL, F2L,
+        // More of csTimer's 3x3x3 training scramblers (they are listed in csTimer's own groups)
+        LSLL2, ZBLLX2, EOLINE, EOCROSS, EASYC, EASYXC,
+        SBRX, LSEMU,
+        MT3QB, MTEOLE, MTTDR, MT6CP, MTCDRLL, MTL5EP
     };
 
     /** A generated practice case. */
@@ -380,7 +384,7 @@ public abstract class TrainerScrambler {
         // Everything except OLL and PLL is scrambled by csTimer's own code.
         String csType = TrainerSets.csType(subset);
         if (csType != null) {
-            String fromCsTimer = CsTimer.get(context).getScramble(csType, TrainerSets.csIndexOf(subset, caseName));
+            String fromCsTimer = CsTimer.get(context).getScramble(csType, TrainerSets.csLength(subset), TrainerSets.csIndexOf(subset, caseName));
             if (fromCsTimer != null) {
                 return new TrainerCase(CubeNet.normalize(fromCsTimer), caseName, group);
             }
