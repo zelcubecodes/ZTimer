@@ -519,6 +519,11 @@ public class TimerFragment extends BaseFragment
                 case ACTION_SET_SCRAMBLE:
                     Solve solve = TTIntent.getSolve(intent);
                     scrambleGeneratorAsync.cancel(true);
+                    if (isTrainerMode()) {
+                        // A retried trainer solve keeps the group it was saved under
+                        if (trainerCaseAsync != null) trainerCaseAsync.cancel(true);
+                        if (solve.getSubtype() != null) currentTrainerGroup = solve.getSubtype();
+                    }
                     setScramble(solve.getScramble());
                     break;
             }
@@ -2145,6 +2150,14 @@ public class TimerFragment extends BaseFragment
         @Override
         protected void onPostExecute(TrainerScrambler.TrainerCase trainerCase) {
             if (trainerCase == null || isCancelled() || !isAdded()) return;
+            // A trainer solve that was retried from the times list comes first
+            TimerFragmentMain main = findMain();
+            String[] retry = main == null ? null : main.takePendingTrainerRetry();
+            if (retry != null) {
+                currentTrainerGroup = retry[1];
+                setScramble(retry[0]);
+                return;
+            }
             currentTrainerGroup = trainerCase.group;
             setScramble(trainerCase.scramble);
         }

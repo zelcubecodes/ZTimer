@@ -646,6 +646,48 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     }
 
     /** Asks which trainer set to practise. The sets are sorted into families. */
+    /** A trainer solve that is being retried from the times list, until the Trainer tab picks it up. */
+    private String pendingTrainerScramble;
+    private String pendingTrainerGroup;
+
+    /**
+     * "Use this scramble" on a trainer solve: opens the Trainer tab on that solve's set and puts the
+     * scramble in the trainer, not in the Timer tab.
+     */
+    public void retrySolveInTrainer(final com.hatopigeon.cubictimer.items.Solve solve) {
+        final TrainerScrambler.TrainerSubset set;
+        try {
+            set = TrainerScrambler.TrainerSubset.valueOf(solve.getPuzzle());
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        if (viewPager == null) return;
+        pendingTrainerScramble = solve.getScramble();
+        pendingTrainerGroup = solve.getSubtype();
+        boolean sameSet = set == trainerSubset;
+        // Another set rebuilds the trainer page, which picks the scramble up when it starts
+        if (!sameSet) setTrainerSubset(set);
+        viewPager.setCurrentItem(TRAINER_PAGE, true);
+        if (sameSet) {
+            // The trainer is already there: hand it the scramble once the page has switched
+            viewPager.postDelayed(() -> new com.hatopigeon.cubictimer.utils.TTIntent.BroadcastBuilder(
+                    CATEGORY_UI_INTERACTIONS, com.hatopigeon.cubictimer.utils.TTIntent.ACTION_SET_SCRAMBLE)
+                    .solve(solve)
+                    .broadcast(), 350);
+        }
+        // Forget it after a while, in case nobody asked for it
+        viewPager.postDelayed(() -> { pendingTrainerScramble = null; pendingTrainerGroup = null; }, 3000);
+    }
+
+    /** The scramble and group of a retried trainer solve ({scramble, group}), once, or null. */
+    public String[] takePendingTrainerRetry() {
+        if (pendingTrainerScramble == null) return null;
+        String[] result = {pendingTrainerScramble, pendingTrainerGroup};
+        pendingTrainerScramble = null;
+        pendingTrainerGroup = null;
+        return result;
+    }
+
     private void showTrainerMenu() {
         PuzzleSelectDialog trainerSelectDialog = PuzzleSelectDialog.newTrainerInstance(trainerSubset.name());
         trainerSelectDialog.setDialogListener(this);
