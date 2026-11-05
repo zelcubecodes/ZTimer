@@ -5,6 +5,11 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
   <group
+      android:translateX="-1.816"
+      android:translateY="-1.871"
+      android:scaleX="1.1513"
+      android:scaleY="1.1513">
+  <group
       android:translateX="0"
       android:translateY="0"
       android:scaleX="0.048"
@@ -25,4 +30,5 @@
         android:pathData="m440 208-86.8-63.3-85.2 117.3 139 48.5z"
         android:fillColor="#FFD42A"/>
   </group>
+</group>
 </vector>
