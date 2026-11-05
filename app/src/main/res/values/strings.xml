@@ -481,6 +481,7 @@
     <string name="trainer_probability_equal_desc">Every selected case is equally likely</string>
     <string name="trainer_probability_order_desc">Every selected case once in a random order, then again</string>
     <string name="dialog_select_puzzle">Select a puzzle</string>
+    <string name="dialog_select_trainer">Select a trainer</string>
     <string name="dialog_hint_title">Hint</string>
     <string name="category_select_dialog_title">Select a category</string>
     <string name="category_select_dialog_hint_edit">Long-press an entry to edit</string>
