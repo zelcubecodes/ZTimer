@@ -87,51 +87,126 @@ public class PuzzleSelectDialog extends DialogFragment {
         return dialog;
     }
 
-    /** Fills the popup with the trainer sets, grouped into one tab per family. */
-    private void setupTrainerSets(View dialogView, String currentName) {
-        ((TextView) dialogView.findViewById(R.id.title)).setText(R.string.dialog_select_trainer);
+    private static final String PREF_STARRED = "trainer_starred_sets";
 
+    private java.util.List<String> trainerTabNames;
+    private java.util.List<java.util.List<Item>> trainerTabItems;
+    private boolean rebuildingTabs;
+
+    private java.util.Set<String> readStarred() {
+        return new java.util.HashSet<>(android.preference.PreferenceManager
+                .getDefaultSharedPreferences(mContext)
+                .getStringSet(PREF_STARRED, new java.util.HashSet<String>()));
+    }
+
+    /** One tile for a trainer set. Starred sets get a star in front of their name. */
+    private Item trainerItem(com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset t, int family, boolean starred) {
         final String[] fills = {"#BBDEFB", "#E1BEE7", "#FFE0B2", "#C8E6C9", "#F8BBD0"};
         final String[] texts = {"#1E66E0", "#7B1FA2", "#E65100", "#2E7D32", "#C2185B"};
+        String label = t == com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset.TWOGLL
+                ? "2GLL" : t.name();
+        String title = com.hatopigeon.cubictimer.puzzle.TrainerSets.displayName(t);
+        if (title.length() > 12) title = label;
+        if (starred) title = "\u2605 " + title;
+        return new Item(title,
+                new LabelIconDrawable(label, Color.parseColor(fills[family % fills.length]),
+                        Color.parseColor(texts[family % texts.length])),
+                CategorySelectDialog.TRAINER_PREFIX + t.name() + ":"
+                        + com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL);
+    }
 
-        final java.util.List<java.util.List<Item>> families = new java.util.ArrayList<>();
-        int startFamily = 0;
+    /** Builds the tabs: a Starred tab (only when something is starred), then one per family. */
+    private void buildTrainerTabs(String selectTabName) {
+        final java.util.Set<String> starred = readStarred();
+        trainerTabNames.clear();
+        trainerTabItems.clear();
+
+        java.util.List<Item> starredItems = new java.util.ArrayList<>();
+        for (int f = 0; f < com.hatopigeon.cubictimer.puzzle.TrainerSets.FAMILIES.length; f++) {
+            for (com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset t
+                    : com.hatopigeon.cubictimer.puzzle.TrainerSets.setsInFamily(f)) {
+                if (starred.contains(t.name())) starredItems.add(trainerItem(t, f, true));
+            }
+        }
+        if (!starredItems.isEmpty()) {
+            trainerTabNames.add(getString(R.string.trainer_starred_header));
+            trainerTabItems.add(starredItems);
+        }
         for (int f = 0; f < com.hatopigeon.cubictimer.puzzle.TrainerSets.FAMILIES.length; f++) {
             java.util.List<Item> items = new java.util.ArrayList<>();
             for (com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset t
                     : com.hatopigeon.cubictimer.puzzle.TrainerSets.setsInFamily(f)) {
-                if (t.name().equals(currentName)) startFamily = f;
-                String label = t == com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset.TWOGLL
-                        ? "2GLL" : t.name();
-                String title = com.hatopigeon.cubictimer.puzzle.TrainerSets.displayName(t);
-                if (title.length() > 12) title = label;
-                items.add(new Item(title,
-                        new LabelIconDrawable(label, Color.parseColor(fills[f % fills.length]),
-                                Color.parseColor(texts[f % texts.length])),
-                        CategorySelectDialog.TRAINER_PREFIX + t.name() + ":"
-                                + com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL));
+                items.add(trainerItem(t, f, starred.contains(t.name())));
             }
-            families.add(items);
+            trainerTabNames.add(com.hatopigeon.cubictimer.puzzle.TrainerSets.FAMILIES[f]);
+            trainerTabItems.add(items);
         }
 
-        puzzleRecycler.getLayoutParams().height = (int) (mContext.getResources().getDisplayMetrics().heightPixels * 0.55f);
-        puzzleAdapter = new PuzzleSelectAdapter(dialogListener, families.get(startFamily));
+        int selected = Math.max(0, trainerTabNames.indexOf(selectTabName));
+        rebuildingTabs = true;
+        tabs.removeAllTabs();
+        for (int i = 0; i < trainerTabNames.size(); i++) {
+            tabs.addTab(tabs.newTab().setText(trainerTabNames.get(i)), i == selected);
+        }
+        rebuildingTabs = false;
+        puzzleAdapter.setItems(trainerTabItems.get(selected));
+        puzzleRecycler.scrollToPosition(0);
+    }
+
+    /** Fills the popup with the trainer sets: one tab per family, long press a set to star it. */
+    private void setupTrainerSets(View dialogView, String currentName) {
+        ((TextView) dialogView.findViewById(R.id.title)).setText(R.string.dialog_select_trainer);
+
+        trainerTabNames = new java.util.ArrayList<>();
+        trainerTabItems = new java.util.ArrayList<>();
+
+        String startTab = com.hatopigeon.cubictimer.puzzle.TrainerSets.FAMILIES[0];
+        for (com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset t
+                : com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset.values()) {
+            if (t.name().equals(currentName)) {
+                startTab = com.hatopigeon.cubictimer.puzzle.TrainerSets.familyOf(t);
+            }
+        }
+
+        puzzleRecycler.getLayoutParams().height = trainerPopupHeight();
+        puzzleAdapter = new PuzzleSelectAdapter(dialogListener, new java.util.ArrayList<Item>());
         puzzleRecycler.setAdapter(puzzleAdapter);
 
         tabs.setTabMode(com.google.android.material.tabs.TabLayout.MODE_SCROLLABLE);
-        for (int f = 0; f < families.size(); f++) {
-            tabs.addTab(tabs.newTab().setText(com.hatopigeon.cubictimer.puzzle.TrainerSets.FAMILIES[f]), f == startFamily);
-        }
         tabs.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
-                puzzleAdapter.setItems(families.get(tab.getPosition()));
+                if (rebuildingTabs) return;
+                puzzleAdapter.setItems(trainerTabItems.get(tab.getPosition()));
                 puzzleRecycler.scrollToPosition(0);
             }
 
             @Override public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
             @Override public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
         });
+
+        puzzleAdapter.setLongClickListener(item -> {
+            String name = item.type.substring(CategorySelectDialog.TRAINER_PREFIX.length());
+            name = name.substring(0, name.indexOf(':'));
+            java.util.Set<String> starred = readStarred();
+            boolean nowStarred = !starred.remove(name);
+            if (nowStarred) starred.add(name);
+            android.preference.PreferenceManager.getDefaultSharedPreferences(mContext)
+                    .edit().putStringSet(PREF_STARRED, starred).apply();
+            android.widget.Toast.makeText(mContext,
+                    getString(nowStarred ? R.string.trainer_starred_toast : R.string.trainer_unstarred_toast, name),
+                    android.widget.Toast.LENGTH_SHORT).show();
+            int sel = tabs.getSelectedTabPosition();
+            buildTrainerTabs(sel >= 0 && sel < trainerTabNames.size() ? trainerTabNames.get(sel) : null);
+            return true;
+        });
+
+        buildTrainerTabs(startTab);
+    }
+
+    private int trainerPopupHeight() {
+        float density = getResources().getDisplayMetrics().density;
+        return (int) Math.min(getResources().getDisplayMetrics().heightPixels * 0.55f, 460 * density);
     }
 
     @Override
@@ -139,7 +214,9 @@ public class PuzzleSelectDialog extends DialogFragment {
         super.onStart();
         // Make the popup wide enough for three icons per row and the two tab names
         if (getDialog() != null && getDialog().getWindow() != null) {
-            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.92f);
+            // 92% of the screen on a phone, but never wider than 420dp so it stays compact on tablets
+            float density = getResources().getDisplayMetrics().density;
+            int width = (int) Math.min(getResources().getDisplayMetrics().widthPixels * 0.92f, 420 * density);
             getDialog().getWindow().setLayout(width, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
         }
     }
@@ -198,7 +275,7 @@ public class PuzzleSelectDialog extends DialogFragment {
         otherItems.add(new Item(getString(R.string.cube_other), R.drawable.ic_other, PuzzleUtils.TYPE_OTHER));
 
         // A fixed height, so the popup does not jump in size between the tabs
-        puzzleRecycler.getLayoutParams().height = (int) (mContext.getResources().getDisplayMetrics().heightPixels * 0.55f);
+        puzzleRecycler.getLayoutParams().height = trainerPopupHeight();
 
         puzzleAdapter = new PuzzleSelectAdapter(dialogListener, lastTab == 0 ? wcaItems : otherItems);
         puzzleRecycler.setAdapter(puzzleAdapter);
@@ -235,6 +312,12 @@ class PuzzleSelectAdapter extends RecyclerView.Adapter<PuzzleSelectAdapter.CardV
 
     DialogListenerMessage dialogListener;
     java.util.List<PuzzleSelectDialog.Item> puzzles;
+
+    interface ItemLongClickListener { boolean onLongClick(PuzzleSelectDialog.Item item); }
+
+    private ItemLongClickListener longClickListener;
+
+    void setLongClickListener(ItemLongClickListener listener) { this.longClickListener = listener; }
 
     static class CardViewHolder extends RecyclerView.ViewHolder {
         View view;
@@ -277,6 +360,7 @@ class PuzzleSelectAdapter extends RecyclerView.Adapter<PuzzleSelectAdapter.CardV
             if (dialogListener != null)
                 dialogListener.onUpdateDialog(item.type);
         });
+        holder.view.setOnLongClickListener(v -> longClickListener != null && longClickListener.onLongClick(item));
     }
 
     @Override
