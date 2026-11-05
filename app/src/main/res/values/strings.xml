@@ -473,6 +473,7 @@
     <string name="stats_switch_to_timer">Show timer stats</string>
     <string name="puzzle_tab_wca">WCA</string>
     <string name="puzzle_tab_non_wca">Non-WCA</string>
+    <string name="puzzle_tab_more">More</string>
     <string name="trainer_probability_title">Case probability (Actual / Equal / Random order)</string>
     <string name="trainer_probability_actual">Actual</string>
     <string name="trainer_probability_equal">Equal</string>
