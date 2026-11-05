@@ -647,22 +647,9 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
     /** Asks which trainer set to practise. The sets are sorted into families. */
     private void showTrainerMenu() {
-        final com.hatopigeon.cubictimer.adapter.TrainerSetListAdapter adapter =
-                new com.hatopigeon.cubictimer.adapter.TrainerSetListAdapter(mContext, trainerSubset);
-        android.widget.ListView list = new android.widget.ListView(mContext);
-        list.setAdapter(adapter);
-        list.setDivider(null);
-        final MaterialDialog dialog = ThemeUtils.roundDialog(mContext, new MaterialDialog.Builder(mContext)
-                .title(R.string.drawer_title_trainer)
-                .customView(list, false)
-                .build());
-        list.setOnItemClickListener((parent, view, position, id) -> {
-            TrainerScrambler.TrainerSubset picked = adapter.setAt(position);
-            if (picked == null) return;
-            setTrainerSubset(picked);
-            dialog.dismiss();
-        });
-        dialog.show();
+        PuzzleSelectDialog trainerSelectDialog = PuzzleSelectDialog.newTrainerInstance(trainerSubset.name());
+        trainerSelectDialog.setDialogListener(this);
+        trainerSelectDialog.show(mFragmentManager, TAG_PUZZLE_DIALOG);
     }
 
     public TimerFragmentMain() {
@@ -1267,7 +1254,17 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
             PuzzleSelectDialog trainerDialog = (PuzzleSelectDialog) mFragmentManager.findFragmentByTag(TAG_PUZZLE_DIALOG);
             if (trainerDialog != null)
                 trainerDialog.dismiss();
-            categoryDialogListener.onUpdateDialog(text);
+            if (viewPager != null && viewPager.getCurrentItem() == TRAINER_PAGE) {
+                // The Trainer page practises the picked set
+                String name = text.substring(STATS_TRAINER_PREFIX.length());
+                int colon = name.indexOf(':');
+                if (colon >= 0) name = name.substring(0, colon);
+                try {
+                    setTrainerSubset(TrainerScrambler.TrainerSubset.valueOf(name));
+                } catch (IllegalArgumentException ignored) { }
+            } else {
+                categoryDialogListener.onUpdateDialog(text);
+            }
             return;
         }
 
