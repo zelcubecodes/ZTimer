@@ -69,6 +69,71 @@ public class PuzzleSelectDialog extends DialogFragment {
         return new PuzzleSelectDialog();
     }
 
+    private static final String ARG_TRAINER = "trainer_sets";
+    private static final String ARG_TRAINER_CURRENT = "trainer_current";
+
+    /**
+     * The same popup, but listing the trainer sets (OLL, PLL, ...) instead of puzzles, one tab per
+     * family. Picking one answers with {@code CategorySelectDialog.TRAINER_PREFIX + set + ":*"}.
+     *
+     * @param currentSet name of the set that is open now (its family tab starts selected), or null
+     */
+    public static PuzzleSelectDialog newTrainerInstance(String currentSet) {
+        PuzzleSelectDialog dialog = new PuzzleSelectDialog();
+        Bundle args = new Bundle();
+        args.putBoolean(ARG_TRAINER, true);
+        args.putString(ARG_TRAINER_CURRENT, currentSet);
+        dialog.setArguments(args);
+        return dialog;
+    }
+
+    /** Fills the popup with the trainer sets, grouped into one tab per family. */
+    private void setupTrainerSets(View dialogView, String currentName) {
+        ((TextView) dialogView.findViewById(R.id.title)).setText(R.string.dialog_select_trainer);
+
+        final String[] fills = {"#BBDEFB", "#E1BEE7", "#FFE0B2", "#C8E6C9", "#F8BBD0"};
+        final String[] texts = {"#1E66E0", "#7B1FA2", "#E65100", "#2E7D32", "#C2185B"};
+
+        final java.util.List<java.util.List<Item>> families = new java.util.ArrayList<>();
+        int startFamily = 0;
+        for (int f = 0; f < com.hatopigeon.cubictimer.puzzle.TrainerSets.FAMILIES.length; f++) {
+            java.util.List<Item> items = new java.util.ArrayList<>();
+            for (com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset t
+                    : com.hatopigeon.cubictimer.puzzle.TrainerSets.setsInFamily(f)) {
+                if (t.name().equals(currentName)) startFamily = f;
+                String label = t == com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset.TWOGLL
+                        ? "2GLL" : t.name();
+                String title = com.hatopigeon.cubictimer.puzzle.TrainerSets.displayName(t);
+                if (title.length() > 12) title = label;
+                items.add(new Item(title,
+                        new LabelIconDrawable(label, Color.parseColor(fills[f % fills.length]),
+                                Color.parseColor(texts[f % texts.length])),
+                        CategorySelectDialog.TRAINER_PREFIX + t.name() + ":"
+                                + com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL));
+            }
+            families.add(items);
+        }
+
+        puzzleRecycler.getLayoutParams().height = (int) (mContext.getResources().getDisplayMetrics().heightPixels * 0.55f);
+        puzzleAdapter = new PuzzleSelectAdapter(dialogListener, families.get(startFamily));
+        puzzleRecycler.setAdapter(puzzleAdapter);
+
+        tabs.setTabMode(com.google.android.material.tabs.TabLayout.MODE_SCROLLABLE);
+        for (int f = 0; f < families.size(); f++) {
+            tabs.addTab(tabs.newTab().setText(com.hatopigeon.cubictimer.puzzle.TrainerSets.FAMILIES[f]), f == startFamily);
+        }
+        tabs.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                puzzleAdapter.setItems(families.get(tab.getPosition()));
+                puzzleRecycler.scrollToPosition(0);
+            }
+
+            @Override public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
+            @Override public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
+        });
+    }
+
     @Override
     public void onStart() {
         super.onStart();
@@ -94,6 +159,12 @@ public class PuzzleSelectDialog extends DialogFragment {
 
         GridLayoutManager layoutManager = new GridLayoutManager(mContext, 3, RecyclerView.VERTICAL, false);
         puzzleRecycler.setLayoutManager(layoutManager);
+
+        // In trainer mode the popup lists the trainer sets instead of puzzles
+        if (getArguments() != null && getArguments().getBoolean(ARG_TRAINER, false)) {
+            setupTrainerSets(dialogView, getArguments().getString(ARG_TRAINER_CURRENT));
+            return dialogView;
+        }
 
         // Two tabs: the WCA events, and every other puzzle
         wcaItems = new java.util.ArrayList<>();
