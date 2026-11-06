@@ -66,6 +66,14 @@ public final class TrainerSets {
             case MT6CP:   return "mt6cp";
             case MTCDRLL: return "mtcdrll";
             case MTL5EP:  return "mtl5ep";
+            case TWOGEN:    return "2gen";
+            case TWOGENL:   return "2genl";
+            case ROUXMU:    return "roux";
+            case THREEGENF: return "3gen_F";
+            case THREEGENL: return "3gen_L";
+            case RRU:       return "RrU";
+            case DOMINO:    return "333drud";
+            case HALFTURNS: return "half";
             default:      return null;
         }
     }
@@ -97,12 +105,20 @@ public final class TrainerSets {
             case MT6CP:   return "6CP";
             case MTCDRLL: return "CDRLL";
             case MTL5EP:  return "L5EP";
+            case TWOGEN:    return "R,U";
+            case TWOGENL:   return "L,U";
+            case ROUXMU:    return "M,U";
+            case THREEGENF: return "FRU";
+            case THREEGENL: return "RUL";
+            case RRU:       return "RrU";
+            case DOMINO:    return "DR";
+            case HALFTURNS: return "HT";
             default:      return subset.name();
         }
     }
 
     /** The groups the sets are sorted into, the same ones csTimer's scramble menu uses. */
-    public static final String[] FAMILIES = {"CFOP", "Roux", "Mehta"};
+    public static final String[] FAMILIES = {"CFOP", "Roux", "Mehta", "Subsets"};
 
     private static final TrainerSubset[][] FAMILY_SETS = {
             // 3x3x3 CFOP
@@ -115,7 +131,10 @@ public final class TrainerSets {
             {TrainerSubset.SBRX, TrainerSubset.CMLL, TrainerSubset.LSE, TrainerSubset.LSEMU},
             // 3x3x3 Mehta
             {TrainerSubset.MT3QB, TrainerSubset.MTEOLE, TrainerSubset.MTTDR, TrainerSubset.MT6CP,
-                    TrainerSubset.MTCDRLL, TrainerSubset.MTL5EP, TrainerSubset.TTLL}};
+                    TrainerSubset.MTCDRLL, TrainerSubset.MTL5EP, TrainerSubset.TTLL},
+            // 3x3x3 subsets
+            {TrainerSubset.TWOGEN, TrainerSubset.TWOGENL, TrainerSubset.ROUXMU, TrainerSubset.THREEGENF,
+                    TrainerSubset.THREEGENL, TrainerSubset.RRU, TrainerSubset.DOMINO, TrainerSubset.HALFTURNS}};
 
     /** The sets of a family, in display order. */
     public static List<TrainerSubset> setsInFamily(int family) {
@@ -220,6 +239,22 @@ public final class TrainerSets {
                 return "CDRLL";
             case MTL5EP:
                 return "L5EP";
+            case TWOGEN:
+                return "2-gen R,U";
+            case TWOGENL:
+                return "2-gen L,U";
+            case ROUXMU:
+                return "Roux M,U";
+            case THREEGENF:
+                return "3-gen F,R,U";
+            case THREEGENL:
+                return "3-gen R,U,L";
+            case RRU:
+                return "3-gen R,r,U";
+            case DOMINO:
+                return "Domino";
+            case HALFTURNS:
+                return "Half turns";
             default:
                 return subset.name();
         }

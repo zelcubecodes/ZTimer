@@ -61,7 +61,8 @@ public abstract class TrainerScrambler {
         // More of csTimer's 3x3x3 training scramblers (they are listed in csTimer's own groups)
         LSLL2, ZBLLX2, EOLINE, EOCROSS, EASYC, EASYXC,
         SBRX, LSEMU,
-        MT3QB, MTEOLE, MTTDR, MT6CP, MTCDRLL, MTL5EP
+        MT3QB, MTEOLE, MTTDR, MT6CP, MTCDRLL, MTL5EP,
+        TWOGEN, TWOGENL, ROUXMU, THREEGENF, THREEGENL, RRU, DOMINO, HALFTURNS
     };
 
     /** A generated practice case. */
