@@ -72,8 +72,20 @@ public final class TrainerSets {
             case THREEGENF: return "3gen_F";
             case THREEGENL: return "3gen_L";
             case RRU:       return "RrU";
-            case DOMINO:    return "333drud";
-            case HALFTURNS: return "half";
+            case EDGE4:     return "4edge";
+            case EDGE5:     return "5edge";
+            case EDGE6:     return "6edge";
+            case EDGE7:     return "7edge";
+            case MINX2GEN:  return "minx2g";
+            case MLSLL:     return "mlsll";
+            case MGMPLL:    return "mgmpll";
+            case MGMLL:     return "mgmll";
+            case MGMS2L:    return "mgms2l";
+            case PYRL4E:    return "pyrl4e";
+            case PYR4C:     return "pyr4c";
+            case PYRNB:     return "pyrnb";
+            case SKBNB:     return "skbnb";
+            case SKBLL:     return "skbll";
             default:      return null;
         }
     }
@@ -83,7 +95,38 @@ public final class TrainerSets {
         switch (subset) {
             case EASYC:  return 3;
             case EASYXC: return 4;
+            case EDGE5:
+            case EDGE6:
+            case EDGE7:  return 8;
+            case MINX2GEN: return 30;
+            case MGMS2L: return 48;
             default:     return 0;
+        }
+    }
+
+    /** False for the sets that are not 3x3x3s (edges of big cubes, Megaminx, Pyraminx, Skewb). */
+    public static boolean isCube(TrainerSubset subset) {
+        return baseType(subset).equals(com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_333);
+    }
+
+    /** The puzzle a set is on: the type its scramble picture is laid out like. */
+    public static String baseType(TrainerSubset subset) {
+        switch (subset) {
+            case EDGE4:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_444;
+            case EDGE5:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_555;
+            case EDGE6:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_666;
+            case EDGE7:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_777;
+            case MINX2GEN:
+            case MLSLL:
+            case MGMPLL:
+            case MGMLL:
+            case MGMS2L: return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_MEGA;
+            case PYRL4E:
+            case PYR4C:
+            case PYRNB:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_PYRA;
+            case SKBNB:
+            case SKBLL:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_SKEWB;
+            default:     return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_333;
         }
     }
 
@@ -111,14 +154,26 @@ public final class TrainerSets {
             case THREEGENF: return "FRU";
             case THREEGENL: return "RUL";
             case RRU:       return "RrU";
-            case DOMINO:    return "DR";
-            case HALFTURNS: return "HT";
+            case EDGE4:     return "4E";
+            case EDGE5:     return "5E";
+            case EDGE6:     return "6E";
+            case EDGE7:     return "7E";
+            case MINX2GEN:  return "R,U";
+            case MLSLL:     return "LS+LL";
+            case MGMPLL:    return "PLL";
+            case MGMLL:     return "LL";
+            case MGMS2L:    return "S2L";
+            case PYRL4E:    return "L4E";
+            case PYR4C:     return "Tips";
+            case PYRNB:     return "NoB";
+            case SKBNB:     return "NoB";
+            case SKBLL:     return "LL";
             default:      return subset.name();
         }
     }
 
     /** The groups the sets are sorted into, the same ones csTimer's scramble menu uses. */
-    public static final String[] FAMILIES = {"CFOP", "Roux", "Mehta", "Subsets"};
+    public static final String[] FAMILIES = {"CFOP", "Roux", "Mehta", "Subsets", "Edges", "Megaminx", "Pyraminx", "Skewb"};
 
     private static final TrainerSubset[][] FAMILY_SETS = {
             // 3x3x3 CFOP
@@ -134,7 +189,16 @@ public final class TrainerSets {
                     TrainerSubset.MTCDRLL, TrainerSubset.MTL5EP, TrainerSubset.TTLL},
             // 3x3x3 subsets
             {TrainerSubset.TWOGEN, TrainerSubset.TWOGENL, TrainerSubset.ROUXMU, TrainerSubset.THREEGENF,
-                    TrainerSubset.THREEGENL, TrainerSubset.RRU, TrainerSubset.DOMINO, TrainerSubset.HALFTURNS}};
+                    TrainerSubset.THREEGENL, TrainerSubset.RRU},
+            // NxNxN edges
+            {TrainerSubset.EDGE4, TrainerSubset.EDGE5, TrainerSubset.EDGE6, TrainerSubset.EDGE7},
+            // Megaminx
+            {TrainerSubset.MINX2GEN, TrainerSubset.MLSLL, TrainerSubset.MGMPLL, TrainerSubset.MGMLL,
+                    TrainerSubset.MGMS2L},
+            // Pyraminx
+            {TrainerSubset.PYRL4E, TrainerSubset.PYR4C, TrainerSubset.PYRNB},
+            // Skewb
+            {TrainerSubset.SKBNB, TrainerSubset.SKBLL}};
 
     /** The sets of a family, in display order. */
     public static List<TrainerSubset> setsInFamily(int family) {
@@ -251,10 +315,34 @@ public final class TrainerSets {
                 return "3-gen R,U,L";
             case RRU:
                 return "3-gen R,r,U";
-            case DOMINO:
-                return "Domino";
-            case HALFTURNS:
-                return "Half turns";
+            case EDGE4:
+                return "4x4x4 Edges";
+            case EDGE5:
+                return "5x5x5 Edges";
+            case EDGE6:
+                return "6x6x6 Edges";
+            case EDGE7:
+                return "7x7x7 Edges";
+            case MINX2GEN:
+                return "Minx 2-gen";
+            case MLSLL:
+                return "Minx LS+LL";
+            case MGMPLL:
+                return "Minx PLL";
+            case MGMLL:
+                return "Minx LL";
+            case MGMS2L:
+                return "Minx S2L";
+            case PYRL4E:
+                return "Pyra L4E";
+            case PYR4C:
+                return "Pyra 4 tips";
+            case PYRNB:
+                return "Pyra No bar";
+            case SKBNB:
+                return "Skewb No bar";
+            case SKBLL:
+                return "Skewb LL";
             default:
                 return subset.name();
         }

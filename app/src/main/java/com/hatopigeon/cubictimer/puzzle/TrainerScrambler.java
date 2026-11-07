@@ -62,7 +62,12 @@ public abstract class TrainerScrambler {
         LSLL2, ZBLLX2, EOLINE, EOCROSS, EASYC, EASYXC,
         SBRX, LSEMU,
         MT3QB, MTEOLE, MTTDR, MT6CP, MTCDRLL, MTL5EP,
-        TWOGEN, TWOGENL, ROUXMU, THREEGENF, THREEGENL, RRU, DOMINO, HALFTURNS
+        TWOGEN, TWOGENL, ROUXMU, THREEGENF, THREEGENL, RRU,
+        // Other puzzles' training scramblers (they are scrambled by csTimer and are not 3x3x3s)
+        EDGE4, EDGE5, EDGE6, EDGE7,
+        MINX2GEN, MLSLL, MGMPLL, MGMLL, MGMS2L,
+        PYRL4E, PYR4C, PYRNB,
+        SKBNB, SKBLL
     };
 
     /** A generated practice case. */
@@ -387,7 +392,8 @@ public abstract class TrainerScrambler {
         if (csType != null) {
             String fromCsTimer = CsTimer.get(context).getScramble(csType, TrainerSets.csLength(subset), TrainerSets.csIndexOf(subset, caseName));
             if (fromCsTimer != null) {
-                return new TrainerCase(CubeNet.normalize(fromCsTimer), caseName, group);
+                // Only 3x3x3 scrambles can be cleaned up by the cube simulator
+                return new TrainerCase(TrainerSets.isCube(subset) ? CubeNet.normalize(fromCsTimer) : fromCsTimer.trim(), caseName, group);
             }
             Log.e("TRAINER_SCRAMBLE", "csTimer gave no scramble for " + csType);
             if (!HAS_BUILT_IN_FALLBACK.contains(subset)) {
