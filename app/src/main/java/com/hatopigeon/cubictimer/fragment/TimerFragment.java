@@ -749,6 +749,15 @@ public class TimerFragment extends BaseFragment
         mAnimationDuration = Prefs.getInt(R.string.pk_timer_animation_duration, mContext.getResources().getInteger(R.integer.defaultAnimationDuration));
 
         generator = new ScrambleGenerator(currentPuzzle);
+        if (isTrainerMode() && ScopedStatistics.isScoped(currentPuzzle)) {
+            // A trainer set that is not a 3x3x3 is drawn by csTimer as the puzzle it is
+            try {
+                TrainerScrambler.TrainerSubset set = TrainerScrambler.TrainerSubset.valueOf(currentPuzzle);
+                if (!com.hatopigeon.cubictimer.puzzle.TrainerSets.isCube(set) && com.hatopigeon.cubictimer.puzzle.TrainerSets.csType(set) != null) {
+                    generator = new ScrambleGenerator(com.hatopigeon.cubictimer.utils.CsPuzzles.PREFIX + com.hatopigeon.cubictimer.puzzle.TrainerSets.csType(set));
+                }
+            } catch (IllegalArgumentException ignored) { }
+        }
         // Register a receiver to update if something has changed
         registerReceiver(mUIInteractionReceiver);
     }
@@ -1375,7 +1384,13 @@ public class TimerFragment extends BaseFragment
      * @return the height in px
      */
     private float calculateScrambleImageHeightMultiplier(float multiplier) {
-        switch (currentPuzzle) {
+        String imageType = currentPuzzle;
+        if (isTrainerMode() && ScopedStatistics.isScoped(currentPuzzle)) {
+            try {
+                imageType = com.hatopigeon.cubictimer.puzzle.TrainerSets.baseType(TrainerScrambler.TrainerSubset.valueOf(currentPuzzle));
+            } catch (IllegalArgumentException ignored) { }
+        }
+        switch (imageType) {
             case PuzzleUtils.TYPE_777:
             case PuzzleUtils.TYPE_666:
             case PuzzleUtils.TYPE_555:
