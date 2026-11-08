@@ -41,7 +41,8 @@ public class PuzzleSelectDialog extends DialogFragment {
 
     @BindView(R.id.list) RecyclerView puzzleRecycler;
     @BindView(R.id.puzzle_tabs) com.google.android.material.tabs.TabLayout tabs;
-    @BindView(R.id.puzzle_tabs2) com.google.android.material.tabs.TabLayout tabs2;
+    @BindView(R.id.trainer_tabs_scroll) android.widget.HorizontalScrollView trainerTabsScroll;
+    @BindView(R.id.trainer_tabs_container) android.widget.LinearLayout trainerTabsContainer;
 
     /** The tab that was open last time (0 = WCA, 1 = Non-WCA). */
     private static int lastTab = 0;
@@ -93,7 +94,6 @@ public class PuzzleSelectDialog extends DialogFragment {
 
     private java.util.List<String> trainerTabNames;
     private java.util.List<java.util.List<Item>> trainerTabItems;
-    private boolean rebuildingTabs;
     private int selectedTrainerTab = 0;
 
     private java.util.Set<String> readStarred() {
@@ -146,18 +146,7 @@ public class PuzzleSelectDialog extends DialogFragment {
 
         int selected = Math.max(0, trainerTabNames.indexOf(selectTabName));
         selectedTrainerTab = selected;
-        // Two rows of tabs, so none of them need scrolling to
-        int firstRow = (trainerTabNames.size() + 1) / 2;
-        rebuildingTabs = true;
-        tabs.removeAllTabs();
-        tabs2.removeAllTabs();
-        for (int i = 0; i < trainerTabNames.size(); i++) {
-            com.google.android.material.tabs.TabLayout row = i < firstRow ? tabs : tabs2;
-            row.addTab(row.newTab().setText(trainerTabNames.get(i)), i == selected);
-        }
-        // Only one tab is selected over both rows
-        if (selected < firstRow) tabs2.selectTab(null); else tabs.selectTab(null);
-        rebuildingTabs = false;
+        drawTrainerTabs();
         puzzleAdapter.setItems(trainerTabItems.get(selected));
         puzzleRecycler.scrollToPosition(0);
     }
@@ -181,11 +170,8 @@ public class PuzzleSelectDialog extends DialogFragment {
         puzzleAdapter = new PuzzleSelectAdapter(dialogListener, new java.util.ArrayList<Item>());
         puzzleRecycler.setAdapter(puzzleAdapter);
 
-        tabs.setTabMode(com.google.android.material.tabs.TabLayout.MODE_AUTO);
-        tabs2.setTabMode(com.google.android.material.tabs.TabLayout.MODE_AUTO);
-        tabs2.setVisibility(View.VISIBLE);
-        tabs.addOnTabSelectedListener(trainerTabListener(tabs));
-        tabs2.addOnTabSelectedListener(trainerTabListener(tabs2));
+        tabs.setVisibility(View.GONE);
+        trainerTabsScroll.setVisibility(View.VISIBLE);
 
         puzzleAdapter.setLongClickListener(item -> {
             String name = item.type.substring(CategorySelectDialog.TRAINER_PREFIX.length());
@@ -199,33 +185,67 @@ public class PuzzleSelectDialog extends DialogFragment {
                     getString(nowStarred ? R.string.trainer_starred_toast : R.string.trainer_unstarred_toast, name),
                     android.widget.Toast.LENGTH_SHORT).show();
             int sel = selectedTrainerTab;
+            final int keepScroll = trainerTabsScroll.getScrollX();
             buildTrainerTabs(sel >= 0 && sel < trainerTabNames.size() ? trainerTabNames.get(sel) : null);
+            trainerTabsScroll.post(() -> trainerTabsScroll.scrollTo(keepScroll, 0));
             return true;
         });
 
         buildTrainerTabs(startTab);
     }
 
-    /** Listens to one of the two rows of trainer tabs; picking a tab in one row clears the other. */
-    private com.google.android.material.tabs.TabLayout.OnTabSelectedListener trainerTabListener(
-            final com.google.android.material.tabs.TabLayout row) {
-        return new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
-                if (rebuildingTabs) return;
-                int firstRow = (trainerTabNames.size() + 1) / 2;
-                int index = row == tabs ? tab.getPosition() : firstRow + tab.getPosition();
-                selectedTrainerTab = index;
-                rebuildingTabs = true;
-                if (row == tabs) tabs2.selectTab(null); else tabs.selectTab(null);
-                rebuildingTabs = false;
-                puzzleAdapter.setItems(trainerTabItems.get(index));
-                puzzleRecycler.scrollToPosition(0);
+    /**
+     * Draws the trainer tabs as two rows that scroll sideways together. Each column holds two
+     * tabs, and only the selected one has an underline.
+     */
+    private void drawTrainerTabs() {
+        final float density = getResources().getDisplayMetrics().density;
+        final int selectedColor = androidx.core.content.ContextCompat.getColor(mContext, R.color.md_blue_A700);
+        final int normalColor = androidx.core.content.ContextCompat.getColor(mContext, R.color.md_light_primary_text);
+        trainerTabsContainer.removeAllViews();
+        final int n = trainerTabNames.size();
+        final TextView[] views = new TextView[n];
+        for (int col = 0; col * 2 < n; col++) {
+            android.widget.LinearLayout column = new android.widget.LinearLayout(mContext);
+            column.setOrientation(android.widget.LinearLayout.VERTICAL);
+            for (int row = 0; row < 2; row++) {
+                final int index = col * 2 + row;
+                if (index >= n) break;
+                TextView tab = new TextView(mContext);
+                tab.setText(trainerTabNames.get(index).toUpperCase());
+                tab.setTextSize(14);
+                tab.setGravity(android.view.Gravity.CENTER);
+                tab.setSingleLine(true);
+                tab.setPadding((int) (16 * density), (int) (10 * density), (int) (16 * density), (int) (10 * density));
+                tab.setOnClickListener(v -> {
+                    selectedTrainerTab = index;
+                    for (int i = 0; i < n; i++) styleTrainerTab(views[i], i == index, selectedColor, normalColor);
+                    puzzleAdapter.setItems(trainerTabItems.get(index));
+                    puzzleRecycler.scrollToPosition(0);
+                });
+                views[index] = tab;
+                column.addView(tab, new android.widget.LinearLayout.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
             }
+            trainerTabsContainer.addView(column, new android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+        for (int i = 0; i < n; i++) styleTrainerTab(views[i], i == selectedTrainerTab, selectedColor, normalColor);
+        // Bring the selected tab into view
+        final int selCol = selectedTrainerTab / 2;
+        trainerTabsScroll.post(() -> {
+            if (selCol < trainerTabsContainer.getChildCount()) {
+                View col = trainerTabsContainer.getChildAt(selCol);
+                trainerTabsScroll.scrollTo(Math.max(0, col.getLeft() - (int) (24 * density)), 0);
+            }
+        });
+    }
 
-            @Override public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
-            @Override public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
-        };
+    private void styleTrainerTab(TextView tab, boolean selected, int selectedColor, int normalColor) {
+        tab.setTextColor(selected ? selectedColor : normalColor);
+        tab.setBackgroundResource(selected ? R.drawable.bg_trainer_tab_selected : 0);
     }
 
     private int trainerPopupHeight() {
