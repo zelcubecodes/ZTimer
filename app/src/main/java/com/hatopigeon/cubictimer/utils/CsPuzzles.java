@@ -103,14 +103,13 @@ public final class CsPuzzles {
         list.add(new Entry("crz3a", "Crazy 3x3", "Crazy", 30, true, SHAPE, "ic_cs_crazy"));
         list.add(new Entry("ivy", "Ivy Cube", "Ivy", 10, false, SHAPE, "ic_cs_ivy"));
         // More csTimer scramble types that belong in this tab (drawn as a coloured label)
-        list.add(new Entry("helicv", "Curvy Copter", "Curvy", 40, true, SHAPE, null));
-        list.add(new Entry("heli2x2g", "2x2 Heli", "2x2", 5, true, SHAPE, null));
-        list.add(new Entry("r3", "Lots of 3x3s", "3x3s", 5, true, BIG, null));
-        list.add(new Entry("r234", "234 relay", "234", 0, true, BIG, null));
-        list.add(new Entry("r2345", "2345 relay", "2345", 0, true, BIG, null));
-        list.add(new Entry("r23456", "23456 relay", "23456", 0, true, BIG, null));
-        list.add(new Entry("r234567", "234567 relay", "2-7", 0, true, BIG, null));
-        list.add(new Entry("rmngf", "Mini Guildford", "Guild", 0, true, BIG, null));
+        list.add(new Entry("helicv", "Curvy Copter", "Curvy", 40, true, SHAPE, "ic_cs_curvy"));
+        list.add(new Entry("r3", "Lots of 3x3s", "3x3s", 5, true, BIG, "ic_cs_r3"));
+        list.add(new Entry("r234", "234 relay", "234", 0, true, BIG, "ic_cs_r234"));
+        list.add(new Entry("r2345", "2345 relay", "2345", 0, true, BIG, "ic_cs_r2345"));
+        list.add(new Entry("r23456", "23456 relay", "23456", 0, true, BIG, "ic_cs_r23456"));
+        list.add(new Entry("r234567", "234567 relay", "2-7", 0, true, BIG, "ic_cs_r234567"));
+        list.add(new Entry("rmngf", "Mini Guildford", "Guild", 0, true, BIG, "ic_cs_miniguild"));
         ALL = Collections.unmodifiableList(list);
 
         // The rest of csTimer's scramble types (its 3x3x3 subsets, relays, the variants of every
@@ -220,6 +219,7 @@ public final class CsPuzzles {
         v(hidden, "Kilominx", "klmso", "Kilominx Random state", "Random state", "State", 0, true, MINX);
         v(hidden, "Cmetrick", "cm3", "Cmetrick", "Cmetrick", "Cm", 25, false, SHAPE);
         v(hidden, "Cmetrick", "cm2", "Cmetrick Mini", "Cmetrick Mini", "Mini", 25, false, SHAPE);
+        v(hidden, "Helicopter Cube", "heli2x2g", "2x2 Heli", "2x2 Heli", "2x2", 5, true, SHAPE);
         v(hidden, "Helicopter Cube", "heli2x2", "2x2 Heli", "2x2 Heli", "2x2", 70, true, SHAPE);
         v(hidden, "Redi Cube", "rediso", "Redi Cube Random state", "Random state", "State", 0, true, SHAPE);
         v(hidden, "Redi Cube", "redim", "Redi Cube MoYu", "MoYu", "MoYu", 8, true, SHAPE);
