@@ -146,6 +146,15 @@ public class TimeDialog extends DialogFragment {
                                             break;
                                         }
                                     }
+                                    // A Timer solve goes back to the Timer tab, like a trainer solve goes to the Trainer
+                                    androidx.fragment.app.Fragment timerMain = requireActivity()
+                                            .getSupportFragmentManager().findFragmentByTag("fragment_main");
+                                    if (timerMain instanceof com.hatopigeon.cubictimer.fragment.TimerFragmentMain) {
+                                        ((com.hatopigeon.cubictimer.fragment.TimerFragmentMain) timerMain)
+                                                .retrySolveInTimer(solve);
+                                        dismiss();
+                                        break;
+                                    }
                                     new TTIntent.BroadcastBuilder(CATEGORY_UI_INTERACTIONS, ACTION_SET_SCRAMBLE)
                                             .solve(solve)
                                             .broadcast();
