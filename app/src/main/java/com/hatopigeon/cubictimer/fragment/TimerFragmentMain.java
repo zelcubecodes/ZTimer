@@ -463,6 +463,46 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         puzzleNumber.setText(String.valueOf(currentMbldNum));
     }
 
+    /** The WCA page's Results / Live switch, which lives in the top bar. */
+    private com.hatopigeon.cubictimer.wca.WcaHostFragment findWcaHost() {
+        for (Fragment f : getChildFragmentManager().getFragments()) {
+            if (f instanceof com.hatopigeon.cubictimer.wca.WcaHostFragment) {
+                return (com.hatopigeon.cubictimer.wca.WcaHostFragment) f;
+            }
+        }
+        return null;
+    }
+
+    private void bindWcaSwitch() {
+        if (mToolbar == null) return;
+        TextView results = mToolbar.findViewById(R.id.wcaSwitchResults);
+        TextView live = mToolbar.findViewById(R.id.wcaSwitchLive);
+        if (results == null || live == null) return;
+        results.setOnClickListener(v -> {
+            com.hatopigeon.cubictimer.wca.WcaHostFragment host = findWcaHost();
+            if (host != null) host.select(com.hatopigeon.cubictimer.wca.WcaHostFragment.SUB_RESULTS);
+        });
+        live.setOnClickListener(v -> {
+            com.hatopigeon.cubictimer.wca.WcaHostFragment host = findWcaHost();
+            if (host != null) host.select(com.hatopigeon.cubictimer.wca.WcaHostFragment.SUB_LIVE);
+        });
+        com.hatopigeon.cubictimer.wca.WcaHostFragment host = findWcaHost();
+        updateWcaSwitch(host != null ? host.getSub() : com.hatopigeon.cubictimer.wca.WcaHostFragment.SUB_RESULTS);
+    }
+
+    /** Highlights Results or Live in the top bar. Called by the WCA page when it switches. */
+    public void updateWcaSwitch(int sub) {
+        if (mToolbar == null) return;
+        TextView results = mToolbar.findViewById(R.id.wcaSwitchResults);
+        TextView live = mToolbar.findViewById(R.id.wcaSwitchLive);
+        if (results == null || live == null) return;
+        boolean r = sub == com.hatopigeon.cubictimer.wca.WcaHostFragment.SUB_RESULTS;
+        results.setBackgroundResource(r ? R.drawable.bg_wca_switch_selected : 0);
+        live.setBackgroundResource(r ? 0 : R.drawable.bg_wca_switch_selected);
+        results.setAlpha(r ? 1f : 0.55f);
+        live.setAlpha(r ? 0.55f : 1f);
+    }
+
     /** Puts the Timer tab's puzzle and category back into the title, after leaving the Trainer tab. */
     private void updatePuzzleSpinnerHeaderText() {
         if (puzzleCategoryText == null || puzzleNameText == null) return;
@@ -520,6 +560,20 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
     private String statsCategory() {
         return statsSubset != null ? statsGroup : currentPuzzleCategory;
+    }
+
+    /** The last of the Timer and Trainer tabs that was open, or -1. The stats pages follow it. */
+    private int lastMainTab = -1;
+
+    /** Points the times and graph pages at what the last open Timer or Trainer tab is on. */
+    private void syncStatsToTab() {
+        if (viewPager == null || viewPagerAdapter == null || !isAdded()) return;
+        if (lastMainTab == TIMER_PAGE) {
+            setStatsSubset(null, null);
+        } else if (lastMainTab == TRAINER_PAGE) {
+            setStatsSubset(trainerSubset, trainerSubset == statsSubset
+                    ? statsGroup : com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL);
+        }
     }
 
     /** Points the times and graph pages at a trainer set (or back at the puzzle with null). */
@@ -640,6 +694,11 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
     public void setTrainerSubset(TrainerScrambler.TrainerSubset subset) {
         if (subset == trainerSubset) return;
         trainerSubset = subset;
+        // While the Trainer tab is the one open, the stats pages follow its set (rebuilt below)
+        if (lastMainTab == TRAINER_PAGE && statsSubset != null && statsSubset != subset) {
+            statsSubset = subset;
+            statsGroup = com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL;
+        }
         PreferenceManager.getDefaultSharedPreferences(mContext).edit()
                 .putString(PREF_TRAINER_SUBSET, subset.name()).apply();
         updateTrainerHeader();
@@ -899,6 +958,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         viewPager.setAdapter(viewPagerAdapter);
         viewPager.setOffscreenPageLimit(NUM_PAGES - 1);
         viewPager.setCurrentItem(currentPage);
+        if (currentPage == TIMER_PAGE || currentPage == TRAINER_PAGE) lastMainTab = currentPage;
         tabLayout.setupWithViewPager(viewPager);
         tabLayout.setSelectedTabIndicator(0);
         tabLayout.setTabIconTint(AppCompatResources.getColorStateList(mContext, R.color.tab_color));
@@ -924,15 +984,14 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
             @Override
             public void onPageSelected(int position) {
-                // The times and graph pages show whatever the tab they were opened from is on:
-                // the Timer tab's puzzle, or the Trainer tab's set
-                if (position == LIST_PAGE || position == GRAPH_PAGE) {
-                    if (currentPage == TIMER_PAGE) {
-                        setStatsSubset(null, null);
-                    } else if (currentPage == TRAINER_PAGE) {
-                        setStatsSubset(trainerSubset, trainerSubset == statsSubset
-                                ? statsGroup : com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL);
-                    }
+                // The times and graph pages show whatever the Timer or Trainer tab is on. They are
+                // pointed at it as soon as one of those tabs is reached (after the swipe has
+                // settled), so there is nothing left to rebuild when the stats pages open.
+                if (position == TIMER_PAGE || position == TRAINER_PAGE) {
+                    lastMainTab = position;
+                    viewPager.postDelayed(() -> syncStatsToTab(), 400);
+                } else if (position == LIST_PAGE || position == GRAPH_PAGE) {
+                    syncStatsToTab(); // does nothing if it already happened
                 }
                 setupPage(position);
                 currentPage = position;
@@ -1131,7 +1190,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         mToolbar.setVisibility(View.VISIBLE);
         updateStatsModeButton(pageNum);
 
-        TextView wcaTitle = mToolbar.findViewById(R.id.wcaTitle);
+        View wcaTitle = mToolbar.findViewById(R.id.wcaSwitch);
         View recordsBtn = mToolbar.findViewById(R.id.nav_button_records);
         View rankingsBtn = mToolbar.findViewById(R.id.nav_button_rankings);
         if (wcaTitle != null && recordsBtn != null && rankingsBtn != null) {
@@ -1142,7 +1201,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
             fade(navButtonCategory, !wca);
             fade(navButtonCases, trainer && TrainerSets.hasChoosableCases(trainerSubset));
             if (wca) {
-                wcaTitle.setText("WCA");
+                bindWcaSwitch();
                 recordsBtn.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(),
                         com.hatopigeon.cubictimer.activity.RecordsActivity.class)));
                 rankingsBtn.setOnClickListener(v -> startActivity(new android.content.Intent(requireContext(),
