@@ -31,13 +31,10 @@ public class WcaHostFragment extends Fragment {
     private static final String TAG_RESULTS = "wca_sub_results";
     private static final String TAG_LIVE = "wca_sub_live";
 
-    /** Space under the top bar taken by the switch, so the children start below it. */
-    private static final int SWITCH_HEIGHT_DP = 44;
-    private static final int CHILD_TOP_PAD_DP = 80 + SWITCH_HEIGHT_DP;
+    /** Space under the top bar, so the children start below it. The Results / Live switch is in the top bar. */
+    private static final int CHILD_TOP_PAD_DP = 80;
 
     private WcaUi ui;
-    private TextView pillResults;
-    private TextView pillLive;
     private int sub = SUB_RESULTS;
 
     public static WcaHostFragment newInstance() {
@@ -76,22 +73,6 @@ public class WcaHostFragment extends Fragment {
         root.addView(content, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        // Switch, sitting just below the top bar
-        LinearLayout bar = new LinearLayout(requireContext());
-        bar.setOrientation(LinearLayout.HORIZONTAL);
-        bar.setGravity(Gravity.CENTER);
-        pillResults = ui.pill("Results", sub == SUB_RESULTS);
-        pillLive = ui.pill("Live", sub == SUB_LIVE);
-        pillResults.setOnClickListener(v -> select(SUB_RESULTS));
-        pillLive.setOnClickListener(v -> select(SUB_LIVE));
-        bar.addView(pillResults, ui.lp(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 0, 0, 8, 0));
-        bar.addView(pillLive);
-
-        FrameLayout.LayoutParams barLp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ui.dp(SWITCH_HEIGHT_DP), Gravity.TOP);
-        barLp.topMargin = ui.dp(80 - 4);
-        root.addView(bar, barLp);
         return root;
     }
 
@@ -131,6 +112,11 @@ public class WcaHostFragment extends Fragment {
         outState.putInt(KEY_SUB, sub);
     }
 
+    /** The page showing now: SUB_RESULTS or SUB_LIVE. */
+    public int getSub() {
+        return sub;
+    }
+
     /** Switches between Results and Live. */
     public void select(int subPage) {
         if (subPage == sub) return;
@@ -156,8 +142,9 @@ public class WcaHostFragment extends Fragment {
         }
         tx.commitNowAllowingStateLoss();
 
-        if (pillResults != null) ui.stylePill(pillResults, sub == SUB_RESULTS);
-        if (pillLive != null) ui.stylePill(pillLive, sub == SUB_LIVE);
+        // The switch itself lives in the main top bar
+        Fragment parent = getParentFragment();
+        if (parent instanceof TimerFragmentMain) ((TimerFragmentMain) parent).updateWcaSwitch(sub);
 
         // The two pages use "visible to user" to start and stop refreshing and to pick up
         // hand-over requests, so tell them which one is showing.
