@@ -562,19 +562,33 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         return statsSubset != null ? statsGroup : currentPuzzleCategory;
     }
 
-    /** Refreshes the pager, then points the times and graph pages at what they should show. */
+    /** Refreshes the pager, then points the page on screen (if a stats one) at its puzzle or set. */
     private void refreshPages() {
         viewPagerAdapter.notifyDataSetChanged();
-        applyStatsScope();
+        if (viewPager != null) {
+            viewPager.removeCallbacks(applyScopeRunnable);
+            viewPager.postDelayed(applyScopeRunnable, 250);
+        }
     }
 
-    /** Points the times and graph pages at the current puzzle or trainer set, without rebuilding them. */
+    private final Runnable applyScopeRunnable = new Runnable() {
+        @Override
+        public void run() {
+            applyStatsScope();
+        }
+    };
+
+    /**
+     * Points the times or graph page that is on screen at the current puzzle or trainer set,
+     * without rebuilding it. The other one is done when it is opened, so a switch never loads both.
+     */
     private void applyStatsScope() {
-        if (!isAdded()) return;
+        if (!isAdded() || viewPager == null) return;
+        int shown = viewPager.getCurrentItem();
         for (Fragment f : getChildFragmentManager().getFragments()) {
-            if (f instanceof TimerListFragment) {
+            if (shown == LIST_PAGE && f instanceof TimerListFragment) {
                 ((TimerListFragment) f).rescope(statsPuzzle(), statsCategory(), currentMbldNum, currentScramble);
-            } else if (f instanceof TimerGraphFragment) {
+            } else if (shown == GRAPH_PAGE && f instanceof TimerGraphFragment) {
                 ((TimerGraphFragment) f).rescope(statsPuzzle(), statsCategory());
             }
         }
@@ -582,6 +596,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
     /** The last of the Timer and Trainer tabs that was open, or -1. The stats pages follow it. */
     private int lastMainTab = -1;
+
 
     /** Points the times and graph pages at what the last open Timer or Trainer tab is on. */
     private void syncStatsToTab() {
@@ -1007,14 +1022,15 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
             @Override
             public void onPageSelected(int position) {
-                // The times and graph pages show whatever the Timer or Trainer tab is on. They are
-                // pointed at it as soon as one of those tabs is reached (after the swipe has
-                // settled), so there is nothing left to rebuild when the stats pages open.
+                // The times and graph pages show whatever the Timer or Trainer tab is on. Nothing
+                // is loaded while one of those tabs is open: when a stats page opens it is
+                // pointed at the right puzzle or set, once the swipe has settled.
+                viewPager.removeCallbacks(applyScopeRunnable);
                 if (position == TIMER_PAGE || position == TRAINER_PAGE) {
                     lastMainTab = position;
-                    viewPager.post(() -> syncStatsToTab());
                 } else if (position == LIST_PAGE || position == GRAPH_PAGE) {
-                    syncStatsToTab(); // does nothing if it already happened
+                    syncStatsToTab(); // only sets what to show; does nothing if already set
+                    viewPager.postDelayed(applyScopeRunnable, 250);
                 }
                 setupPage(position);
                 currentPage = position;
@@ -1147,6 +1163,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
     @Override
     public void onDestroyView() {
+        if (viewPager != null) viewPager.removeCallbacks(applyScopeRunnable);
         if (bgImage != null) {
             Glide.with(this).clear(bgImage);
             bgImage = null;
@@ -1537,14 +1554,6 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                         || !trainerCategory().equals(f.getTrainerCategory()))) {
                     return POSITION_NONE;
                 }
-            }
-            // The times and graph pages are not rebuilt for another puzzle or set: they are
-            // pointed at it in place, which is far quicker.
-            if (object instanceof TimerListFragment) {
-                ((TimerListFragment) object).rescope(statsPuzzle(), statsCategory(), currentMbldNum, currentScramble);
-            }
-            if (object instanceof TimerGraphFragment) {
-                ((TimerGraphFragment) object).rescope(statsPuzzle(), statsCategory());
             }
             return POSITION_UNCHANGED;
         }

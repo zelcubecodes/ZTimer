@@ -446,6 +446,7 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
         if (live) stopStatsSource();
         currentPuzzle = puzzle;
         currentPuzzleSubtype = category;
+        initialZoomApplied = false; // zoom to the new data
         Bundle args = getArguments();
         if (args != null) {
             args.putString(PUZZLE, puzzle);
