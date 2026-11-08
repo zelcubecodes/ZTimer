@@ -70,10 +70,9 @@ public final class CsPuzzles {
     private static final String[] GROUP_TEXT = {"#5599FF", "#7A52C7", "#B38F00", "#3C9A3C", "#D9731A", "#C2509A"};
 
     private static final List<Entry> ALL;
-    private static final List<Entry> VARIANTS;
     private static final java.util.Map<String, Entry> BY_TYPE = new java.util.HashMap<>();
 
-    /** One more csTimer scramble type, shown in the "More" tab under csTimer's own group name. */
+    /** One more csTimer scramble type that is not listed in a tab. */
     private static void v(List<Entry> list, String section, String csType, String name, String shortName,
                           String label, int length, boolean hasImage, int color) {
         list.add(new Entry(csType, name, label, length, hasImage, color, null, section, shortName));
@@ -103,12 +102,20 @@ public final class CsPuzzles {
         list.add(new Entry("dinoo", "Dino Cube", "Dino", 0, true, SHAPE, "ic_cs_dino"));
         list.add(new Entry("crz3a", "Crazy 3x3", "Crazy", 30, true, SHAPE, "ic_cs_crazy"));
         list.add(new Entry("ivy", "Ivy Cube", "Ivy", 10, false, SHAPE, "ic_cs_ivy"));
+        // More csTimer scramble types that belong in this tab (drawn as a coloured label)
+        list.add(new Entry("helicv", "Curvy Copter", "Curvy", 40, true, SHAPE, null));
+        list.add(new Entry("heli2x2g", "2x2 Heli", "2x2", 5, true, SHAPE, null));
+        list.add(new Entry("r3", "Lots of 3x3s", "3x3s", 5, true, BIG, null));
+        list.add(new Entry("r234", "234 relay", "234", 0, true, BIG, null));
+        list.add(new Entry("r2345", "2345 relay", "2345", 0, true, BIG, null));
+        list.add(new Entry("r23456", "23456 relay", "23456", 0, true, BIG, null));
+        list.add(new Entry("r234567", "234567 relay", "2-7", 0, true, BIG, null));
+        list.add(new Entry("rmngf", "Mini Guildford", "Guild", 0, true, BIG, null));
         ALL = Collections.unmodifiableList(list);
 
         // The rest of csTimer's scramble types (its 3x3x3 subsets, relays, the variants of every
         // puzzle, ...), in the groups csTimer's own menu uses. The 3x3x3 training sets are in the
         // Trainer instead.
-        List<Entry> more = new ArrayList<>();
         // Not listed in the "More" tab (they are in the Trainer, or were dropped), but still known so
         // that solves saved with them keep their name and picture.
         List<Entry> hidden = new ArrayList<>();
@@ -125,34 +132,34 @@ public final class CsPuzzles {
         v(hidden, "3x3x3 subsets", "half", "3x3x3 Half turns", "Half turns", "HT", 0, true, CUBE);
         v(hidden, "3x3x3 subsets", "lsll", "3x3x3 LSLL (old)", "LSLL (old)", "LSLL", 15, true, CUBE);
         v(hidden, "2x2x2", "222o", "2x2x2 Optimal", "Optimal", "Opt", 0, true, CUBE);
-        v(more, "2x2x2", "2223", "2x2x2 3-gen", "3-gen", "3gen", 25, true, CUBE);
-        v(more, "2x2x2", "222eg", "2x2x2 EG", "EG", "EG", 0, true, CUBE);
-        v(more, "2x2x2", "222eg0", "2x2x2 CLL", "CLL", "CLL", 0, true, CUBE);
-        v(more, "2x2x2", "222eg1", "2x2x2 EG1", "EG1", "EG1", 0, true, CUBE);
-        v(more, "2x2x2", "222eg2", "2x2x2 EG2", "EG2", "EG2", 0, true, CUBE);
-        v(more, "2x2x2", "222tcp", "2x2x2 TCLL+", "TCLL+", "TCL+", 0, true, CUBE);
-        v(more, "2x2x2", "222tcn", "2x2x2 TCLL-", "TCLL-", "TCL-", 0, true, CUBE);
-        v(more, "2x2x2", "222tc", "2x2x2 TCLL", "TCLL", "TCLL", 0, true, CUBE);
-        v(more, "2x2x2", "222lsall", "2x2x2 LS", "LS", "LS", 0, true, CUBE);
-        v(more, "2x2x2", "222nb", "2x2x2 No bar", "No bar", "NoB", 0, true, CUBE);
-        v(more, "2x2x2", "222easy", "2x2x2 Easy", "Easy", "Easy", 4, true, CUBE);
+        v(hidden, "2x2x2", "2223", "2x2x2 3-gen", "3-gen", "3gen", 25, true, CUBE);
+        v(hidden, "2x2x2", "222eg", "2x2x2 EG", "EG", "EG", 0, true, CUBE);
+        v(hidden, "2x2x2", "222eg0", "2x2x2 CLL", "CLL", "CLL", 0, true, CUBE);
+        v(hidden, "2x2x2", "222eg1", "2x2x2 EG1", "EG1", "EG1", 0, true, CUBE);
+        v(hidden, "2x2x2", "222eg2", "2x2x2 EG2", "EG2", "EG2", 0, true, CUBE);
+        v(hidden, "2x2x2", "222tcp", "2x2x2 TCLL+", "TCLL+", "TCL+", 0, true, CUBE);
+        v(hidden, "2x2x2", "222tcn", "2x2x2 TCLL-", "TCLL-", "TCL-", 0, true, CUBE);
+        v(hidden, "2x2x2", "222tc", "2x2x2 TCLL", "TCLL", "TCLL", 0, true, CUBE);
+        v(hidden, "2x2x2", "222lsall", "2x2x2 LS", "LS", "LS", 0, true, CUBE);
+        v(hidden, "2x2x2", "222nb", "2x2x2 No bar", "No bar", "NoB", 0, true, CUBE);
+        v(hidden, "2x2x2", "222easy", "2x2x2 Easy", "Easy", "Easy", 4, true, CUBE);
         v(hidden, "4x4x4", "444m", "4x4x4 Random move", "Random move", "Move", 40, true, BIG);
         v(hidden, "4x4x4", "444", "4x4x4 SiGN", "SiGN", "SiGN", 40, true, BIG);
         v(hidden, "4x4x4", "444yj", "4x4x4 YJ", "YJ", "YJ", 40, true, BIG);
         v(hidden, "4x4x4", "4edge", "4x4x4 Edges", "Edges", "Edge", 0, true, BIG);
-        v(more, "4x4x4", "RrUu", "4x4x4 R,r,U,u", "R,r,U,u", "Rr", 40, true, BIG);
-        v(more, "4x4x4", "444ll", "4x4x4 Last layer", "Last layer", "LL", 0, true, BIG);
-        v(more, "4x4x4", "444ell", "4x4x4 ELL", "ELL", "ELL", 0, true, BIG);
-        v(more, "4x4x4", "444edo", "4x4x4 Edges only", "Edges only", "Edge", 0, true, BIG);
+        v(hidden, "4x4x4", "RrUu", "4x4x4 R,r,U,u", "R,r,U,u", "Rr", 40, true, BIG);
+        v(hidden, "4x4x4", "444ll", "4x4x4 Last layer", "Last layer", "LL", 0, true, BIG);
+        v(hidden, "4x4x4", "444ell", "4x4x4 ELL", "ELL", "ELL", 0, true, BIG);
+        v(hidden, "4x4x4", "444edo", "4x4x4 Edges only", "Edges only", "Edge", 0, true, BIG);
         v(hidden, "4x4x4", "444cto", "4x4x4 Centers only", "Centers only", "Cntr", 0, true, BIG);
-        v(more, "4x4x4 Yau/Hoya", "444ctud", "4x4x4 UD centers", "UD centers", "UDc", 0, true, BIG);
-        v(more, "4x4x4 Yau/Hoya", "444ud3c", "4x4x4 UD + 3 edges", "UD + 3 edges", "UD3", 0, true, BIG);
-        v(more, "4x4x4 Yau/Hoya", "444l8e", "4x4x4 Last 8 edges", "Last 8 edges", "L8E", 0, true, BIG);
-        v(more, "4x4x4 Yau/Hoya", "444ctrl", "4x4x4 RL centers", "RL centers", "RLc", 0, true, BIG);
-        v(more, "4x4x4 Yau/Hoya", "444rlda", "4x4x4 RLDX centers", "RLDX centers", "RLDX", 0, true, BIG);
-        v(more, "4x4x4 Yau/Hoya", "444rlca", "4x4x4 RLDX cross", "RLDX cross", "RLX", 0, true, BIG);
-        v(more, "4x4x4 Yau/Hoya", "444poll", "4x4x4 POLL", "POLL", "POLL", 0, true, BIG);
-        v(more, "4x4x4 Yau/Hoya", "444ppll", "4x4x4 PPLL", "PPLL", "PPLL", 0, true, BIG);
+        v(hidden, "4x4x4 Yau/Hoya", "444ctud", "4x4x4 UD centers", "UD centers", "UDc", 0, true, BIG);
+        v(hidden, "4x4x4 Yau/Hoya", "444ud3c", "4x4x4 UD + 3 edges", "UD + 3 edges", "UD3", 0, true, BIG);
+        v(hidden, "4x4x4 Yau/Hoya", "444l8e", "4x4x4 Last 8 edges", "Last 8 edges", "L8E", 0, true, BIG);
+        v(hidden, "4x4x4 Yau/Hoya", "444ctrl", "4x4x4 RL centers", "RL centers", "RLc", 0, true, BIG);
+        v(hidden, "4x4x4 Yau/Hoya", "444rlda", "4x4x4 RLDX centers", "RLDX centers", "RLDX", 0, true, BIG);
+        v(hidden, "4x4x4 Yau/Hoya", "444rlca", "4x4x4 RLDX cross", "RLDX cross", "RLX", 0, true, BIG);
+        v(hidden, "4x4x4 Yau/Hoya", "444poll", "4x4x4 POLL", "POLL", "POLL", 0, true, BIG);
+        v(hidden, "4x4x4 Yau/Hoya", "444ppll", "4x4x4 PPLL", "PPLL", "PPLL", 0, true, BIG);
         v(hidden, "5x5x5", "555", "5x5x5 SiGN", "SiGN", "SiGN", 60, true, BIG);
         v(hidden, "5x5x5", "5edge", "5x5x5 Edges", "Edges", "Edge", 8, true, BIG);
         v(hidden, "6x6x6", "666si", "6x6x6 SiGN", "SiGN", "SiGN", 80, true, BIG);
@@ -177,27 +184,27 @@ public final class CsPuzzles {
         v(hidden, "Megaminx", "mgmpll", "Megaminx PLL", "PLL", "PLL", 0, true, MINX);
         v(hidden, "Megaminx", "mgmll", "Megaminx Last layer", "Last layer", "LL", 0, true, MINX);
         v(hidden, "Megaminx", "mgms2l", "Megaminx S2L", "S2L", "S2L", 48, true, MINX);
-        v(more, "Pyraminx", "pyro", "Pyraminx Optimal", "Optimal", "Opt", 0, true, MINX);
+        v(hidden, "Pyraminx", "pyro", "Pyraminx Optimal", "Optimal", "Opt", 0, true, MINX);
         v(hidden, "Pyraminx", "pyrm", "Pyraminx Random move", "Random move", "Move", 25, true, MINX);
         v(hidden, "Pyraminx", "pyrl4e", "Pyraminx L4E", "L4E", "L4E", 0, true, MINX);
         v(hidden, "Pyraminx", "pyr4c", "Pyraminx 4 tips", "4 tips", "Tips", 0, true, MINX);
         v(hidden, "Pyraminx", "pyrnb", "Pyraminx No bar", "No bar", "NoB", 0, true, MINX);
-        v(more, "Skewb", "skbo", "Skewb Optimal", "Optimal", "Opt", 0, true, PUZZLE);
+        v(hidden, "Skewb", "skbo", "Skewb Optimal", "Optimal", "Opt", 0, true, PUZZLE);
         v(hidden, "Skewb", "skb", "Skewb Random move", "Random move", "Move", 25, true, PUZZLE);
         v(hidden, "Skewb", "skbnb", "Skewb No bar", "No bar", "NoB", 0, true, PUZZLE);
         v(hidden, "Skewb", "skbll", "Skewb Last layer", "Last layer", "LL", 0, true, PUZZLE);
-        v(more, "Square-1", "sqrcsp", "Square-1 CSP", "CSP", "CSP", 0, true, SQUARE);
-        v(more, "Square-1", "sq1pll", "Square-1 PLL", "PLL", "PLL", 0, true, SQUARE);
-        v(more, "Square-1", "sq1h", "Square-1 Face turn", "Face turn", "Face", 40, true, SQUARE);
-        v(more, "Square-1", "sq1t", "Square-1 Twist", "Twist", "Twist", 20, true, SQUARE);
+        v(hidden, "Square-1", "sqrcsp", "Square-1 CSP", "CSP", "CSP", 0, true, SQUARE);
+        v(hidden, "Square-1", "sq1pll", "Square-1 PLL", "PLL", "PLL", 0, true, SQUARE);
+        v(hidden, "Square-1", "sq1h", "Square-1 Face turn", "Face turn", "Face", 40, true, SQUARE);
+        v(hidden, "Square-1", "sq1t", "Square-1 Twist", "Twist", "Twist", 20, true, SQUARE);
         v(hidden, "FTO", "fto", "FTO Random move", "Random move", "Move", 30, true, SHAPE);
-        v(more, "FTO", "ftol3t", "FTO L3T", "L3T", "L3T", 0, true, SHAPE);
-        v(more, "FTO", "ftol4t", "FTO L3T + LBT", "L3T + LBT", "L4T", 0, true, SHAPE);
-        v(more, "FTO", "ftotcp", "FTO TCP", "TCP", "TCP", 0, true, SHAPE);
-        v(more, "FTO", "ftoedge", "FTO Edges only", "Edges only", "Edge", 0, true, SHAPE);
-        v(more, "FTO", "ftocent", "FTO Centers only", "Centers only", "Cntr", 0, true, SHAPE);
-        v(more, "FTO", "ftocorn", "FTO Corners only", "Corners only", "Crnr", 0, true, SHAPE);
-        v(more, "FTO", "dmdso", "FTO Diamond", "Diamond", "Dmd", 0, true, SHAPE);
+        v(hidden, "FTO", "ftol3t", "FTO L3T", "L3T", "L3T", 0, true, SHAPE);
+        v(hidden, "FTO", "ftol4t", "FTO L3T + LBT", "L3T + LBT", "L4T", 0, true, SHAPE);
+        v(hidden, "FTO", "ftotcp", "FTO TCP", "TCP", "TCP", 0, true, SHAPE);
+        v(hidden, "FTO", "ftoedge", "FTO Edges only", "Edges only", "Edge", 0, true, SHAPE);
+        v(hidden, "FTO", "ftocent", "FTO Centers only", "Centers only", "Cntr", 0, true, SHAPE);
+        v(hidden, "FTO", "ftocorn", "FTO Corners only", "Corners only", "Crnr", 0, true, SHAPE);
+        v(hidden, "FTO", "dmdso", "FTO Diamond", "Diamond", "Dmd", 0, true, SHAPE);
         v(hidden, "15 puzzle", "15prap", "15 Puzzle State ^<>v", "State ^<>v", "^<>v", 0, true, PUZZLE);
         v(hidden, "15 puzzle", "15prmp", "15 Puzzle State blank", "State blank", "Blank", 0, true, PUZZLE);
         v(hidden, "15 puzzle", "15p", "15 Puzzle Move URLD", "Move URLD", "URLD", 80, true, PUZZLE);
@@ -205,17 +212,15 @@ public final class CsPuzzles {
         v(hidden, "15 puzzle", "15pm", "15 Puzzle Move blank", "Move blank", "Blank", 80, true, PUZZLE);
         v(hidden, "8 puzzle", "8prap", "8 Puzzle State ^<>v", "State ^<>v", "^<>v", 0, true, PUZZLE);
         v(hidden, "8 puzzle", "8prmp", "8 Puzzle State blank", "State blank", "Blank", 0, true, PUZZLE);
-        v(more, "LxMxN", "335", "3x3x5", "3x3x5", "335", 25, false, SHAPE);
-        v(more, "LxMxN", "336", "3x3x6", "3x3x6", "336", 40, false, SHAPE);
-        v(more, "LxMxN", "337", "3x3x7", "3x3x7", "337", 40, false, SHAPE);
+        v(hidden, "LxMxN", "335", "3x3x5", "3x3x5", "335", 25, false, SHAPE);
+        v(hidden, "LxMxN", "336", "3x3x6", "3x3x6", "336", 40, false, SHAPE);
+        v(hidden, "LxMxN", "337", "3x3x7", "3x3x7", "337", 40, false, SHAPE);
         v(hidden, "Gear Cube", "gearso", "Gear Cube Random state", "Random state", "State", 0, true, SHAPE);
         v(hidden, "Gear Cube", "gearo", "Gear Cube Optimal", "Optimal", "Opt", 0, true, SHAPE);
         v(hidden, "Kilominx", "klmso", "Kilominx Random state", "Random state", "State", 0, true, MINX);
         v(hidden, "Cmetrick", "cm3", "Cmetrick", "Cmetrick", "Cm", 25, false, SHAPE);
         v(hidden, "Cmetrick", "cm2", "Cmetrick Mini", "Cmetrick Mini", "Mini", 25, false, SHAPE);
-        v(more, "Helicopter Cube", "helicv", "Curvy copter", "Curvy copter", "Curvy", 40, true, SHAPE);
         v(hidden, "Helicopter Cube", "heli2x2", "2x2 Heli", "2x2 Heli", "2x2", 70, true, SHAPE);
-        v(more, "Helicopter Cube", "heli2x2g", "2x2 Heli group", "2x2 Heli group", "2x2g", 5, true, SHAPE);
         v(hidden, "Redi Cube", "rediso", "Redi Cube Random state", "Random state", "State", 0, true, SHAPE);
         v(hidden, "Redi Cube", "redim", "Redi Cube MoYu", "MoYu", "MoYu", 8, true, SHAPE);
         v(hidden, "Dino Cube", "dinoso", "Dino Cube Random state", "Random state", "State", 0, true, SHAPE);
@@ -233,31 +238,19 @@ public final class CsPuzzles {
         v(hidden, "Other", "ctico", "Icosamate", "Icosamate", "Ico", 60, true, SHAPE);
         v(hidden, "Bandaged", "bic", "Bicube", "Bicube", "Bi", 30, false, SQUARE);
         v(hidden, "Bandaged", "bsq", "Square-1 /,(1,0)", "Square-1 /,(1,0)", "Bsq", 25, false, SQUARE);
-        v(more, "Relays", "r3", "Lots of 3x3x3s", "Lots of 3x3x3s", "3x3s", 5, true, BIG);
-        v(more, "Relays", "r234", "234 relay", "234 relay", "234", 0, true, BIG);
-        v(more, "Relays", "r2345", "2345 relay", "2345 relay", "2345", 0, true, BIG);
-        v(more, "Relays", "r23456", "23456 relay", "23456 relay", "23456", 0, true, BIG);
-        v(more, "Relays", "r234567", "234567 relay", "234567 relay", "2-7", 0, true, BIG);
         v(hidden, "Relays", "r234w", "234 relay (WCA)", "234 relay (WCA)", "234W", 0, true, BIG);
         v(hidden, "Relays", "r2345w", "2345 relay (WCA)", "2345 relay (WCA)", "2345W", 0, true, BIG);
         v(hidden, "Relays", "r23456w", "23456 relay (WCA)", "23456 relay (WCA)", "2-6W", 0, true, BIG);
         v(hidden, "Relays", "r234567w", "234567 relay (WCA)", "234567 relay (WCA)", "2-7W", 0, true, BIG);
-        v(more, "Relays", "rmngf", "Mini Guildford", "Mini Guildford", "Guild", 0, true, BIG);
         v(hidden, "Jokes", "111", "1x1x1", "1x1x1", "1", 25, false, PUZZLE);
         v(hidden, "Jokes", "-1", "-1x-1x-1", "-1x-1x-1", "-1", 25, false, PUZZLE);
         v(hidden, "Jokes", "112", "1x1x2", "1x1x2", "112", 25, false, PUZZLE);
         v(hidden, "Jokes", "lol", "LOL", "LOL", "LOL", 25, false, PUZZLE);
         v(hidden, "Jokes", "eide", "Derrick Eide", "Derrick Eide", "Eide", 25, false, PUZZLE);
-        VARIANTS = Collections.unmodifiableList(more);
         for (Entry e : ALL) BY_TYPE.put(e.type, e);
-        for (Entry e : VARIANTS) BY_TYPE.put(e.type, e);
         for (Entry e : hidden) BY_TYPE.put(e.type, e);
     }
 
-    /** Every other csTimer scramble type, grouped in csTimer's order (see {@link Entry#section}). */
-    public static List<Entry> variants() {
-        return VARIANTS;
-    }
 
     /** Every extra puzzle, in the order the popup shows them. */
     public static List<Entry> all() {
