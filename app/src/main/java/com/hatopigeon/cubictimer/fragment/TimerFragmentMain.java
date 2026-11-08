@@ -989,7 +989,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                 // settled), so there is nothing left to rebuild when the stats pages open.
                 if (position == TIMER_PAGE || position == TRAINER_PAGE) {
                     lastMainTab = position;
-                    viewPager.postDelayed(() -> syncStatsToTab(), 400);
+                    viewPager.post(() -> syncStatsToTab());
                 } else if (position == LIST_PAGE || position == GRAPH_PAGE) {
                     syncStatsToTab(); // does nothing if it already happened
                 }
@@ -1503,10 +1503,6 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
             if (position == TRAINER_PAGE) {
                 return 100 + trainerSubset.ordinal() + 1000000L * (1 + (trainerCategory().hashCode() & 0xFFFF));
             }
-            if ((position == LIST_PAGE || position == GRAPH_PAGE) && statsSubset != null) {
-                return position + 1000L * (1 + statsSubset.ordinal())
-                        + 100000L * (statsGroup.hashCode() & 0xFFFF);
-            }
             return position;
         }
 
@@ -1519,15 +1515,13 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                     return POSITION_NONE;
                 }
             }
-            if (object instanceof TimerListFragment
-                    && !(statsPuzzle().equals(((TimerListFragment) object).getScopePuzzle())
-                    && statsCategory().equals(((TimerListFragment) object).getScopeCategory()))) {
-                return POSITION_NONE;
+            // The times and graph pages are not rebuilt for another puzzle or set: they are
+            // pointed at it in place, which is far quicker.
+            if (object instanceof TimerListFragment) {
+                ((TimerListFragment) object).rescope(statsPuzzle(), statsCategory(), currentMbldNum, currentScramble);
             }
-            if (object instanceof TimerGraphFragment
-                    && !(statsPuzzle().equals(((TimerGraphFragment) object).getScopePuzzle())
-                    && statsCategory().equals(((TimerGraphFragment) object).getScopeCategory()))) {
-                return POSITION_NONE;
+            if (object instanceof TimerGraphFragment) {
+                ((TimerGraphFragment) object).rescope(statsPuzzle(), statsCategory());
             }
             return POSITION_UNCHANGED;
         }

@@ -412,6 +412,12 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
         // If they are null (i.e., not yet loaded), the progress bar will be displayed until this
         // fragment, as a registered observer, is notified when loading is complete. Post the
         // firing of the event, so that it is received after "onCreateView" returns.
+        startStatsSource();
+        startChartLoader();
+    }
+
+    /** Starts feeding this page the numbers of the puzzle or trainer set it shows. */
+    private void startStatsSource() {
         if (ScopedStatistics.isScoped(currentPuzzle)) {
             // A trainer set: load its own numbers so they never mix with the Timer tab's.
             ScopedStatistics.start(this, currentPuzzle, currentPuzzleSubtype, this);
@@ -419,7 +425,43 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
             onStatisticsUpdated(StatisticsCache.getInstance().getStatistics());
             StatisticsCache.getInstance().registerObserver(this); // Unregistered in "onDestroyView".
         }
+    }
 
+    private void stopStatsSource() {
+        if (ScopedStatistics.isScoped(currentPuzzle)) {
+            ScopedStatistics.stop(this);
+        } else {
+            StatisticsCache.getInstance().unregisterObserver(this);
+        }
+    }
+
+    /**
+     * Shows another puzzle or trainer set without rebuilding the page, which is much quicker than
+     * making a new fragment every time the tab you came from changes.
+     */
+    public void rescope(String puzzle, String category) {
+        if (puzzle == null || category == null) return;
+        if (puzzle.equals(currentPuzzle) && category.equals(currentPuzzleSubtype)) return;
+        boolean live = getView() != null && lineChartView != null && isAdded();
+        if (live) stopStatsSource();
+        currentPuzzle = puzzle;
+        currentPuzzleSubtype = category;
+        Bundle args = getArguments();
+        if (args != null) {
+            args.putString(PUZZLE, puzzle);
+            args.putString(PUZZLE_SUBTYPE, category);
+        }
+        if (!live) return;
+        final YAxis axisLeft = lineChartView.getAxisRight();
+        axisLeft.setValueFormatter(new TimeFormatter(currentPuzzle));
+        boolean whole = currentPuzzle.equals(PuzzleUtils.TYPE_333MBLD) || currentPuzzle.equals(PuzzleUtils.TYPE_333FMC);
+        axisLeft.setGranularityEnabled(whole);
+        if (whole) axisLeft.setGranularity(1f);
+        startStatsSource();
+        startChartLoader();
+    }
+
+    private void startChartLoader() {
         // "restartLoader" ensures that any old loader with the wrong puzzle type/subtype will not
         // be reused. For now, those arguments are just passed via their respective fields to
         // "onCreateLoader".
@@ -462,11 +504,7 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
         if (DEBUG_ME) Log.d(TAG, "onDestroyView()");
         super.onDestroyView();
         mUnbinder.unbind();
-        if (ScopedStatistics.isScoped(currentPuzzle)) {
-            ScopedStatistics.stop(this);
-        } else {
-            StatisticsCache.getInstance().unregisterObserver(this);
-        }
+        stopStatsSource();
     }
 
     /**

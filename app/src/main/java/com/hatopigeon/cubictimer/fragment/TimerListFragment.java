@@ -397,6 +397,12 @@ public class TimerListFragment extends BaseFragment
 
         // If the statistics are already loaded, the update notification will have been missed,
         // so fire that notification now and start observing further updates.
+        startStatsSource();
+
+        return rootView;
+    }
+
+    private void startStatsSource() {
         if (ScopedStatistics.isScoped(currentPuzzle)) {
             // A trainer set: load its own numbers so they never mix with the Timer tab's.
             ScopedStatistics.start(this, currentPuzzle, currentPuzzleCategory, this);
@@ -404,8 +410,37 @@ public class TimerListFragment extends BaseFragment
             onStatisticsUpdated(StatisticsCache.getInstance().getStatistics());
             StatisticsCache.getInstance().registerObserver(this); // Unregistered in "onDestroyView".
         }
+    }
 
-        return rootView;
+    private void stopStatsSource() {
+        if (ScopedStatistics.isScoped(currentPuzzle)) {
+            ScopedStatistics.stop(this);
+        } else {
+            StatisticsCache.getInstance().unregisterObserver(this);
+        }
+    }
+
+    /**
+     * Shows another puzzle or trainer set without rebuilding the page, which is much quicker than
+     * making a new fragment every time the tab you came from changes.
+     */
+    public void rescope(String puzzle, String category, int mbldNum, String scramble) {
+        if (puzzle == null || category == null) return;
+        currentMbldNum = mbldNum;
+        currentScramble = scramble;
+        if (puzzle.equals(currentPuzzle) && category.equals(currentPuzzleCategory)) return;
+        boolean live = getView() != null && recyclerView != null && isAdded();
+        if (live) stopStatsSource();
+        currentPuzzle = puzzle;
+        currentPuzzleCategory = category;
+        Bundle args = getArguments();
+        if (args != null) {
+            args.putString(PUZZLE, puzzle);
+            args.putString(PUZZLE_SUBTYPE, category);
+        }
+        if (!live) return;
+        startStatsSource();
+        reloadList();
     }
 
     @Override
@@ -419,11 +454,7 @@ public class TimerListFragment extends BaseFragment
         if (DEBUG_ME) Log.d(TAG, "onDestroyView()");
         super.onDestroyView();
         mUnbinder.unbind();
-        if (ScopedStatistics.isScoped(currentPuzzle)) {
-            ScopedStatistics.stop(this);
-        } else {
-            StatisticsCache.getInstance().unregisterObserver(this);
-        }
+        stopStatsSource();
         mRecentStatistics = null;
     }
 
