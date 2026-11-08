@@ -41,6 +41,7 @@ public class PuzzleSelectDialog extends DialogFragment {
 
     @BindView(R.id.list) RecyclerView puzzleRecycler;
     @BindView(R.id.puzzle_tabs) com.google.android.material.tabs.TabLayout tabs;
+    @BindView(R.id.puzzle_tabs2) com.google.android.material.tabs.TabLayout tabs2;
 
     /** The tab that was open last time (0 = WCA, 1 = Non-WCA). */
     private static int lastTab = 0;
@@ -93,6 +94,7 @@ public class PuzzleSelectDialog extends DialogFragment {
     private java.util.List<String> trainerTabNames;
     private java.util.List<java.util.List<Item>> trainerTabItems;
     private boolean rebuildingTabs;
+    private int selectedTrainerTab = 0;
 
     private java.util.Set<String> readStarred() {
         return new java.util.HashSet<>(android.preference.PreferenceManager
@@ -143,11 +145,18 @@ public class PuzzleSelectDialog extends DialogFragment {
         }
 
         int selected = Math.max(0, trainerTabNames.indexOf(selectTabName));
+        selectedTrainerTab = selected;
+        // Two rows of tabs, so none of them need scrolling to
+        int firstRow = (trainerTabNames.size() + 1) / 2;
         rebuildingTabs = true;
         tabs.removeAllTabs();
+        tabs2.removeAllTabs();
         for (int i = 0; i < trainerTabNames.size(); i++) {
-            tabs.addTab(tabs.newTab().setText(trainerTabNames.get(i)), i == selected);
+            com.google.android.material.tabs.TabLayout row = i < firstRow ? tabs : tabs2;
+            row.addTab(row.newTab().setText(trainerTabNames.get(i)), i == selected);
         }
+        // Only one tab is selected over both rows
+        if (selected < firstRow) tabs2.selectTab(null); else tabs.selectTab(null);
         rebuildingTabs = false;
         puzzleAdapter.setItems(trainerTabItems.get(selected));
         puzzleRecycler.scrollToPosition(0);
@@ -172,18 +181,11 @@ public class PuzzleSelectDialog extends DialogFragment {
         puzzleAdapter = new PuzzleSelectAdapter(dialogListener, new java.util.ArrayList<Item>());
         puzzleRecycler.setAdapter(puzzleAdapter);
 
-        tabs.setTabMode(com.google.android.material.tabs.TabLayout.MODE_SCROLLABLE);
-        tabs.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
-                if (rebuildingTabs) return;
-                puzzleAdapter.setItems(trainerTabItems.get(tab.getPosition()));
-                puzzleRecycler.scrollToPosition(0);
-            }
-
-            @Override public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
-            @Override public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
-        });
+        tabs.setTabMode(com.google.android.material.tabs.TabLayout.MODE_AUTO);
+        tabs2.setTabMode(com.google.android.material.tabs.TabLayout.MODE_AUTO);
+        tabs2.setVisibility(View.VISIBLE);
+        tabs.addOnTabSelectedListener(trainerTabListener(tabs));
+        tabs2.addOnTabSelectedListener(trainerTabListener(tabs2));
 
         puzzleAdapter.setLongClickListener(item -> {
             String name = item.type.substring(CategorySelectDialog.TRAINER_PREFIX.length());
@@ -196,12 +198,34 @@ public class PuzzleSelectDialog extends DialogFragment {
             android.widget.Toast.makeText(mContext,
                     getString(nowStarred ? R.string.trainer_starred_toast : R.string.trainer_unstarred_toast, name),
                     android.widget.Toast.LENGTH_SHORT).show();
-            int sel = tabs.getSelectedTabPosition();
+            int sel = selectedTrainerTab;
             buildTrainerTabs(sel >= 0 && sel < trainerTabNames.size() ? trainerTabNames.get(sel) : null);
             return true;
         });
 
         buildTrainerTabs(startTab);
+    }
+
+    /** Listens to one of the two rows of trainer tabs; picking a tab in one row clears the other. */
+    private com.google.android.material.tabs.TabLayout.OnTabSelectedListener trainerTabListener(
+            final com.google.android.material.tabs.TabLayout row) {
+        return new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                if (rebuildingTabs) return;
+                int firstRow = (trainerTabNames.size() + 1) / 2;
+                int index = row == tabs ? tab.getPosition() : firstRow + tab.getPosition();
+                selectedTrainerTab = index;
+                rebuildingTabs = true;
+                if (row == tabs) tabs2.selectTab(null); else tabs.selectTab(null);
+                rebuildingTabs = false;
+                puzzleAdapter.setItems(trainerTabItems.get(index));
+                puzzleRecycler.scrollToPosition(0);
+            }
+
+            @Override public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
+            @Override public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) { }
+        };
     }
 
     private int trainerPopupHeight() {
