@@ -101,6 +101,8 @@ public final class TrainerSets {
             case SQPLL: return "sq1pll";
             case FTOTCP: return "ftotcp";
             case FTOL3T: return "ftol3t";
+            case FTOL4T: return "ftol4t";
+            case Y4CTO: return "444cto";
             default:      return null;
         }
     }
@@ -151,11 +153,13 @@ public final class TrainerSets {
             case Y4UD3:
             case Y4L8E:
             case Y4POLL:
-            case Y4PPLL: return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_444;
+            case Y4PPLL:
+            case Y4CTO: return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_444;
             case SQCSP:
             case SQPLL:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_SQUARE1;
             case FTOTCP:
-            case FTOL3T: return "fto";
+            case FTOL3T:
+            case FTOL4T: return "fto";
             default:     return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_333;
         }
     }
@@ -213,6 +217,8 @@ public final class TrainerSets {
             case SQPLL: return "PLL";
             case FTOTCP: return "TCP";
             case FTOL3T: return "L3T";
+            case FTOL4T: return "LBT";
+            case Y4CTO: return "Cntr";
             default:      return subset.name();
         }
     }
@@ -231,7 +237,7 @@ public final class TrainerSets {
             // 3x3x3 Roux
             {TrainerSubset.SBRX, TrainerSubset.CMLL, TrainerSubset.LSE, TrainerSubset.LSEMU},
             // NxNxN edges
-            {TrainerSubset.EDGE4, TrainerSubset.EDGE5, TrainerSubset.EDGE6, TrainerSubset.EDGE7},
+            {TrainerSubset.EDGE5, TrainerSubset.EDGE6, TrainerSubset.EDGE7},
             // Megaminx
             {TrainerSubset.MINX2GEN, TrainerSubset.MLSLL, TrainerSubset.MGMPLL, TrainerSubset.MGMLL,
                     TrainerSubset.MGMS2L},
@@ -243,12 +249,12 @@ public final class TrainerSets {
             {TrainerSubset.X2EG, TrainerSubset.X2CLL, TrainerSubset.X2EG1, TrainerSubset.X2EG2,
                     TrainerSubset.X2LS, TrainerSubset.X2NB},
             // 4x4x4
-            {TrainerSubset.Y4UDC, TrainerSubset.Y4UD3, TrainerSubset.Y4L8E, TrainerSubset.Y4POLL,
-                    TrainerSubset.Y4PPLL},
+            {TrainerSubset.EDGE4, TrainerSubset.Y4CTO, TrainerSubset.Y4UDC, TrainerSubset.Y4UD3,
+                    TrainerSubset.Y4L8E, TrainerSubset.Y4POLL, TrainerSubset.Y4PPLL},
             // Square-1
             {TrainerSubset.SQCSP, TrainerSubset.SQPLL},
             // FTO
-            {TrainerSubset.FTOTCP, TrainerSubset.FTOL3T}};
+            {TrainerSubset.FTOTCP, TrainerSubset.FTOL3T, TrainerSubset.FTOL4T}};
 
     /** The sets of a family, in display order. */
     public static List<TrainerSubset> setsInFamily(int family) {
@@ -423,6 +429,10 @@ public final class TrainerSets {
                 return "FTO TCP";
             case FTOL3T:
                 return "FTO L3T";
+            case FTOL4T:
+                return "FTO L3T+LBT";
+            case Y4CTO:
+                return "4x4 Centers";
             default:
                 return subset.name();
         }

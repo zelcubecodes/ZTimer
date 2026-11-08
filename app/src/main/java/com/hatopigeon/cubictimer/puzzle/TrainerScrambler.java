@@ -69,9 +69,9 @@ public abstract class TrainerScrambler {
         PYRL4E, PYR4C, PYRNB,
         SKBNB, SKBLL,
         X2EG, X2CLL, X2EG1, X2EG2, X2LS, X2NB,
-        Y4UDC, Y4UD3, Y4L8E, Y4POLL, Y4PPLL,
+        Y4UDC, Y4UD3, Y4L8E, Y4POLL, Y4PPLL, Y4CTO,
         SQCSP, SQPLL,
-        FTOTCP, FTOL3T
+        FTOTCP, FTOL3T, FTOL4T
     };
 
     /** A generated practice case. */
