@@ -29,20 +29,23 @@
         app:tabSelectedTextColor="@color/md_blue_A700"
         app:tabTextColor="@color/md_light_primary_text" />
 
-    <!-- Second row of tabs, only used by the trainer popup (it has too many tabs for one row) -->
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/puzzle_tabs2"
+    <!-- Trainer popup tabs: two rows that scroll sideways together (filled in by the dialog) -->
+    <HorizontalScrollView
+        android:id="@+id/trainer_tabs_scroll"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
-        android:background="@android:color/transparent"
-        android:visibility="gone"
-        app:tabGravity="fill"
-        app:tabIndicatorColor="@color/md_blue_A700"
-        app:tabMode="fixed"
-        app:tabSelectedTextColor="@color/md_blue_A700"
-        app:tabTextColor="@color/md_light_primary_text" />
+        android:overScrollMode="never"
+        android:scrollbars="none"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/trainer_tabs_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"
