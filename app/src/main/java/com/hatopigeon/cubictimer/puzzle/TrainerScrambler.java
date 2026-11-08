@@ -71,7 +71,7 @@ public abstract class TrainerScrambler {
         X2EG, X2CLL, X2EG1, X2EG2, X2LS, X2NB,
         Y4UDC, Y4UD3, Y4L8E, Y4POLL, Y4PPLL,
         SQCSP, SQPLL,
-        FTOTCP
+        FTOTCP, FTOL3T
     };
 
     /** A generated practice case. */

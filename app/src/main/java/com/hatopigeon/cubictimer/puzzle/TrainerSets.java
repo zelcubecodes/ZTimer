@@ -100,6 +100,7 @@ public final class TrainerSets {
             case SQCSP: return "sqrcsp";
             case SQPLL: return "sq1pll";
             case FTOTCP: return "ftotcp";
+            case FTOL3T: return "ftol3t";
             default:      return null;
         }
     }
@@ -153,7 +154,8 @@ public final class TrainerSets {
             case Y4PPLL: return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_444;
             case SQCSP:
             case SQPLL:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_SQUARE1;
-            case FTOTCP: return "fto";
+            case FTOTCP:
+            case FTOL3T: return "fto";
             default:     return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_333;
         }
     }
@@ -210,25 +212,22 @@ public final class TrainerSets {
             case SQCSP: return "CSP";
             case SQPLL: return "PLL";
             case FTOTCP: return "TCP";
+            case FTOL3T: return "L3T";
             default:      return subset.name();
         }
     }
 
     /** The groups the sets are sorted into, the same ones csTimer's scramble menu uses. */
-    public static final String[] FAMILIES = {"CFOP", "Roux", "Mehta", "Subsets", "Edges", "Megaminx", "Pyraminx", "Skewb", "2x2x2", "4x4x4", "Square-1", "FTO"};
+    public static final String[] FAMILIES = {"CFOP", "Roux", "Subsets", "Edges", "Megaminx", "Pyraminx", "Skewb", "2x2x2", "4x4x4", "Square-1", "FTO"};
 
     private static final TrainerSubset[][] FAMILY_SETS = {
             // 3x3x3 CFOP
             {TrainerSubset.PLL, TrainerSubset.OLL, TrainerSubset.LSLL2, TrainerSubset.LL,
-                    TrainerSubset.ZBLL, TrainerSubset.ZBLLX2, TrainerSubset.COLL, TrainerSubset.CLL,
-                    TrainerSubset.ELL, TrainerSubset.TWOGLL, TrainerSubset.ZZLL, TrainerSubset.ZBLS,
-                    TrainerSubset.EOLS, TrainerSubset.WVLS, TrainerSubset.VLS, TrainerSubset.F2L,
-                    TrainerSubset.EOLINE, TrainerSubset.EOCROSS, TrainerSubset.EASYC, TrainerSubset.EASYXC},
+                    TrainerSubset.ZBLL, TrainerSubset.COLL, TrainerSubset.ZBLS,
+                    TrainerSubset.WVLS, TrainerSubset.VLS, TrainerSubset.F2L,
+                    TrainerSubset.EASYC, TrainerSubset.EASYXC},
             // 3x3x3 Roux
             {TrainerSubset.SBRX, TrainerSubset.CMLL, TrainerSubset.LSE, TrainerSubset.LSEMU},
-            // 3x3x3 Mehta
-            {TrainerSubset.MT3QB, TrainerSubset.MTEOLE, TrainerSubset.MTTDR, TrainerSubset.MT6CP,
-                    TrainerSubset.MTCDRLL, TrainerSubset.MTL5EP, TrainerSubset.TTLL},
             // 3x3x3 subsets
             {TrainerSubset.TWOGEN, TrainerSubset.TWOGENL, TrainerSubset.ROUXMU, TrainerSubset.THREEGENF,
                     TrainerSubset.THREEGENL, TrainerSubset.RRU},
@@ -250,7 +249,7 @@ public final class TrainerSets {
             // Square-1
             {TrainerSubset.SQCSP, TrainerSubset.SQPLL},
             // FTO
-            {TrainerSubset.FTOTCP}};
+            {TrainerSubset.FTOTCP, TrainerSubset.FTOL3T}};
 
     /** The sets of a family, in display order. */
     public static List<TrainerSubset> setsInFamily(int family) {
@@ -423,6 +422,8 @@ public final class TrainerSets {
                 return "Sq-1 PLL";
             case FTOTCP:
                 return "FTO TCP";
+            case FTOL3T:
+                return "FTO L3T";
             default:
                 return subset.name();
         }
