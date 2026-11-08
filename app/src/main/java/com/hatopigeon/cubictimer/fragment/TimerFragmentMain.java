@@ -297,8 +297,11 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                 int split = rest.indexOf(':');
                 try {
                     if (split > 0) {
-                        setStatsSubset(TrainerScrambler.TrainerSubset.valueOf(rest.substring(0, split)),
-                                rest.substring(split + 1));
+                        TrainerScrambler.TrainerSubset picked =
+                                TrainerScrambler.TrainerSubset.valueOf(rest.substring(0, split));
+                        setStatsSubset(picked, rest.substring(split + 1));
+                        // The Trainer tab follows the set picked here
+                        setTrainerSubset(picked);
                     }
                 } catch (IllegalArgumentException ignored) {
                 }
@@ -679,6 +682,20 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         viewPager.postDelayed(() -> { pendingTrainerScramble = null; pendingTrainerGroup = null; }, 3000);
     }
 
+    /**
+     * "Use this scramble" on a Timer solve: puts the scramble in the Timer tab and goes there,
+     * the same way a trainer solve goes back to the Trainer tab.
+     */
+    public void retrySolveInTimer(final com.hatopigeon.cubictimer.items.Solve solve) {
+        if (viewPager == null) return;
+        // Go to the Timer tab first so its timer is the one that reacts to the scramble
+        viewPager.setCurrentItem(TIMER_PAGE, true);
+        viewPager.postDelayed(() -> new com.hatopigeon.cubictimer.utils.TTIntent.BroadcastBuilder(
+                CATEGORY_UI_INTERACTIONS, com.hatopigeon.cubictimer.utils.TTIntent.ACTION_SET_SCRAMBLE)
+                .solve(solve)
+                .broadcast(), 350);
+    }
+
     /** The scramble and group of a retried trainer solve ({scramble, group}), once, or null. */
     public String[] takePendingTrainerRetry() {
         if (pendingTrainerScramble == null) return null;
@@ -907,6 +924,16 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
 
             @Override
             public void onPageSelected(int position) {
+                // The times and graph pages show whatever the tab they were opened from is on:
+                // the Timer tab's puzzle, or the Trainer tab's set
+                if (position == LIST_PAGE || position == GRAPH_PAGE) {
+                    if (currentPage == TIMER_PAGE) {
+                        setStatsSubset(null, null);
+                    } else if (currentPage == TRAINER_PAGE) {
+                        setStatsSubset(trainerSubset, trainerSubset == statsSubset
+                                ? statsGroup : com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL);
+                    }
+                }
                 setupPage(position);
                 currentPage = position;
             }
