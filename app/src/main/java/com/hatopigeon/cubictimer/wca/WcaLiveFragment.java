@@ -209,16 +209,29 @@ public class WcaLiveFragment extends Fragment {
     public void setUserVisibleHint(boolean visible) {
         super.setUserVisibleHint(visible);
         if (listPage == null) return;
+        handler.removeCallbacks(shownRunnable);
         if (visible) {
-            onShown();
+            // Wait for the swipe to finish so loading and drawing do not make it stutter
+            handler.postDelayed(shownRunnable, 250);
         } else {
             handler.removeCallbacks(autoRunnable);
         }
         updateBack();
     }
 
+    private final Runnable shownRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isAdded() && listPage != null && getUserVisibleHint()) {
+                onShown();
+                updateBack();
+            }
+        }
+    };
+
     @Override
     public void onDestroyView() {
+        handler.removeCallbacks(shownRunnable);
         handler.removeCallbacks(autoRunnable);
         super.onDestroyView();
     }

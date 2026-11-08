@@ -175,11 +175,25 @@ public class WcaResultsFragment extends Fragment {
     @Override
     public void setUserVisibleHint(boolean isVisibleToUser) {
         super.setUserVisibleHint(isVisibleToUser);
+        uiHandler.removeCallbacks(shownRunnable);
         if (isVisibleToUser && input != null) {
-            renderPinned();
-            checkPendingPerson();
+            // Wait for the swipe to finish so redrawing does not make it stutter
+            uiHandler.postDelayed(shownRunnable, 250);
         }
     }
+
+    private final Runnable shownRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isAdded() && input != null && getUserVisibleHint()) {
+                renderPinned();
+                checkPendingPerson();
+            }
+        }
+    };
+
+    /** What the starred row shows now, so it is only redrawn when it changes. */
+    private String pinnedShown = null;
 
     @Override
     public void onResume() {
@@ -201,8 +215,13 @@ public class WcaResultsFragment extends Fragment {
     }
 
     private void renderPinned() {
-        pinnedRow.removeAllViews();
         List<String[]> pinned = store.getPinned();
+        StringBuilder sig = new StringBuilder();
+        for (String[] p : pinned) sig.append(p[0]).append('|').append(p[1]).append(';');
+        String signature = sig.toString();
+        if (signature.equals(pinnedShown) && pinnedRow.getChildCount() > 0) return;
+        pinnedShown = signature;
+        pinnedRow.removeAllViews();
         if (pinned.isEmpty()) {
             pinnedRow.addView(ui.text("None yet", 13, false, 0.6f), ui.lp(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, 4, 0, 0, 0));
