@@ -67,7 +67,11 @@ public abstract class TrainerScrambler {
         EDGE4, EDGE5, EDGE6, EDGE7,
         MINX2GEN, MLSLL, MGMPLL, MGMLL, MGMS2L,
         PYRL4E, PYR4C, PYRNB,
-        SKBNB, SKBLL
+        SKBNB, SKBLL,
+        X2EG, X2CLL, X2EG1, X2EG2, X2LS, X2NB,
+        Y4UDC, Y4UD3, Y4L8E, Y4POLL, Y4PPLL,
+        SQCSP, SQPLL,
+        FTOTCP
     };
 
     /** A generated practice case. */

@@ -86,6 +86,20 @@ public final class TrainerSets {
             case PYRNB:     return "pyrnb";
             case SKBNB:     return "skbnb";
             case SKBLL:     return "skbll";
+            case X2EG: return "222eg";
+            case X2CLL: return "222eg0";
+            case X2EG1: return "222eg1";
+            case X2EG2: return "222eg2";
+            case X2LS: return "222lsall";
+            case X2NB: return "222nb";
+            case Y4UDC: return "444ctud";
+            case Y4UD3: return "444ud3c";
+            case Y4L8E: return "444l8e";
+            case Y4POLL: return "444poll";
+            case Y4PPLL: return "444ppll";
+            case SQCSP: return "sqrcsp";
+            case SQPLL: return "sq1pll";
+            case FTOTCP: return "ftotcp";
             default:      return null;
         }
     }
@@ -126,6 +140,20 @@ public final class TrainerSets {
             case PYRNB:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_PYRA;
             case SKBNB:
             case SKBLL:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_SKEWB;
+            case X2EG:
+            case X2CLL:
+            case X2EG1:
+            case X2LS:
+            case X2NB:
+            case X2EG2:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_222;
+            case Y4UDC:
+            case Y4UD3:
+            case Y4L8E:
+            case Y4POLL:
+            case Y4PPLL: return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_444;
+            case SQCSP:
+            case SQPLL:  return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_SQUARE1;
+            case FTOTCP: return "fto";
             default:     return com.hatopigeon.cubictimer.utils.PuzzleUtils.TYPE_333;
         }
     }
@@ -168,12 +196,26 @@ public final class TrainerSets {
             case PYRNB:     return "NoB";
             case SKBNB:     return "NoB";
             case SKBLL:     return "LL";
+            case X2EG: return "EG";
+            case X2CLL: return "CLL";
+            case X2EG1: return "EG1";
+            case X2EG2: return "EG2";
+            case X2LS: return "LS";
+            case X2NB: return "NoB";
+            case Y4UDC: return "UDc";
+            case Y4UD3: return "UD3";
+            case Y4L8E: return "L8E";
+            case Y4POLL: return "POLL";
+            case Y4PPLL: return "PPLL";
+            case SQCSP: return "CSP";
+            case SQPLL: return "PLL";
+            case FTOTCP: return "TCP";
             default:      return subset.name();
         }
     }
 
     /** The groups the sets are sorted into, the same ones csTimer's scramble menu uses. */
-    public static final String[] FAMILIES = {"CFOP", "Roux", "Mehta", "Subsets", "Edges", "Megaminx", "Pyraminx", "Skewb"};
+    public static final String[] FAMILIES = {"CFOP", "Roux", "Mehta", "Subsets", "Edges", "Megaminx", "Pyraminx", "Skewb", "2x2x2", "4x4x4", "Square-1", "FTO"};
 
     private static final TrainerSubset[][] FAMILY_SETS = {
             // 3x3x3 CFOP
@@ -198,7 +240,17 @@ public final class TrainerSets {
             // Pyraminx
             {TrainerSubset.PYRL4E, TrainerSubset.PYR4C, TrainerSubset.PYRNB},
             // Skewb
-            {TrainerSubset.SKBNB, TrainerSubset.SKBLL}};
+            {TrainerSubset.SKBNB, TrainerSubset.SKBLL},
+            // 2x2x2
+            {TrainerSubset.X2EG, TrainerSubset.X2CLL, TrainerSubset.X2EG1, TrainerSubset.X2EG2,
+                    TrainerSubset.X2LS, TrainerSubset.X2NB},
+            // 4x4x4
+            {TrainerSubset.Y4UDC, TrainerSubset.Y4UD3, TrainerSubset.Y4L8E, TrainerSubset.Y4POLL,
+                    TrainerSubset.Y4PPLL},
+            // Square-1
+            {TrainerSubset.SQCSP, TrainerSubset.SQPLL},
+            // FTO
+            {TrainerSubset.FTOTCP}};
 
     /** The sets of a family, in display order. */
     public static List<TrainerSubset> setsInFamily(int family) {
@@ -343,6 +395,34 @@ public final class TrainerSets {
                 return "Skewb No bar";
             case SKBLL:
                 return "Skewb LL";
+            case X2EG:
+                return "2x2 EG";
+            case X2CLL:
+                return "2x2 CLL";
+            case X2EG1:
+                return "2x2 EG1";
+            case X2EG2:
+                return "2x2 EG2";
+            case X2LS:
+                return "2x2 LS";
+            case X2NB:
+                return "2x2 No bar";
+            case Y4UDC:
+                return "UD centers";
+            case Y4UD3:
+                return "UD + 3 edges";
+            case Y4L8E:
+                return "Last 8 edges";
+            case Y4POLL:
+                return "4x4 POLL";
+            case Y4PPLL:
+                return "4x4 PPLL";
+            case SQCSP:
+                return "Sq-1 CSP";
+            case SQPLL:
+                return "Sq-1 PLL";
+            case FTOTCP:
+                return "FTO TCP";
             default:
                 return subset.name();
         }
