@@ -562,6 +562,24 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         return statsSubset != null ? statsGroup : currentPuzzleCategory;
     }
 
+    /** Refreshes the pager, then points the times and graph pages at what they should show. */
+    private void refreshPages() {
+        viewPagerAdapter.notifyDataSetChanged();
+        applyStatsScope();
+    }
+
+    /** Points the times and graph pages at the current puzzle or trainer set, without rebuilding them. */
+    private void applyStatsScope() {
+        if (!isAdded()) return;
+        for (Fragment f : getChildFragmentManager().getFragments()) {
+            if (f instanceof TimerListFragment) {
+                ((TimerListFragment) f).rescope(statsPuzzle(), statsCategory(), currentMbldNum, currentScramble);
+            } else if (f instanceof TimerGraphFragment) {
+                ((TimerGraphFragment) f).rescope(statsPuzzle(), statsCategory());
+            }
+        }
+    }
+
     /** The last of the Timer and Trainer tabs that was open, or -1. The stats pages follow it. */
     private int lastMainTab = -1;
 
@@ -582,9 +600,14 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         statsSubset = subset;
         statsGroup = group != null ? group : com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL;
         // Rebuilds only the times and graph pages, see NavigationAdapter.getItemPosition.
-        viewPagerAdapter.notifyDataSetChanged();
-        if (statsSubset != null) updateStatsHeader(); else updatePuzzleSpinnerHeaderText();
-        if (viewPager != null) updateStatsModeButton(viewPager.getCurrentItem());
+        refreshPages();
+        // Only touch the top bar while a stats page is showing: on the Timer and Trainer tabs it
+        // belongs to that tab, and the stats header is drawn when the stats pages open.
+        int shown = viewPager != null ? viewPager.getCurrentItem() : currentPage;
+        if (shown == LIST_PAGE || shown == GRAPH_PAGE) {
+            if (statsSubset != null) updateStatsHeader(); else updatePuzzleSpinnerHeaderText();
+        }
+        if (viewPager != null) updateStatsModeButton(shown);
     }
 
     // ---- Trainer categories: separate case selections for one set, chosen from the top bar ----
@@ -619,7 +642,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
                 .putString(PREF_TRAINER_CATEGORY + trainerSubset.name(), category).apply();
         updateTrainerHeader();
         // Rebuilds only the trainer page, see NavigationAdapter.getItemPosition.
-        viewPagerAdapter.notifyDataSetChanged();
+        refreshPages();
     }
 
     /** The category popup of the Trainer page, the same one the Timer has. */
@@ -704,7 +727,7 @@ public class TimerFragmentMain extends BaseFragment implements DialogListenerMes
         updateTrainerHeader();
         updateCasesButton();
         // Rebuilds only the trainer page, see NavigationAdapter.getItemPosition.
-        viewPagerAdapter.notifyDataSetChanged();
+        refreshPages();
     }
 
     /** Asks which trainer set to practise. The sets are sorted into families. */
