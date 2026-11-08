@@ -47,7 +47,6 @@ public class PuzzleSelectDialog extends DialogFragment {
 
     private java.util.List<Item> wcaItems;
     private java.util.List<Item> otherItems;
-    private java.util.List<Item> moreItems;
     private PuzzleSelectAdapter puzzleAdapter;
 
     /** One puzzle in the popup: a name, an icon (a resource or a drawable) and the puzzle type. */
@@ -65,14 +64,6 @@ public class PuzzleSelectDialog extends DialogFragment {
             this.title = title; this.iconRes = 0; this.icon = icon; this.type = type;
         }
 
-        /** A heading that spans the whole row, like csTimer's group names. */
-        static Item header(String title) {
-            return new Item(title, 0, null);
-        }
-
-        boolean isHeader() {
-            return type == null;
-        }
     }
 
     public static PuzzleSelectDialog newInstance() {
@@ -283,39 +274,21 @@ public class PuzzleSelectDialog extends DialogFragment {
         }
         otherItems.add(new Item(getString(R.string.cube_other), R.drawable.ic_other, PuzzleUtils.TYPE_OTHER));
 
-        // The "More" tab: every other csTimer scramble type under csTimer's own group names
-        moreItems = new java.util.ArrayList<>();
-        String lastSection = null;
-        for (CsPuzzles.Entry e : CsPuzzles.variants()) {
-            if (!e.section.equals(lastSection)) {
-                moreItems.add(Item.header(e.section));
-                lastSection = e.section;
-            }
-            moreItems.add(new Item(e.shortName, new LabelIconDrawable(e.label, e.fillColor, e.textColor), e.type));
-        }
 
         // A fixed height, so the popup does not jump in size between the tabs
         puzzleRecycler.getLayoutParams().height = trainerPopupHeight();
 
-        puzzleAdapter = new PuzzleSelectAdapter(dialogListener, tabItems(lastTab));
+        puzzleAdapter = new PuzzleSelectAdapter(dialogListener, lastTab == 0 ? wcaItems : otherItems);
         puzzleRecycler.setAdapter(puzzleAdapter);
         puzzleRecycler.scrollToPosition(0);
-        // Group names take the whole row
-        layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-            @Override
-            public int getSpanSize(int position) {
-                return puzzleAdapter.isHeader(position) ? 3 : 1;
-            }
-        });
 
         tabs.addTab(tabs.newTab().setText(R.string.puzzle_tab_wca), lastTab == 0);
         tabs.addTab(tabs.newTab().setText(R.string.puzzle_tab_non_wca), lastTab == 1);
-        tabs.addTab(tabs.newTab().setText(R.string.puzzle_tab_more), lastTab == 2);
         tabs.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
                 lastTab = tab.getPosition();
-                puzzleAdapter.setItems(tabItems(lastTab));
+                puzzleAdapter.setItems(lastTab == 0 ? wcaItems : otherItems);
                 puzzleRecycler.scrollToPosition(0);
             }
 
@@ -324,10 +297,6 @@ public class PuzzleSelectDialog extends DialogFragment {
         });
 
         return dialogView;
-    }
-
-    private java.util.List<Item> tabItems(int tab) {
-        return tab == 0 ? wcaItems : tab == 1 ? otherItems : moreItems;
     }
 
     @Override
@@ -374,20 +343,10 @@ class PuzzleSelectAdapter extends RecyclerView.Adapter<PuzzleSelectAdapter.CardV
         notifyDataSetChanged();
     }
 
-    boolean isHeader(int position) {
-        return puzzles.get(position).isHeader();
-    }
-
-    @Override
-    public int getItemViewType(int position) {
-        return isHeader(position) ? 1 : 0;
-    }
-
     @NonNull
     @Override
     public CardViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(
-                viewType == 1 ? R.layout.item_puzzle_header : R.layout.item_puzzle_select, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_puzzle_select, parent, false);
         return new CardViewHolder(view);
     }
 
@@ -395,11 +354,6 @@ class PuzzleSelectAdapter extends RecyclerView.Adapter<PuzzleSelectAdapter.CardV
     public void onBindViewHolder(@NonNull CardViewHolder holder, int position) {
         final PuzzleSelectDialog.Item item = puzzles.get(position);
         holder.title.setText(item.title);
-        if (item.isHeader()) {
-            holder.view.setOnClickListener(null);
-            holder.view.setOnLongClickListener(null);
-            return;
-        }
         if (item.icon != null) holder.icon.setImageDrawable(item.icon);
         else holder.icon.setImageResource(item.iconRes);
 
