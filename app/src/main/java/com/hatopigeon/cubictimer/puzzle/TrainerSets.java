@@ -218,19 +218,18 @@ public final class TrainerSets {
     }
 
     /** The groups the sets are sorted into, the same ones csTimer's scramble menu uses. */
-    public static final String[] FAMILIES = {"CFOP", "Roux", "Subsets", "Edges", "Megaminx", "Pyraminx", "Skewb", "2x2x2", "4x4x4", "Square-1", "FTO"};
+    public static final String[] FAMILIES = {"CFOP", "Roux", "Edges", "Megaminx", "Pyraminx", "Skewb", "2x2x2", "4x4x4", "Square-1", "FTO"};
 
     private static final TrainerSubset[][] FAMILY_SETS = {
             // 3x3x3 CFOP
             {TrainerSubset.PLL, TrainerSubset.OLL, TrainerSubset.LSLL2, TrainerSubset.LL,
                     TrainerSubset.ZBLL, TrainerSubset.COLL, TrainerSubset.ZBLS,
                     TrainerSubset.WVLS, TrainerSubset.VLS, TrainerSubset.F2L,
-                    TrainerSubset.EASYC, TrainerSubset.EASYXC},
+                    TrainerSubset.EASYC, TrainerSubset.EASYXC,
+                    TrainerSubset.TWOGEN, TrainerSubset.TWOGENL, TrainerSubset.THREEGENF,
+                    TrainerSubset.THREEGENL, TrainerSubset.RRU},
             // 3x3x3 Roux
             {TrainerSubset.SBRX, TrainerSubset.CMLL, TrainerSubset.LSE, TrainerSubset.LSEMU},
-            // 3x3x3 subsets
-            {TrainerSubset.TWOGEN, TrainerSubset.TWOGENL, TrainerSubset.ROUXMU, TrainerSubset.THREEGENF,
-                    TrainerSubset.THREEGENL, TrainerSubset.RRU},
             // NxNxN edges
             {TrainerSubset.EDGE4, TrainerSubset.EDGE5, TrainerSubset.EDGE6, TrainerSubset.EDGE7},
             // Megaminx
