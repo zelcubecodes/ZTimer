@@ -1,25 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One puzzle / trainer set tile. 12dp corners = the card's 20dp - its 8dp inset. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?selectableItemBackgroundBorderless"
+    android:layout_margin="@dimen/space_1"
+    android:background="@drawable/bg_popup_item"
+    android:clickable="true"
+    android:focusable="true"
     android:gravity="center"
     android:orientation="vertical"
-    android:layout_margin="6dp"
-    android:padding="8dp">
+    android:paddingLeft="@dimen/space_1"
+    android:paddingTop="@dimen/space_3"
+    android:paddingRight="@dimen/space_1"
+    android:paddingBottom="@dimen/space_2">
 
-    <ImageView
-        android:id="@+id/icon"
+    <FrameLayout
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:layout_marginBottom="4dp"
-        app:srcCompat="@drawable/ic_outline_megaminx" />
+        android:layout_marginBottom="@dimen/space_1"
+        android:clipChildren="false">
+
+        <ImageView
+            android:id="@+id/icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:importantForAccessibility="no"
+            app:srcCompat="@drawable/ic_outline_megaminx" />
+
+        <!-- Starred trainer sets -->
+        <ImageView
+            android:id="@+id/star_badge"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="-6dp"
+            android:layout_marginEnd="-8dp"
+            android:importantForAccessibility="no"
+            android:visibility="gone"
+            app:srcCompat="@drawable/ic_wca_star_filled"
+            app:tint="#FFC107" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:ellipsize="end"
         android:gravity="center"
         android:lines="1"
         android:text="Megaminx"

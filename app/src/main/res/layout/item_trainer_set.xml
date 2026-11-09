@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- A trainer set row: the name takes the width, the star sits in a 48dp touch target -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginLeft="8dp"
-    android:layout_marginTop="2dp"
-    android:layout_marginRight="8dp"
-    android:layout_marginBottom="2dp"
+    android:layout_marginLeft="@dimen/space_2"
+    android:layout_marginTop="@dimen/space_1"
+    android:layout_marginRight="@dimen/space_2"
+    android:layout_marginBottom="@dimen/space_1"
     android:descendantFocusability="blocksDescendants"
     android:gravity="center_vertical"
     android:orientation="horizontal">
@@ -16,27 +17,28 @@
         android:id="@+id/item"
         style="@style/BottomPanelListTextStyle"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/touch_target"
         android:layout_weight="1"
         android:background="@drawable/trainer_set_item_background"
         android:clickable="false"
+        android:drawablePadding="@dimen/space_4"
         android:focusable="false"
-        android:drawablePadding="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp"
+        android:gravity="center_vertical"
+        android:paddingTop="0dp"
+        android:paddingBottom="0dp"
         android:textSize="15sp"
         app:drawableLeftCompat="@drawable/ic_play_rounded"
         tools:text="OLL" />
 
     <ImageView
         android:id="@+id/star"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/touch_target"
+        android:layout_height="@dimen/touch_target"
         android:background="?selectableItemBackgroundBorderless"
         android:clickable="true"
         android:contentDescription="@string/trainer_star_description"
         android:focusable="false"
-        android:padding="10dp"
+        android:padding="12dp"
         app:srcCompat="@drawable/ic_wca_star_outline" />
 
 </LinearLayout>
