@@ -189,6 +189,7 @@ public class WcaCompPage {
 
         content = new LinearLayout(ctx);
         content.setOrientation(LinearLayout.VERTICAL);
+        ui.fadeChildrenIn(content); // new content fades in rather than snapping
         root.addView(content, ui.matchWrap(0, 0, 0, 24));
         showTab();
         return root;
@@ -226,7 +227,8 @@ public class WcaCompPage {
 
     private void loadingText(String s) {
         content.removeAllViews();
-        content.addView(ui.text(s, 14, false, 0.85f), ui.matchWrap(4, 8, 4, 8));
+        // A spinner line and placeholder cards, so the page has its shape while it loads
+        content.addView(ui.loadingBlock(s, 3), ui.matchWrap(0, 0, 0, 0));
     }
 
     private void errorBox(String error) {

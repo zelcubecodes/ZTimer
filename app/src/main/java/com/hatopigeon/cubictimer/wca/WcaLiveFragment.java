@@ -513,6 +513,7 @@ public class WcaLiveFragment extends Fragment {
             store.toggleFavoriteComp(c.wcaId, c.name);
             star.setImageDrawable(ui.tinted(store.isFavoriteComp(c.wcaId)
                     ? R.drawable.ic_wca_star_filled : R.drawable.ic_wca_star_outline, 24, ui.safe));
+            ui.pop(star);
             if (filterMode == 2) renderList();
         });
         row.addView(star);
@@ -742,6 +743,7 @@ public class WcaLiveFragment extends Fragment {
             store.toggleFavoriteComp(c.wcaId, c.name);
             star.setImageDrawable(ui.tinted(store.isFavoriteComp(c.wcaId)
                     ? R.drawable.ic_wca_star_filled : R.drawable.ic_wca_star_outline, 24, ui.safe));
+            ui.pop(star);
             if (filterMode == 2) renderList();
         });
         top.addView(star);
@@ -840,7 +842,9 @@ public class WcaLiveFragment extends Fragment {
         card.setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(12));
         card.addView(ui.text("Recent records", 18, true, 0.85f), ui.matchWrap(0, 0, 0, 8));
         if (recordsLoading && records.isEmpty()) {
-            card.addView(ui.text("Loading recent records...", 14, false, 0.8f));
+            TextView loadingLine = ui.status(14);
+            loadingLine.setText("Loading recent records...");
+            card.addView(loadingLine);
         } else if (recordsError != null && records.isEmpty()) {
             card.addView(ui.text(recordsError + ".", 14, false, 0.8f));
         } else if (records.isEmpty()) {
@@ -932,11 +936,13 @@ public class WcaLiveFragment extends Fragment {
             if (currentComp == null) return;
             store.toggleFavoriteComp(currentComp.wcaId, currentComp.name);
             updateDetailStar();
+            ui.pop(detailStar);
         });
         header.addView(detailStar);
         ImageView refresh = ui.iconButton(R.drawable.ic_wca_refresh, 24, ui.text);
         refresh.setContentDescription("Refresh");
         refresh.setOnClickListener(v -> {
+            ui.spinOnce(refresh);
             if (compMode && compPage != null) compPage.reload();
             else fetchResults();
         });
@@ -1575,6 +1581,7 @@ public class WcaLiveFragment extends Fragment {
             boolean now = toggleStar(p, name, key);
             star.setImageDrawable(ui.tinted(now
                     ? R.drawable.ic_wca_star_filled : R.drawable.ic_wca_star_outline, 24, ui.safe));
+            ui.pop(star);
             renderResults();
         });
         head.addView(star);

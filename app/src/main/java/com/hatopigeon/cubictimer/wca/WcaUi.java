@@ -26,6 +26,22 @@ import com.hatopigeon.cubictimer.utils.ThemeUtils;
 
 /** Small helper that builds themed views in code for the WCA screens. */
 public final class WcaUi {
+    // ---- Design tokens, the same ones the original CubicTimer uses (see res/values/dimens.xml)
+    /** Popups and full-width panels. */
+    public static final float R_OUTER = 20;
+    /** Solve boxes and result cards: the same 8dp as the boxes on the Previous Solves page. */
+    public static final float R_CARD = 8;
+    /** Distance between a panel's edge and the things inside it. */
+    public static final float INSET = 8;
+
+    /**
+     * Corner radius for a shape that sits inside another rounded shape: the outer radius minus
+     * the padding between them, so both curves stay concentric (20 - 8 = 12, 12 - 4 = 8).
+     */
+    public static float inner(float outerRadius, float padding) {
+        return Math.max(outerRadius - padding, 2f);
+    }
+
     public final Context ctx;
     public final int text;
     public final int bg;
@@ -36,6 +52,8 @@ public final class WcaUi {
     public final int itemText;
     /** Text/icon colour that is readable on item surfaces even if the theme's own pair is not. */
     public final int safe;
+    /** The blue the original CubicTimer uses for actions and selection. */
+    public final int accent;
 
     public WcaUi(Context c) {
         ctx = c;
@@ -47,6 +65,7 @@ public final class WcaUi {
         itemBg = ThemeUtils.fetchAttrColor(c, R.attr.colorItemListBackground);
         itemText = ThemeUtils.fetchAttrColor(c, R.attr.colorItemListText);
         highlight = ColorUtils.blendARGB(itemBg, itemText, 0.16f);
+        accent = ThemeUtils.fetchAttrColor(c, R.attr.colorItemListTextAction);
         int opaqueBg = ColorUtils.setAlphaComponent(itemBg, 255);
         int opaqueText = ColorUtils.setAlphaComponent(itemText, 255);
         if (ColorUtils.calculateContrast(opaqueText, opaqueBg) >= 3.0) {
@@ -77,21 +96,141 @@ public final class WcaUi {
         return t;
     }
 
+    /** A button / segment. Fully rounded (20dp on a 40dp height), like the original accent buttons. */
     public TextView pill(String s, boolean selected) {
         TextView t = text(s, 14, true, 1f);
         t.setTextColor(safe);
         t.setGravity(Gravity.CENTER);
-        t.setPadding(dp(14), dp(8), dp(14), dp(8));
+        t.setPadding(dp(16), 0, dp(16), 0);
         t.setMinHeight(dp(40));
-        stylePill(t, selected);
+        t.setClickable(true);
+        t.setTag(R.id.wca_pill_selected, selected);
+        applyPill(t, selected);
+        pressable(t);
         return t;
     }
 
-    public void stylePill(TextView t, boolean selected) {
-        GradientDrawable g = rounded(selected ? highlight : itemBg, dp(8));
-        g.setStroke(dp(selected ? 2 : 1), (itemText & 0x00FFFFFF) | (selected ? 0x99000000 : 0x40000000));
+    /** Selected pills get the accent outline and a soft fill; the others a quiet hairline. */
+    private void applyPill(TextView t, boolean selected) {
+        GradientDrawable g = rounded(selected ? highlight : itemBg, dp(20));
+        g.setStroke(dp(1), selected ? accent : ((itemText & 0x00FFFFFF) | 0x40000000));
         t.setBackground(g);
         t.setAlpha(selected ? 1f : 0.85f);
+    }
+
+    public void stylePill(TextView t, boolean selected) {
+        Object before = t.getTag(R.id.wca_pill_selected);
+        applyPill(t, selected);
+        t.setTag(R.id.wca_pill_selected, selected);
+        // Choosing a pill is acknowledged with a small pop; restyling an unchanged one is silent
+        if (before instanceof Boolean && ((Boolean) before) != selected && selected) pop(t);
+    }
+
+    // ---------------------------------------------------------------- feedback animations
+
+    /** Presses shrink the view a little and let it spring back, so taps feel registered. */
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    public void pressable(final View v) {
+        v.setOnTouchListener((view, ev) -> {
+            switch (ev.getActionMasked()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    view.animate().scaleX(0.96f).scaleY(0.96f).setDuration(90).start();
+                    break;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    view.animate().scaleX(1f).scaleY(1f).setDuration(150)
+                            .setInterpolator(new android.view.animation.OvershootInterpolator(2f)).start();
+                    break;
+            }
+            return false;
+        });
+    }
+
+    /** A short spring, for "this just changed" (starred, selected). */
+    public void pop(View v) {
+        v.animate().cancel();
+        v.setScaleX(0.82f);
+        v.setScaleY(0.82f);
+        v.animate().scaleX(1f).scaleY(1f).setDuration(300)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(3f)).start();
+    }
+
+    /** A quick side to side wobble, for "that was not accepted" (an empty search). */
+    public void shake(View v) {
+        v.animate().cancel();
+        android.animation.ObjectAnimator a = android.animation.ObjectAnimator.ofFloat(v, "translationX",
+                0, -dp(8), dp(8), -dp(6), dp(6), -dp(3), 0);
+        a.setDuration(340);
+        a.start();
+    }
+
+    /** Spins an icon while something loads; call with false to settle it again. */
+    public void spin(final View v, boolean on) {
+        Object running = v.getTag(R.id.wca_spin);
+        if (on) {
+            if (running instanceof android.animation.ObjectAnimator) return;
+            android.animation.ObjectAnimator a = android.animation.ObjectAnimator.ofFloat(v, "rotation", 0f, 360f);
+            a.setDuration(800);
+            a.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            a.setInterpolator(new android.view.animation.LinearInterpolator());
+            v.setTag(R.id.wca_spin, a);
+            a.start();
+        } else if (running instanceof android.animation.ObjectAnimator) {
+            ((android.animation.ObjectAnimator) running).cancel();
+            v.setTag(R.id.wca_spin, null);
+            v.animate().rotation(v.getRotation() >= 180 ? 360f : 0f).setDuration(160).withEndAction(() -> v.setRotation(0)).start();
+        }
+    }
+
+    /** Lets children of a container fade in as they are added (and nothing else animates). */
+    public void fadeChildrenIn(android.view.ViewGroup g) {
+        android.animation.LayoutTransition lt = new android.animation.LayoutTransition();
+        lt.disableTransitionType(android.animation.LayoutTransition.DISAPPEARING);
+        lt.disableTransitionType(android.animation.LayoutTransition.CHANGING);
+        lt.disableTransitionType(android.animation.LayoutTransition.CHANGE_APPEARING);
+        lt.disableTransitionType(android.animation.LayoutTransition.CHANGE_DISAPPEARING);
+        lt.setDuration(android.animation.LayoutTransition.APPEARING, 180);
+        lt.setStartDelay(android.animation.LayoutTransition.APPEARING, 0);
+        g.setLayoutTransition(lt);
+    }
+
+    // ---------------------------------------------------------------- loading states
+
+    /** A text view's start spinner, shown for as long as the text says something is loading. */
+    private boolean isLoadingText(CharSequence s) {
+        if (s == null) return false;
+        String x = s.toString();
+        return x.startsWith("Loading") || x.startsWith("Searching") || x.contains("Refreshing");
+    }
+
+    /** One grey placeholder card that gently pulses, standing in for a card that is still loading. */
+    public View skeletonCard(int heightDp) {
+        View v = new View(ctx);
+        v.setBackground(rounded((itemBg & 0x00FFFFFF) | 0x66000000, dp(R_CARD)));
+        v.setMinimumHeight(dp(heightDp));
+        final android.animation.ObjectAnimator pulse = android.animation.ObjectAnimator.ofFloat(v, "alpha", 0.45f, 1f);
+        pulse.setDuration(750);
+        pulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+        pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+        v.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View view) { pulse.start(); }
+            @Override public void onViewDetachedFromWindow(View view) { pulse.cancel(); }
+        });
+        return v;
+    }
+
+    /** What a page shows while its data loads: a spinner line, then placeholder cards. */
+    public LinearLayout loadingBlock(String message, int cards) {
+        LinearLayout box = new LinearLayout(ctx);
+        box.setOrientation(LinearLayout.VERTICAL);
+        TextView line = status(14);
+        line.setText(message);
+        box.addView(line, matchWrap(4, 8, 4, 8));
+        for (int i = 0; i < cards; i++) {
+            box.addView(skeletonCard(i == 0 ? 72 : 56), lp(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, 0, 0, 0, 8));
+        }
+        return box;
     }
 
     /** A solve box: same background and corner radius as the boxes on the Previous Solves page. */
@@ -158,9 +297,23 @@ public final class WcaUi {
         ImageView v = new ImageView(ctx);
         v.setImageDrawable(tinted(resId, sizeDp, color));
         v.setScaleType(ImageView.ScaleType.CENTER);
-        v.setMinimumWidth(dp(44));
-        v.setMinimumHeight(dp(44));
+        v.setMinimumWidth(dp(48));   // 48dp touch target, same token as the rest of the app
+        v.setMinimumHeight(dp(48));
+        android.util.TypedValue tv = new android.util.TypedValue();
+        if (ctx.getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, tv, true)) {
+            v.setBackgroundResource(tv.resourceId);
+        }
+        v.setClickable(true);
+        pressable(v);
         return v;
+    }
+
+    /** One full turn, as the acknowledgement of a tap on a refresh button. */
+    public void spinOnce(View v) {
+        v.animate().cancel();
+        v.setRotation(0f);
+        v.animate().rotationBy(360f).setDuration(600)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
     }
 
     // ---------------------------------------------------------------- profile pictures
@@ -362,17 +515,37 @@ public final class WcaUi {
         t.setBackground(rounded(itemBg, dp(8)));
     }
 
-    /** A status line that only shows (with its background) while it has text. */
+    /** A status line that only shows while it has text, with a spinner while it says it is loading. */
     public TextView status(float sp) {
         final TextView t = text("", sp, false, 0.8f);
         t.setPadding(dp(4), dp(2), dp(4), dp(2));
         t.setVisibility(View.GONE);
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        final SpinnerDrawable spinner = new SpinnerDrawable(safe, dp(2));
+        spinner.setBounds(0, 0, dp(16), dp(16));
+        t.setCompoundDrawablePadding(dp(8));
         t.addTextChangedListener(new android.text.TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void afterTextChanged(android.text.Editable e) {
-                t.setVisibility(e.length() == 0 ? View.GONE : View.VISIBLE);
+                boolean show = e.length() != 0;
+                boolean loading = isLoadingText(e);
+                t.setCompoundDrawablesRelative(loading ? spinner : null, null, null, null);
+                if (loading) spinner.start(); else spinner.stop();
+                if (show && t.getVisibility() != View.VISIBLE) {
+                    t.setVisibility(View.VISIBLE);
+                    t.setAlpha(0f);
+                    t.animate().alpha(0.8f).setDuration(160).start();
+                } else {
+                    t.setVisibility(show ? View.VISIBLE : View.GONE);
+                }
             }
+        });
+        t.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View v) {
+                if (isLoadingText(t.getText())) spinner.start();
+            }
+            @Override public void onViewDetachedFromWindow(View v) { spinner.stop(); }
         });
         return t;
     }
@@ -386,8 +559,9 @@ public final class WcaUi {
         LinearLayout panel = new LinearLayout(ctx);
         panel.setOrientation(LinearLayout.VERTICAL);
         GradientDrawable g = rounded(itemBg, dp(20));
-        g.setStroke(dp(1), (itemText & 0x00FFFFFF) | 0x33000000);
+        g.setStroke(dp(1), 0xB9999999);
         panel.setBackground(g);
+        panel.setPadding(dp(INSET), dp(INSET), dp(INSET), dp(INSET));
         panel.addView(content, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         recolor(panel, text, safe);
@@ -396,6 +570,7 @@ public final class WcaUi {
             d.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             int w = (int) (ctx.getResources().getDisplayMetrics().widthPixels * 0.92f);
             d.getWindow().setLayout(w, ViewGroup.LayoutParams.WRAP_CONTENT);
+            d.getWindow().setWindowAnimations(R.style.PopupWindowAnimation);
         }
         d.setCanceledOnTouchOutside(true);
         return d;
@@ -420,9 +595,10 @@ public final class WcaUi {
         e.setTextColor(safe);
         e.setHintTextColor((itemText & 0x00FFFFFF) | 0x88000000);
         e.setTextSize(16);
-        e.setPadding(dp(16), dp(10), dp(16), dp(10));
+        e.setPadding(dp(20), dp(10), dp(16), dp(10));
         e.setMinHeight(dp(48));
-        e.setBackground(rounded(itemBg, dp(8)));
+        e.setGravity(Gravity.CENTER_VERTICAL);
+        e.setBackground(rounded(itemBg, dp(24)));
         attachClear(e);
         return e;
     }

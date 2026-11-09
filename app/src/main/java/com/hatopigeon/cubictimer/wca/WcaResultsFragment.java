@@ -122,13 +122,14 @@ public class WcaResultsFragment extends Fragment {
         row.addView(input, ui.lp(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0, 0, 8, 0));
         ((LinearLayout.LayoutParams) input.getLayoutParams()).weight = 1f;
         TextView go = ui.pill("Search", true);
+        go.setMinHeight(ui.dp(48)); // as tall as the box next to it
         go.setOnClickListener(v -> search());
         row.addView(go);
         page.addView(row, ui.matchWrap(0, 0, 0, 8));
 
         suggestBox = new LinearLayout(requireContext());
         suggestBox.setOrientation(LinearLayout.VERTICAL);
-        suggestBox.setBackground(ui.rounded(ui.itemBg, ui.dp(8)));
+        suggestBox.setBackground(ui.rounded(ui.itemBg, ui.dp(WcaUi.R_OUTER)));
         suggestBox.setVisibility(View.GONE);
         page.addView(suggestBox, ui.matchWrap(0, 0, 0, 8));
         input.addTextChangedListener(new android.text.TextWatcher() {
@@ -163,6 +164,7 @@ public class WcaResultsFragment extends Fragment {
 
         body = new LinearLayout(requireContext());
         body.setOrientation(LinearLayout.VERTICAL);
+        ui.fadeChildrenIn(body);
         page.addView(body, ui.matchWrap(0, 0, 0, 0));
         footer = ui.status(12);
         page.addView(footer, ui.matchWrap(4, 10, 4, 4));
@@ -471,6 +473,7 @@ public class WcaResultsFragment extends Fragment {
         String q = input.getText().toString().trim();
         if (q.isEmpty()) {
             status.setText("Type a name, WCA ID or competition.");
+            ui.shake(input);
             return;
         }
         if (WCA_ID.matcher(q).matches()) {
@@ -633,12 +636,16 @@ public class WcaResultsFragment extends Fragment {
                 if (store.isFavoritePerson(pinId) != now) store.toggleFavoritePerson(pinId);
                 star.setImageDrawable(ui.tinted(now ? R.drawable.ic_wca_star_filled
                         : R.drawable.ic_wca_star_outline, 24, ui.safe));
+                ui.pop(star);
                 renderPinned();
             });
             actions.addView(star);
             android.widget.ImageView refreshIcon = ui.iconButton(R.drawable.ic_wca_refresh, 24, ui.safe);
             refreshIcon.setContentDescription("Refresh");
-            refreshIcon.setOnClickListener(v -> loadPerson(pinId));
+            refreshIcon.setOnClickListener(v -> {
+                ui.spinOnce(refreshIcon);
+                loadPerson(pinId);
+            });
             actions.addView(refreshIcon);
             top.addView(actions);
             head.addView(top);
@@ -1407,11 +1414,13 @@ public class WcaResultsFragment extends Fragment {
             store.toggleFavoriteComp(cid, name);
             star.setImageDrawable(ui.tinted(store.isFavoriteComp(cid)
                     ? R.drawable.ic_wca_star_filled : R.drawable.ic_wca_star_outline, 24, ui.text));
+            ui.pop(star);
         });
         header.addView(star);
         final WcaCompPage[] holder = new WcaCompPage[1];
         android.widget.ImageView refresh = ui.iconButton(R.drawable.ic_wca_refresh, 24, ui.text);
         refresh.setOnClickListener(v -> {
+            ui.spinOnce(refresh);
             if (holder[0] != null) holder[0].reload();
         });
         header.addView(refresh);
