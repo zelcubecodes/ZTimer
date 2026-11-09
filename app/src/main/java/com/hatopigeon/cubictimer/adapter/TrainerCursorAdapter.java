@@ -315,6 +315,19 @@ public class TrainerCursorAdapter extends RecyclerView.Adapter<RecyclerView.View
         } else {
             holder.cube.setVisibility(View.INVISIBLE);
         }
+        // Sets without a letter picture (ZBLS, EOLS, WVLS, VLS) get csTimer's own drawing of the case
+        if (state == null) {
+            try {
+                String svg = TrainerSets.svgFor(currentSubset, row.name);
+                if (svg != null) {
+                    holder.pllArrows.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                    holder.pllArrows.setImageDrawable(new android.graphics.drawable.PictureDrawable(
+                            com.caverock.androidsvg.SVG.getFromString(svg).renderToPicture()));
+                    holder.pllArrows.setVisibility(View.VISIBLE);
+                }
+            } catch (Exception ignored) {
+            }
+        }
         if (currentSubset == TrainerScrambler.TrainerSubset.PLL) {
             holder.pllArrows.setImageDrawable(AlgUtils.getPllArrow(mContext, row.name));
             holder.pllArrows.setVisibility(View.VISIBLE);
