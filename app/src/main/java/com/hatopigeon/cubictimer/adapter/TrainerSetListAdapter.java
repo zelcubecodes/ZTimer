@@ -191,14 +191,20 @@ public class TrainerSetListAdapter extends BaseAdapter {
         if (set == current) {
             android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
             pill.setColor(0x1F2962FF);
-            pill.setCornerRadius(ThemeUtils.dpToPix(context, 16));
+            pill.setCornerRadius(ThemeUtils.dpToPix(context, 12)); // same as the row ripple: 20 card - 8 inset
             title.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{
                     pill, context.getResources().getDrawable(R.drawable.trainer_set_item_background)}));
         }
         ImageView star = view.findViewById(R.id.star);
         boolean isStarred = readStarred(context).contains(set.name());
         star.setImageResource(isStarred ? R.drawable.ic_wca_star_filled : R.drawable.ic_wca_star_outline);
-        star.setOnClickListener(v -> toggleStar(set));
+        star.setColorFilter(isStarred ? 0xFFFFC107 : ThemeUtils.fetchAttrColor(context, R.attr.colorItemListText));
+        star.setAlpha(isStarred ? 1f : 0.6f);
+        star.setOnClickListener(v -> {
+            // The star springs up first, so you see what you did, then the list reorders
+            v.animate().scaleX(1.4f).scaleY(1.4f).setDuration(110).withEndAction(() ->
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(130).withEndAction(() -> toggleStar(set)).start()).start();
+        });
         return view;
     }
 }
