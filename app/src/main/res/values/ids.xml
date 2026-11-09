@@ -6,4 +6,8 @@
     <!-- Container for the WCA Results / WCA Live child fragments. -->
     <item name="wca_host_content" type="id" />
 
+    <!-- Remembers a pill's selected state / its running spin animation. -->
+    <item name="wca_pill_selected" type="id" />
+    <item name="wca_spin" type="id" />
+
 </resources>

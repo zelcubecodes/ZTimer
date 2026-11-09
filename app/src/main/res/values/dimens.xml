@@ -6,4 +6,19 @@
 
     <!-- Default screen margins, per the Android Design guidelines. -->
 
+
+    <!-- Design tokens. Inner corner radius = outer corner radius - the padding between them,
+         so nested rounded shapes stay concentric: 20 - 8 = 12, 12 - 4 = 8, 8 - 4 = 4. -->
+    <dimen name="corner_outer">20dp</dimen>
+    <dimen name="corner_inner">12dp</dimen>
+    <dimen name="corner_small">8dp</dimen>
+    <dimen name="corner_tiny">4dp</dimen>
+    <dimen name="inset">8dp</dimen>
+    <dimen name="space_1">4dp</dimen>
+    <dimen name="space_2">8dp</dimen>
+    <dimen name="space_3">12dp</dimen>
+    <dimen name="space_4">16dp</dimen>
+    <dimen name="space_6">24dp</dimen>
+    <dimen name="touch_target">48dp</dimen>
+
 </resources>

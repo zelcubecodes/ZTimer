@@ -774,4 +774,11 @@
 
     <style name="DefaultTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
+
+    <!-- Popups scale and fade in, and out a little faster -->
+    <style name="PopupWindowAnimation">
+        <item name="android:windowEnterAnimation">@anim/popup_enter</item>
+        <item name="android:windowExitAnimation">@anim/popup_exit</item>
+    </style>
+
 </resources>
