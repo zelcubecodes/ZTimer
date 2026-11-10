@@ -279,14 +279,16 @@ public final class TrainerSets {
     public static String pictureFor(TrainerSubset subset, String caseName) {
         String type = csType(subset);
         if (type == null || appContext == null) return null;
-        return CsCases.state(appContext, type, caseName);
+        String state = CsCases.state(appContext, type, caseName);
+        // WVLS and VLS are drawn like OLL and PLL, from csTimer's drawing of the case
+        return state != null ? state : CsCases.svgState(appContext, type, caseName);
     }
 
     /** csTimer's picture (SVG) of a case in a set that has no letter picture, or null. */
     public static String svgFor(TrainerSubset subset, String caseName) {
         String type = csType(subset);
         if (type == null || appContext == null) return null;
-        return CsCases.svg(appContext, type, caseName);
+        return CsCases.styledSvg(appContext, type, caseName);
     }
 
     /**
