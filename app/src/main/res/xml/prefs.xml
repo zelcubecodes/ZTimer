@@ -153,6 +153,14 @@
                     android:summary="@string/scrambleEnabledSummary"
                     android:title="@string/scrambleEnabledTitle" />
 
+                <ListPreference
+                    android:defaultValue="w"
+                    android:entries="@array/pref_array_wide_move_notation"
+                    android:entryValues="@array/pk_pref_array_wide_move_notation"
+                    android:key="wide_move_notation"
+                    android:summary="@string/wide_move_notation_summary"
+                    android:title="@string/wide_move_notation_title" />
+
                 <SwitchPreferenceCompat
                     android:defaultValue="@bool/default_showHints"
                     android:dependency="@string/pk_scramble_enabled"
