@@ -179,6 +179,8 @@ public class ScrambleGenerator {
      * @return
      */
     public Drawable generateImageFromScramble(SharedPreferences sp, String scramble) {
+        // The drawers only understand wide moves written "Rw", whichever style is shown
+        scramble = WideMoves.toCanonical(scramble, puzzleType);
         if (isCsPuzzle()) {
             return generateCsImage(scramble);
         }
