@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="wide_move_notation_title">Wide move notation</string>
+    <string name="wide_move_notation_summary">%s. Used by every scramble that has wide moves</string>
+    <string name="wide_move_notation_w">Rw (WCA, with a w)</string>
+    <string name="wide_move_notation_lowercase">r (csTimer, lowercase)</string>
+
+    <string-array name="pref_array_wide_move_notation">
+        <item>@string/wide_move_notation_w</item>
+        <item>@string/wide_move_notation_lowercase</item>
+    </string-array>
+
+    <string-array name="pk_pref_array_wide_move_notation" translatable="false">
+        <item>w</item>
+        <item>lowercase</item>
+    </string-array>
+</resources>
