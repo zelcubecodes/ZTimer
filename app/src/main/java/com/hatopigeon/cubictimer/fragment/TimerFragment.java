@@ -99,7 +99,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -297,29 +296,8 @@ public class TimerFragment extends BaseFragment
     private ArrayList<BluetoothDevice> bleDevices;
     private long bleScanPeriod;
     private boolean isScanning = false;
-    // Devices found during the current scan, keyed by MAC address (kept between scan batches)
-    private final LinkedHashMap<String, ScanResult> bleScanResults = new LinkedHashMap<>();
-    // True when scanning without filters (fallback when no known timer was found)
-    private boolean bleScanUnfiltered = false;
-    private static final long BLE_FALLBACK_DELAY_MS = 6000;
-    private static final int BLE_UNFILTERED_MAX_ITEMS = 12;
-    private final Handler bleFallbackHandler = new Handler(Looper.getMainLooper());
-    private final Runnable bleFallbackRunnable = new Runnable() {
-        @Override
-        public void run() {
-            // Nothing matching the filters was found: scan again without filters,
-            // so adapters that advertise differently can still be selected.
-            if (!isScanning || dialogBleScan == null || !dialogBleScan.isShowing()
-                    || !bleScanResults.isEmpty()) {
-                return;
-            }
-            Log.d(TAG, "BLE Scan : " + "no device found, scanning without filters");
-            stopBleScanInternal();
-            bleScanUnfiltered = true;
-            dialogBleScan.setContent("No timer found yet. Showing all nearby Bluetooth devices, strongest signal first. Pick your adapter.");
-            startBleScanInternal(1000);
-        }
-    };
+    // QiYi manufacturer data seen during scanning, keyed by device address (troubleshooting)
+    private final java.util.HashMap<String, byte[]> bleMfrData = new java.util.HashMap<>();
 
     // definitions for GAN Smart Timer / GAN Halo Timer
     private static final int GAN_MANUFACTURER_ID = 0x4147;
@@ -2937,12 +2915,8 @@ public class TimerFragment extends BaseFragment
             return;
         }
 
-        // Start scanning with known timer filters; fall back to all devices if nothing is found
-        bleScanResults.clear();
-        bleDevices = new ArrayList<>();
-        bleScanUnfiltered = false;
-        startBleScanInternal(1000);
-        bleFallbackHandler.postDelayed(bleFallbackRunnable, BLE_FALLBACK_DELAY_MS);
+        // First, start scanning with short period
+        startBleScanInternal(500);
 
         dialogBleScan = ThemeUtils.roundDialog(mContext, new MaterialDialog.Builder(mContext)
                 .title(getString(R.string.ble_scan_title))
@@ -2985,25 +2959,22 @@ public class TimerFragment extends BaseFragment
                 .setUseHardwareBatchingIfSupported(false)   // The use of hardware batch sometimes results in larger delays
                 .build();
         List<ScanFilter> filters = new ArrayList<>();
-        if (!bleScanUnfiltered) {
-            filters.add(new ScanFilter.Builder()
-                    .setServiceUuid(ParcelUuid.fromString(GANTIMER_TIMER_SERVICE_UUID))
-                    .build());
-            filters.add(new ScanFilter.Builder()
-                    .setManufacturerData(GAN_MANUFACTURER_ID, new byte[]{}, new byte[]{})
-                    .build());
-            filters.add(new ScanFilter.Builder()
-                    .setServiceUuid(ParcelUuid.fromString(QIYI_TIMER_SERVICE_UUID))
-                    .build());
-            filters.add(new ScanFilter.Builder()
-                    .setManufacturerData(QIYI_MANUFACTURER_ID, new byte[]{}, new byte[]{})
-                    .build());
-        }
+        filters.add(new ScanFilter.Builder()
+                .setServiceUuid(ParcelUuid.fromString(GANTIMER_TIMER_SERVICE_UUID))
+                .build());
+        filters.add(new ScanFilter.Builder()
+                .setManufacturerData(GAN_MANUFACTURER_ID, new byte[]{}, new byte[]{})
+                .build());
+        filters.add(new ScanFilter.Builder()
+                .setServiceUuid(ParcelUuid.fromString(QIYI_TIMER_SERVICE_UUID))
+                .build());
+        filters.add(new ScanFilter.Builder()
+                .setManufacturerData(QIYI_MANUFACTURER_ID, new byte[]{}, new byte[]{})
+                .build());
         scanner.startScan(filters, settings, mLeScanCallback);
     }
 
     private void stopBleScanInternal() {
-        bleFallbackHandler.removeCallbacks(bleFallbackRunnable);
         BluetoothLeScannerCompat scanner = BluetoothLeScannerCompat.getScanner();
         scanner.stopScan(mLeScanCallback);
         isScanning = false;
@@ -3021,47 +2992,43 @@ public class TimerFragment extends BaseFragment
             super.onBatchScanResults(results);
             Log.d(TAG, "BLE Scan : " + "onBatchScanResults");
 
-            if (dialogBleScan == null) return;
-
-            // Keep every device seen so far, so devices don't vanish between batches
-            for (ScanResult result : results) {
-                bleScanResults.put(result.getDevice().getAddress(), result);
-            }
-
-            ArrayList<ScanResult> sorted = new ArrayList<>(bleScanResults.values());
-            if (bleScanUnfiltered) {
-                // strongest signal first (the adapter next to the phone is usually the strongest)
-                Collections.sort(sorted, (a, b) -> Integer.compare(b.getRssi(), a.getRssi()));
-                if (sorted.size() > BLE_UNFILTERED_MAX_ITEMS) {
-                    sorted = new ArrayList<>(sorted.subList(0, BLE_UNFILTERED_MAX_ITEMS));
-                }
-            } else {
-                Collections.sort(sorted, (a, b) ->
-                        a.getDevice().getAddress().compareTo(b.getDevice().getAddress()));
-            }
-
             ArrayList<BluetoothDevice> devices = new ArrayList<BluetoothDevice>();
-            ArrayList<CharSequence> items = new ArrayList<CharSequence>();
-            for (ScanResult result : sorted) {
-                BluetoothDevice device = result.getDevice();
-                devices.add(device);
-
-                String name = device.getName();
-                if (name == null && result.getScanRecord() != null) {
-                    name = result.getScanRecord().getDeviceName();
+            for (ScanResult result : results) {
+                devices.add(result.getDevice());
+                if (result.getScanRecord() != null) {
+                    byte[] mfr = result.getScanRecord().getManufacturerSpecificData(QIYI_MANUFACTURER_ID);
+                    if (mfr != null) {
+                        bleMfrData.put(result.getDevice().getAddress(), mfr);
+                    }
                 }
-                String label = (name != null)
-                        ? name + " (" + device.getAddress() + ")"
-                        : device.getAddress();
-                if (bleScanUnfiltered) {
-                    label += "  " + result.getRssi() + " dBm";
-                }
-                items.add(label);
+                //Log.d(TAG, "BLE Scan : Name = " + result.getDevice().getName());
+                //Log.d(TAG, "BLE Scan : Name = " + result.getScanRecord().getDeviceName());
+                //Log.d(TAG, "BLE Scan : Addr = " + result.getDevice().getAddress());
             }
+            Collections.sort(devices, new Comparator<BluetoothDevice>() {
+                @SuppressLint("MissingPermission")
+                @Override
+                public int compare(BluetoothDevice personFirst, BluetoothDevice personSecond) {
+                    return personFirst.getAddress().compareTo(personSecond.getAddress());
+                }});
+
             bleDevices = devices;
 
+            ArrayList<CharSequence> items = new ArrayList<CharSequence>();
+            for (BluetoothDevice device : bleDevices) {
+                if (device.getName() != null)
+                    items.add(device.getName() + " (" + device.getAddress() + ")");
+                else
+                    items.add(device.getAddress());
+            }
             String[] array = items.toArray(new String[items.size()]);
             dialogBleScan.setItems(array);
+
+            // Slow down scanning period after first device found
+            if (bleScanPeriod == 500 && !results.isEmpty()) {
+                stopBleScanInternal();
+                startBleScanInternal(5000);
+            }
         }
 
         @Override
@@ -3097,6 +3064,33 @@ public class TimerFragment extends BaseFragment
         private Cipher qiyiEncryptCipher;
         private int qiyiPreviousState = QIYITIMER_STATE_IDLE;
         private int qiyiRxCount = 0;
+        private String gattSummary = "";
+        private final ArrayList<BluetoothGattCharacteristic> extraNotifyChars = new ArrayList<>();
+
+        private String shortUuid(UUID u) {
+            String str = u.toString();
+            if (str.endsWith("-0000-1000-8000-00805f9b34fb")) return str.substring(4, 8);
+            return str.substring(0, 8);
+        }
+
+        // Temporary troubleshooting dialog: shows what the adapter offers
+        private void showQiyiInfoDialog(final String mac) {
+            final TextView statusView = bleStatusMessage;
+            if (statusView == null) return;
+            byte[] mfr = bleMfrData.get(mac);
+            final String info = "Device: " + mac + "\n"
+                    + "QiYi manufacturer data: " + (mfr != null ? bytesToHex(mfr) : "none") + "\n\n"
+                    + gattSummary;
+            statusView.post(() -> {
+                if (isAdded() && mContext != null) {
+                    ThemeUtils.roundDialog(mContext, new MaterialDialog.Builder(mContext)
+                            .title("QiYi adapter info")
+                            .content(info)
+                            .positiveText("OK")
+                            .show());
+                }
+            });
+        }
 
         // Shows QiYi connection progress on the Bluetooth status line (for troubleshooting)
         private void qiyiDebug(final String text) {
@@ -3154,6 +3148,26 @@ public class TimerFragment extends BaseFragment
             // Return false if a required service has not been discovered.
             BluetoothGattService ganTimerService = gatt.getService(UUID.fromString(GANTIMER_TIMER_SERVICE_UUID));
             BluetoothGattService qiyiTimerService = gatt.getService(UUID.fromString(QIYI_TIMER_SERVICE_UUID));
+
+            // list every service/characteristic the device offers (troubleshooting)
+            StringBuilder sb = new StringBuilder();
+            extraNotifyChars.clear();
+            for (BluetoothGattService svc : gatt.getServices()) {
+                sb.append("Service ").append(shortUuid(svc.getUuid())).append("\n");
+                for (BluetoothGattCharacteristic ch : svc.getCharacteristics()) {
+                    int props = ch.getProperties();
+                    sb.append("  ").append(shortUuid(ch.getUuid()))
+                            .append(" props 0x").append(Integer.toHexString(props)).append("\n");
+                    boolean canNotify = (props & (BluetoothGattCharacteristic.PROPERTY_NOTIFY
+                            | BluetoothGattCharacteristic.PROPERTY_INDICATE)) != 0;
+                    boolean isGenericAttribute = svc.getUuid().toString().startsWith("00001801");
+                    if (canNotify && !isGenericAttribute) {
+                        extraNotifyChars.add(ch);
+                    }
+                }
+            }
+            gattSummary = sb.toString();
+            Log.d(TAG, "GATT layout:\n" + gattSummary);
 
             if (ganTimerService != null) {
                 btMode = BT_MODE_GAN_TIMER;
@@ -3247,9 +3261,30 @@ public class TimerFragment extends BaseFragment
                             onQiyiPacket(value);
                         }
                     });
-            enableNotifications(qiyiReadCharacteristic)
-                    .fail((device, status) -> qiyiDebug("notify failed, status " + status))
-                    .enqueue();
+            int readProps = qiyiReadCharacteristic.getProperties();
+            if ((readProps & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0
+                    && (readProps & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
+                enableIndications(qiyiReadCharacteristic)
+                        .fail((device, status) -> qiyiDebug("indicate failed, status " + status))
+                        .enqueue();
+            } else {
+                enableNotifications(qiyiReadCharacteristic)
+                        .fail((device, status) -> qiyiDebug("notify failed, status " + status))
+                        .enqueue();
+            }
+
+            // also listen to every other characteristic that can send data, to see what the adapter sends
+            for (BluetoothGattCharacteristic ch : extraNotifyChars) {
+                if (ch.getUuid().equals(qiyiReadCharacteristic.getUuid())) continue;
+                final String chId = shortUuid(ch.getUuid());
+                setNotificationCallback(ch).with((device, data) ->
+                        qiyiDebug("char " + chId + " data " + bytesToHex(data.getValue())));
+                if ((ch.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
+                    enableNotifications(ch).enqueue();
+                } else {
+                    enableIndications(ch).enqueue();
+                }
+            }
 
             qiyiRxCount = 0;
             resetQiyiBuffer();
@@ -3257,6 +3292,7 @@ public class TimerFragment extends BaseFragment
             String mac = getBluetoothDevice().getAddress();
             Log.d(TAG, "Qiyi MAC Address = " + mac);
             qiyiDebug("QiYi hello sent, MAC " + mac + ", waiting for data");
+            showQiyiInfoDialog(mac);
             sendQiyiHello(mac, QIYI_HELLO_HEADER_1);
             sendQiyiHello(mac, QIYI_HELLO_HEADER_2);
         }
