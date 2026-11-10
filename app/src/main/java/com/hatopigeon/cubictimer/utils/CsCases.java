@@ -124,6 +124,105 @@ public final class CsCases {
         return index < 0 || array.isNull(index) ? null : array.optString(index, null);
     }
 
+    private static final java.util.regex.Pattern POLYGON =
+            java.util.regex.Pattern.compile("<polygon points=\"([^\"]+)\" fill=\"([^\"]+)\"");
+
+    /**
+     * The picture of a WVLS or VLS case in the same format as the OLL and PLL pictures (the 5x5
+     * grid the Cube view draws), built from csTimer's drawing of the case. Those drawings are the
+     * top face with one row of stickers around it, which is exactly what the Cube view shows.
+     * Null for the other sets or if the drawing is not in that layout.
+     */
+    public static String svgState(Context context, String type, String caseName) {
+        if (!"wvls".equals(type) && !"vls".equals(type)) return null;
+        String svg = svg(context, type, caseName);
+        return svg == null ? null : svgToCubeState(svg);
+    }
+
+    static String svgToCubeState(String svg) {
+        char[] s = new char[25];
+        java.util.Arrays.fill(s, 'X');
+        java.util.regex.Matcher m = POLYGON.matcher(svg);
+        int count = 0;
+        while (m.find()) {
+            String[] points = m.group(1).trim().split("\\s+");
+            double sx = 0, sy = 0;
+            for (String point : points) {
+                String[] xy = point.split(",");
+                sx += Double.parseDouble(xy[0]);
+                sy += Double.parseDouble(xy[1]);
+            }
+            int col = gridIndex(sx / points.length);
+            int row = gridIndex(sy / points.length);
+            if ((row == 0 || row == 4) && (col == 0 || col == 4)) return null;
+            s[5 * row + col] = svgColor(m.group(2));
+            count++;
+        }
+        return count == 21 ? new String(s) : null;
+    }
+
+    /** Which of the 5 columns (or rows) of the picture a coordinate falls in. */
+    private static int gridIndex(double v) {
+        if (v < 30) return 0;
+        if (v < 80) return 1;
+        if (v < 130) return 2;
+        if (v < 180) return 3;
+        return 4;
+    }
+
+    private static char svgColor(String fill) {
+        switch (fill) {
+            case "#ff0": return 'Y';
+            case "#f00": return 'R';
+            case "#00f": return 'B';
+            case "#0d0": return 'G';
+            case "#fff": return 'W';
+            default:     return 'N';
+        }
+    }
+
+    /**
+     * csTimer's 3D picture of a ZBLS or EOLS case, restyled like the other trainer pictures: the
+     * dark rounded background, dark gaps between the stickers and the colours the person chose for
+     * the cube. Returns the SVG unchanged if its colours are not available.
+     */
+    public static String styledSvg(Context context, String type, String caseName) {
+        String svg = svg(context, type, caseName);
+        if (svg == null) return null;
+        try {
+            java.util.regex.Matcher size = java.util.regex.Pattern
+                    .compile("<svg width=\"([\\d.]+)\" height=\"([\\d.]+)\"").matcher(svg);
+            if (!size.find()) return svg;
+            double pad = 6;
+            double w = Double.parseDouble(size.group(1)) + pad * 2;
+            double h = Double.parseDouble(size.group(2)) + pad * 2;
+            String dark = "#2E2E2E";
+            String head = String.format(java.util.Locale.US,
+                    "<svg width=\"%.3f\" height=\"%.3f\" viewBox=\"%.0f %.0f %.3f %.3f\"",
+                    w, h, -pad, -pad, w, h);
+            String rect = String.format(java.util.Locale.US,
+                    "<rect x=\"%.0f\" y=\"%.0f\" width=\"%.3f\" height=\"%.3f\" rx=\"9\" fill=\"%s\"/>",
+                    -pad, -pad, w, h, dark);
+            svg = svg.replaceFirst("<svg width=\"[\\d.]+\" height=\"[\\d.]+\"", java.util.regex.Matcher.quoteReplacement(head));
+            int tagEnd = svg.indexOf('>');
+            svg = svg.substring(0, tagEnd + 1) + rect + svg.substring(tagEnd + 1);
+            svg = svg.replace("stroke=\"#000\"", "stroke=\"" + dark + "\" stroke-width=\"2\" stroke-linejoin=\"round\"");
+            java.util.Map<Character, Integer> colors = com.hatopigeon.cubictimer.utils.AlgUtils.getColorLetterHashMap();
+            svg = svg.replace("fill=\"#ff0\"", "fill=\"" + hex(colors.get('Y')) + "\"");
+            svg = svg.replace("fill=\"#f00\"", "fill=\"" + hex(colors.get('R')) + "\"");
+            svg = svg.replace("fill=\"#00f\"", "fill=\"" + hex(colors.get('B')) + "\"");
+            svg = svg.replace("fill=\"#fff\"", "fill=\"" + hex(colors.get('W')) + "\"");
+            svg = svg.replace("fill=\"#888\"", "fill=\"" + hex(colors.get('N')) + "\"");
+        } catch (Exception e) {
+            Log.e("CSCASES", "Could not restyle picture: " + e);
+        }
+        return svg;
+    }
+
+    private static String hex(int color) {
+        return String.format(java.util.Locale.US, "#%06X", color & 0xFFFFFF);
+    }
+
     /** The group a case belongs to: its name without the trailing number ("H-2" is in "H"). */
     public static String groupOf(String caseName) {
         int dash = caseName.lastIndexOf('-');
