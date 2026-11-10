@@ -2328,7 +2328,9 @@ public class TimerFragment extends BaseFragment
      * Updates everything related to displaying the current scramble
      * Ex. scramble image, box, text, dialogs
      */
-    private void setScramble(final String scramble) {
+    private void setScramble(final String rawScramble) {
+        // Wide moves are shown in the style chosen in the settings ("Rw" or "r")
+        final String scramble = com.hatopigeon.cubictimer.utils.WideMoves.toPreferred(rawScramble, currentPuzzle);
         realScramble = scramble;
 
         if (currentTimerMode.equals(TIMER_MODE_TIMER)) {
