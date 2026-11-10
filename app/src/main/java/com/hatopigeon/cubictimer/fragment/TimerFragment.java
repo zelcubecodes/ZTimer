@@ -99,6 +99,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -296,6 +297,29 @@ public class TimerFragment extends BaseFragment
     private ArrayList<BluetoothDevice> bleDevices;
     private long bleScanPeriod;
     private boolean isScanning = false;
+    // Devices found during the current scan, keyed by MAC address (kept between scan batches)
+    private final LinkedHashMap<String, ScanResult> bleScanResults = new LinkedHashMap<>();
+    // True when scanning without filters (fallback when no known timer was found)
+    private boolean bleScanUnfiltered = false;
+    private static final long BLE_FALLBACK_DELAY_MS = 6000;
+    private static final int BLE_UNFILTERED_MAX_ITEMS = 12;
+    private final Handler bleFallbackHandler = new Handler(Looper.getMainLooper());
+    private final Runnable bleFallbackRunnable = new Runnable() {
+        @Override
+        public void run() {
+            // Nothing matching the filters was found: scan again without filters,
+            // so adapters that advertise differently can still be selected.
+            if (!isScanning || dialogBleScan == null || !dialogBleScan.isShowing()
+                    || !bleScanResults.isEmpty()) {
+                return;
+            }
+            Log.d(TAG, "BLE Scan : " + "no device found, scanning without filters");
+            stopBleScanInternal();
+            bleScanUnfiltered = true;
+            dialogBleScan.setContent("No timer found yet. Showing all nearby Bluetooth devices, strongest signal first. Pick your adapter.");
+            startBleScanInternal(1000);
+        }
+    };
 
     // definitions for GAN Smart Timer / GAN Halo Timer
     private static final int GAN_MANUFACTURER_ID = 0x4147;
@@ -2913,8 +2937,12 @@ public class TimerFragment extends BaseFragment
             return;
         }
 
-        // First, start scanning with short period
-        startBleScanInternal(500);
+        // Start scanning with known timer filters; fall back to all devices if nothing is found
+        bleScanResults.clear();
+        bleDevices = new ArrayList<>();
+        bleScanUnfiltered = false;
+        startBleScanInternal(1000);
+        bleFallbackHandler.postDelayed(bleFallbackRunnable, BLE_FALLBACK_DELAY_MS);
 
         dialogBleScan = ThemeUtils.roundDialog(mContext, new MaterialDialog.Builder(mContext)
                 .title(getString(R.string.ble_scan_title))
@@ -2957,22 +2985,25 @@ public class TimerFragment extends BaseFragment
                 .setUseHardwareBatchingIfSupported(false)   // The use of hardware batch sometimes results in larger delays
                 .build();
         List<ScanFilter> filters = new ArrayList<>();
-        filters.add(new ScanFilter.Builder()
-                .setServiceUuid(ParcelUuid.fromString(GANTIMER_TIMER_SERVICE_UUID))
-                .build());
-        filters.add(new ScanFilter.Builder()
-                .setManufacturerData(GAN_MANUFACTURER_ID, new byte[]{}, new byte[]{})
-                .build());
-        filters.add(new ScanFilter.Builder()
-                .setServiceUuid(ParcelUuid.fromString(QIYI_TIMER_SERVICE_UUID))
-                .build());
-        filters.add(new ScanFilter.Builder()
-                .setManufacturerData(QIYI_MANUFACTURER_ID, new byte[]{}, new byte[]{})
-                .build());
+        if (!bleScanUnfiltered) {
+            filters.add(new ScanFilter.Builder()
+                    .setServiceUuid(ParcelUuid.fromString(GANTIMER_TIMER_SERVICE_UUID))
+                    .build());
+            filters.add(new ScanFilter.Builder()
+                    .setManufacturerData(GAN_MANUFACTURER_ID, new byte[]{}, new byte[]{})
+                    .build());
+            filters.add(new ScanFilter.Builder()
+                    .setServiceUuid(ParcelUuid.fromString(QIYI_TIMER_SERVICE_UUID))
+                    .build());
+            filters.add(new ScanFilter.Builder()
+                    .setManufacturerData(QIYI_MANUFACTURER_ID, new byte[]{}, new byte[]{})
+                    .build());
+        }
         scanner.startScan(filters, settings, mLeScanCallback);
     }
 
     private void stopBleScanInternal() {
+        bleFallbackHandler.removeCallbacks(bleFallbackRunnable);
         BluetoothLeScannerCompat scanner = BluetoothLeScannerCompat.getScanner();
         scanner.stopScan(mLeScanCallback);
         isScanning = false;
@@ -2990,37 +3021,47 @@ public class TimerFragment extends BaseFragment
             super.onBatchScanResults(results);
             Log.d(TAG, "BLE Scan : " + "onBatchScanResults");
 
-            ArrayList<BluetoothDevice> devices = new ArrayList<BluetoothDevice>();
-            for (ScanResult result : results) {
-                devices.add(result.getDevice());
-                //Log.d(TAG, "BLE Scan : Name = " + result.getDevice().getName());
-                //Log.d(TAG, "BLE Scan : Name = " + result.getScanRecord().getDeviceName());
-                //Log.d(TAG, "BLE Scan : Addr = " + result.getDevice().getAddress());
-            }
-            Collections.sort(devices, new Comparator<BluetoothDevice>() {
-                @SuppressLint("MissingPermission")
-                @Override
-                public int compare(BluetoothDevice personFirst, BluetoothDevice personSecond) {
-                    return personFirst.getAddress().compareTo(personSecond.getAddress());
-                }});
+            if (dialogBleScan == null) return;
 
+            // Keep every device seen so far, so devices don't vanish between batches
+            for (ScanResult result : results) {
+                bleScanResults.put(result.getDevice().getAddress(), result);
+            }
+
+            ArrayList<ScanResult> sorted = new ArrayList<>(bleScanResults.values());
+            if (bleScanUnfiltered) {
+                // strongest signal first (the adapter next to the phone is usually the strongest)
+                Collections.sort(sorted, (a, b) -> Integer.compare(b.getRssi(), a.getRssi()));
+                if (sorted.size() > BLE_UNFILTERED_MAX_ITEMS) {
+                    sorted = new ArrayList<>(sorted.subList(0, BLE_UNFILTERED_MAX_ITEMS));
+                }
+            } else {
+                Collections.sort(sorted, (a, b) ->
+                        a.getDevice().getAddress().compareTo(b.getDevice().getAddress()));
+            }
+
+            ArrayList<BluetoothDevice> devices = new ArrayList<BluetoothDevice>();
+            ArrayList<CharSequence> items = new ArrayList<CharSequence>();
+            for (ScanResult result : sorted) {
+                BluetoothDevice device = result.getDevice();
+                devices.add(device);
+
+                String name = device.getName();
+                if (name == null && result.getScanRecord() != null) {
+                    name = result.getScanRecord().getDeviceName();
+                }
+                String label = (name != null)
+                        ? name + " (" + device.getAddress() + ")"
+                        : device.getAddress();
+                if (bleScanUnfiltered) {
+                    label += "  " + result.getRssi() + " dBm";
+                }
+                items.add(label);
+            }
             bleDevices = devices;
 
-            ArrayList<CharSequence> items = new ArrayList<CharSequence>();
-            for (BluetoothDevice device : bleDevices) {
-                if (device.getName() != null)
-                    items.add(device.getName() + " (" + device.getAddress() + ")");
-                else
-                    items.add(device.getAddress());
-            }
             String[] array = items.toArray(new String[items.size()]);
             dialogBleScan.setItems(array);
-
-            // Slow down scanning period after first device found
-            if (bleScanPeriod == 500 && !results.isEmpty()) {
-                stopBleScanInternal();
-                startBleScanInternal(5000);
-            }
         }
 
         @Override
@@ -3055,6 +3096,19 @@ public class TimerFragment extends BaseFragment
         private Cipher qiyiDecryptCipher;
         private Cipher qiyiEncryptCipher;
         private int qiyiPreviousState = QIYITIMER_STATE_IDLE;
+        private int qiyiRxCount = 0;
+
+        // Shows QiYi connection progress on the Bluetooth status line (for troubleshooting)
+        private void qiyiDebug(final String text) {
+            final TextView statusView = bleStatusMessage;
+            if (statusView == null) return;
+            statusView.post(() -> {
+                if (bleStatusMessage != null) {
+                    bleStatusMessage.setText(getString(R.string.timer_ble_status_message)
+                            + getString(R.string.timer_ble_status_connect_message) + " | " + text);
+                }
+            });
+        }
 
         private static final byte[] QIYI_HELLO_HEADER_1 = new byte[] {
                 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -3193,10 +3247,16 @@ public class TimerFragment extends BaseFragment
                             onQiyiPacket(value);
                         }
                     });
-            enableNotifications(qiyiReadCharacteristic).enqueue();
+            enableNotifications(qiyiReadCharacteristic)
+                    .fail((device, status) -> qiyiDebug("notify failed, status " + status))
+                    .enqueue();
+
+            qiyiRxCount = 0;
+            resetQiyiBuffer();
 
             String mac = getBluetoothDevice().getAddress();
             Log.d(TAG, "Qiyi MAC Address = " + mac);
+            qiyiDebug("QiYi hello sent, MAC " + mac + ", waiting for data");
             sendQiyiHello(mac, QIYI_HELLO_HEADER_1);
             sendQiyiHello(mac, QIYI_HELLO_HEADER_2);
         }
@@ -3299,7 +3359,9 @@ public class TimerFragment extends BaseFragment
                 byte[] pkt = baosPkt.toByteArray();
                 Log.d(TAG, "Qiyi TX packet" + pktNum + " (" + pkt.length + "): " + bytesToHex(pkt));
 
-                writeCharacteristic(qiyiWriteCharacteristic, pkt, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT).enqueue();
+                writeCharacteristic(qiyiWriteCharacteristic, pkt, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+                        .fail((device, status) -> qiyiDebug("write failed, status " + status))
+                        .enqueue();
 
                 pktNum++;
             }
@@ -3313,11 +3375,15 @@ public class TimerFragment extends BaseFragment
 
             Log.d(TAG, "Qiyi RX packet (" + packet.length + "): " + bytesToHex(packet));
 
+            qiyiRxCount++;
+            qiyiDebug("QiYi rx #" + qiyiRxCount + " (" + packet.length + " bytes)");
+
             int pktNum = packet[0] & 0xFF;
 
             if (pktNum != qiyiNextPktNum) {
                 resetQiyiBuffer();
                 Log.d(TAG, "Qiyi RX packet : packet num error");
+                qiyiDebug("QiYi rx #" + qiyiRxCount + " packet number error");
                 return;
             }
 
@@ -3327,6 +3393,7 @@ public class TimerFragment extends BaseFragment
                 if (qiyiMsgLen <= 0) {
                     resetQiyiBuffer();
                     Log.d(TAG, "Qiyi RX packet : message size error");
+                    qiyiDebug("QiYi rx #" + qiyiRxCount + " message size error");
                     return;
                 }
                 qiyiCipherLen = ((qiyiMsgLen + 15) / 16) * 16;
@@ -3357,6 +3424,7 @@ public class TimerFragment extends BaseFragment
             } catch (GeneralSecurityException e) {
                 resetQiyiBuffer();
                 Log.e(TAG, "Qiyi decrypt error", e);
+                qiyiDebug("QiYi rx #" + qiyiRxCount + " decrypt error");
                 return;
             }
 
@@ -3390,7 +3458,13 @@ public class TimerFragment extends BaseFragment
             }
 
             int cmd = ((msg[8] & 0xFF) << 8) | (msg[9] & 0xFF);
-            if (cmd != 0x1003) return;
+            if (cmd != 0x1003) {
+                qiyiDebug("QiYi rx #" + qiyiRxCount + " cmd 0x" + Integer.toHexString(cmd) + " (ignored)");
+                return;
+            }
+
+            // payload must hold at least dpId, dpType and dpLen
+            if (pldLen < 4) return;
 
             byte[] pld = Arrays.copyOfRange(msg, 12, 12 + pldLen);
 
@@ -3398,6 +3472,8 @@ public class TimerFragment extends BaseFragment
             int dpType = pld[1] & 0xFF;
             int dpLen = ((pld[2] & 0xFF) << 8) | (pld[3] & 0xFF);
             byte[] dp = Arrays.copyOfRange(pld, 4, 4+dpLen);
+
+            qiyiDebug("QiYi rx #" + qiyiRxCount + " dp " + dpId + "/" + dpType + " len " + dpLen);
 
             if (dpId == 1 && dpType == 1) {
                 // finish
