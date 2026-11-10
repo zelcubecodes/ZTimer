@@ -282,13 +282,22 @@ public class TrainerCursorAdapter extends RecyclerView.Adapter<RecyclerView.View
         }
     }
 
+    /**
+     * A fresh copy of a card background. Every view needs its own one: a drawable shared between
+     * views keeps the size of whichever view was drawn last, which squashed the group buttons.
+     */
+    private Drawable background(boolean selected) {
+        Drawable d = selected ? selectedCardBackground : cardBackground;
+        return d.getConstantState().newDrawable().mutate();
+    }
+
     private void bindHeader(HeaderHolder holder, final TrainerSets.Group group) {
         int selected = 0;
         for (String c : group.cases) if (selectedItems.contains(c)) selected++;
         boolean full = selected == group.cases.size();
         holder.title.setText(group.name + "  (" + selected + "/" + group.cases.size() + ")");
         holder.action.setText(full ? R.string.trainer_group_deselect : R.string.trainer_group_select);
-        holder.action.setBackground(full ? selectedCardBackground : cardBackground);
+        holder.action.setBackground(background(full));
         View.OnClickListener toggle = v -> setGroupSelected(group.cases, !isGroupSelected(group.cases));
         holder.action.setOnClickListener(toggle);
         holder.root.setOnClickListener(toggle);
@@ -296,7 +305,7 @@ public class TrainerCursorAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     private void bindCase(final CaseHolder holder, final Row row) {
         holder.name.setText(row.name);
-        holder.card.setBackground(isSelected(row.name) ? selectedCardBackground : cardBackground);
+        holder.card.setBackground(background(isSelected(row.name)));
 
         // Picture: the case itself for OLL and PLL, the matching OLL for corner types, else none.
         String state = null;
@@ -336,7 +345,7 @@ public class TrainerCursorAdapter extends RecyclerView.Adapter<RecyclerView.View
 
         holder.root.setOnClickListener(v -> {
             if (isSelected(row.name)) selectedItems.remove(row.name); else selectedItems.add(row.name);
-            holder.card.setBackground(isSelected(row.name) ? selectedCardBackground : cardBackground);
+            holder.card.setBackground(background(isSelected(row.name)));
             save();
             // Headers show how many cases of their group are chosen.
             notifyDataSetChanged();
