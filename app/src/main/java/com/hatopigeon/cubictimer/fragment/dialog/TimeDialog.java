@@ -99,9 +99,9 @@ public class TimeDialog extends DialogFragment {
                                     Intent shareIntent = new Intent();
                                     shareIntent.setAction(Intent.ACTION_SEND);
                                     if (!PuzzleUtils.isTimeDisabled(solve.getPuzzle())) {
-                                        shareIntent.putExtra(Intent.EXTRA_TEXT, PuzzleUtils.convertTimeToString(solve.getTime(), PuzzleUtils.FORMAT_SINGLE, solve.getPuzzle()) + "s.\n" + solve.getComment() + "\n" + solve.getScramble());
+                                        shareIntent.putExtra(Intent.EXTRA_TEXT, PuzzleUtils.convertTimeToString(solve.getTime(), PuzzleUtils.FORMAT_SINGLE, solve.getPuzzle()) + "s.\n" + solve.getComment() + "\n" + com.hatopigeon.cubictimer.utils.WideMoves.toPreferred(solve.getScramble(), solve.getPuzzle()));
                                     } else {
-                                        shareIntent.putExtra(Intent.EXTRA_TEXT, PuzzleUtils.convertTimeToString(solve.getTime(), PuzzleUtils.FORMAT_SINGLE, solve.getPuzzle()) + ".\n" + solve.getComment() + "\n" + solve.getScramble());
+                                        shareIntent.putExtra(Intent.EXTRA_TEXT, PuzzleUtils.convertTimeToString(solve.getTime(), PuzzleUtils.FORMAT_SINGLE, solve.getPuzzle()) + ".\n" + solve.getComment() + "\n" + com.hatopigeon.cubictimer.utils.WideMoves.toPreferred(solve.getScramble(), solve.getPuzzle()));
                                     }
                                     shareIntent.setType("text/plain");
                                     getContext().startActivity(shareIntent);
@@ -282,7 +282,7 @@ public class TimeDialog extends DialogFragment {
             DateFormat timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT, locale);
             dateText.setText(dateFormat.format(date) + "\n" + timeFormat.format(date));
 
-            scrambleText.setText(solve.getScramble());
+            scrambleText.setText(com.hatopigeon.cubictimer.utils.WideMoves.toPreferred(solve.getScramble(), solve.getPuzzle()));
 
             if (solve.getPenalty() == PuzzleUtils.PENALTY_DNF)
                 penaltyText.setText("DNF");
