@@ -2068,6 +2068,9 @@ public class TimerFragment extends BaseFragment
     public void onDestroyView() {
         if (DEBUG_ME) Log.d(TAG, "onDestroyView()");
         cancelCountdowns();
+        cancelTrainerLoading();
+        stopLoadingLine();
+        stopImagePulse();
         if (trainerCaseAsync != null) trainerCaseAsync.cancel(true);
         if (isTrainerMode() && ScopedStatistics.isScoped(currentPuzzle)) {
             ScopedStatistics.stop(this);
@@ -2133,6 +2136,15 @@ public class TimerFragment extends BaseFragment
      */
     private void generateNewScramble() {
         if (scrambleEnabled && currentTimerMode.equals(TIMER_MODE_TIMER)) {
+            String ready = takePrefetchedScramble();
+            if (ready != null) {
+                // Optimistic: the scramble was made while the last solve was going on, so show it
+                // straight away, with no "generating" state and without locking the timer.
+                scrambleGeneratorAsync.cancel(true);
+                setScramble(ready);
+                prefetchNextScramble();
+                return;
+            }
             scrambleGeneratorAsync.cancel(true);
             scrambleGeneratorAsync = new GenerateScrambleSequence();
             scrambleGeneratorAsync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
@@ -2151,6 +2163,18 @@ public class TimerFragment extends BaseFragment
     /** Builds the next trainer case in the background and shows it. */
     private class GenerateTrainerCase extends AsyncTask<Void, Void, TrainerScrambler.TrainerCase> {
         @Override
+        protected void onPreExecute() {
+            // Only shown if the case takes more than a moment, so quick cases do not flicker
+            cancelTrainerLoading();
+            if (scrambleText == null) return;
+            trainerLoadingRunnable = () -> {
+                showLoadingLine(getString(R.string.trainer_generating_case));
+                startImagePulse();
+            };
+            scrambleText.postDelayed(trainerLoadingRunnable, 300);
+        }
+
+        @Override
         protected TrainerScrambler.TrainerCase doInBackground(Void... params) {
             Context context = getContext();
             if (context == null) return null;
@@ -2164,7 +2188,17 @@ public class TimerFragment extends BaseFragment
 
         @Override
         protected void onPostExecute(TrainerScrambler.TrainerCase trainerCase) {
-            if (trainerCase == null || isCancelled() || !isAdded()) return;
+            if (isCancelled()) return;
+            boolean wasLoading = loadingSpinner != null && loadingSpinner.isRunning();
+            cancelTrainerLoading();
+            stopLoadingLine();
+            stopImagePulse();
+            if (trainerCase == null || !isAdded()) {
+                if (wasLoading && scrambleText != null) {
+                    scrambleText.setText(R.string.trainer_case_error);
+                }
+                return;
+            }
             // A trainer solve that was retried from the times list comes first
             TimerFragmentMain main = findMain();
             String[] retry = main == null ? null : main.takePendingTrainerRetry();
@@ -2243,6 +2277,159 @@ public class TimerFragment extends BaseFragment
         }
     }
 
+    // ---------------------------------------------------------------- loading states
+
+    private com.hatopigeon.cubictimer.wca.SpinnerDrawable loadingSpinner;
+    private android.animation.ObjectAnimator imagePulse;
+    private Runnable trainerLoadingRunnable;
+
+    /** A line of text with a small spinning arc in front of it, like the loading lines of the WCA pages. */
+    private void showLoadingLine(CharSequence line) {
+        if (scrambleText == null) return;
+        float density = getResources().getDisplayMetrics().density;
+        if (loadingSpinner == null) {
+            loadingSpinner = new com.hatopigeon.cubictimer.wca.SpinnerDrawable(
+                    scrambleText.getCurrentTextColor(), 2 * density);
+            loadingSpinner.setBounds(0, 0, (int) (16 * density), (int) (16 * density));
+        }
+        scrambleText.setText(line);
+        scrambleText.setCompoundDrawablePadding((int) (8 * density));
+        scrambleText.setCompoundDrawablesRelative(loadingSpinner, null, null, null);
+        loadingSpinner.start();
+    }
+
+    private void stopLoadingLine() {
+        if (loadingSpinner != null && loadingSpinner.isRunning()) {
+            loadingSpinner.stop();
+            if (scrambleText != null) {
+                scrambleText.setCompoundDrawablesRelative(null, null, null, null);
+            }
+        }
+    }
+
+    /** The scramble picture gently pulses while a new one is made, standing in for it. */
+    private void startImagePulse() {
+        if (scrambleImg == null || scrambleImg.getVisibility() != View.VISIBLE) return;
+        if (imagePulse != null) imagePulse.cancel();
+        imagePulse = android.animation.ObjectAnimator.ofFloat(scrambleImg, "alpha", 0.45f, 1f);
+        imagePulse.setDuration(750);
+        imagePulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+        imagePulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+        imagePulse.start();
+    }
+
+    private void stopImagePulse() {
+        if (imagePulse != null) {
+            imagePulse.cancel();
+            imagePulse = null;
+            if (scrambleImg != null) scrambleImg.setAlpha(1f);
+        }
+    }
+
+    private void cancelTrainerLoading() {
+        if (trainerLoadingRunnable != null && scrambleText != null) {
+            scrambleText.removeCallbacks(trainerLoadingRunnable);
+        }
+        trainerLoadingRunnable = null;
+    }
+
+    /** Only one scramble is made at a time, so one made ahead never runs into the one asked for. */
+    private final Object scrambleLock = new Object();
+    private String prefetchedScramble;
+    private String prefetchedKey;
+    private AsyncTask<Void, Void, String> prefetchAsync;
+
+    /** Makes a scramble for the current puzzle. Runs on a background thread. */
+    private String buildScramble() {
+        synchronized (scrambleLock) {
+                if (currentPuzzle.equals(PuzzleUtils.TYPE_OTHER))
+                    return " ";
+
+                // The puzzles of the Non-WCA tab are scrambled by csTimer's code
+                if (generator != null && generator.isCsPuzzle()) {
+                    String fromCsTimer = generator.generateCsScramble(CubicTimer.getAppContext());
+                    return fromCsTimer != null ? fromCsTimer : "An error has occurred";
+                }
+
+                try {
+                    // MBLD : generate scramble multi times
+                    if (currentPuzzle.equals(PuzzleUtils.TYPE_333MBLD)) {
+                        int i;
+                        String scramble = "";
+                        for (i = 0; i < currentMbldNum; i++) {
+                            if (i != 0) scramble = scramble + "\n";
+                            scramble = scramble + (i+1) + ") " + generator.getPuzzle().generateScramble();
+                        }
+
+                        return scramble;
+                    }
+
+                    String scramble = generator.getPuzzle().generateScramble();
+
+                    // Clock : remove pin moves at the end of scramble to comply with 2024 regulation
+                    //         without updating tnoodle-lib
+                    if (currentPuzzle.equals(PuzzleUtils.TYPE_CLOCK)) {
+                        scramble = scramble.replaceAll("(UR|UL|DR|DL| )+$", "");
+                    }
+                    return scramble;
+                } catch (Exception e) {
+                    Log.e(TAG, "Invalid puzzle for generator");
+                } catch (java.lang.VerifyError e) {
+                    Log.e(TAG, "java.lang.VerifyError");
+                }
+                return "An error has occurred";
+        }
+    }
+
+    /** Identifies what a scramble made ahead was made for, so it is never used for another puzzle. */
+    private String scrambleKey() {
+        return currentPuzzle + "|" + currentMbldNum + "|" + System.identityHashCode(generator);
+    }
+
+    /**
+     * Makes the next scramble quietly while the current one is being used, so that after the solve
+     * it is already there and nothing has to load.
+     */
+    private void prefetchNextScramble() {
+        if (!scrambleEnabled || generator == null || !currentTimerMode.equals(TIMER_MODE_TIMER)
+                || currentPuzzle.equals(PuzzleUtils.TYPE_OTHER)
+                || currentPuzzle.equals(PuzzleUtils.TYPE_333MBLD)) {
+            return;
+        }
+        if (prefetchAsync != null) prefetchAsync.cancel(true);
+        final String key = scrambleKey();
+        prefetchAsync = new AsyncTask<Void, Void, String>() {
+            @Override
+            protected String doInBackground(Void... params) {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+                return buildScramble();
+            }
+
+            @Override
+            protected void onPostExecute(String made) {
+                if (isCancelled() || made == null || made.trim().isEmpty()
+                        || made.startsWith("An error has occurred")) {
+                    return;
+                }
+                // Only keep it if the person is still on the same puzzle
+                if (key.equals(scrambleKey())) {
+                    prefetchedScramble = made;
+                    prefetchedKey = key;
+                }
+            }
+        };
+        prefetchAsync.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    /** The scramble made ahead for the current puzzle (it can only be used once), or null. */
+    private String takePrefetchedScramble() {
+        String made = prefetchedScramble;
+        String key = prefetchedKey;
+        prefetchedScramble = null;
+        prefetchedKey = null;
+        return made != null && scrambleKey().equals(key) ? made : null;
+    }
+
     private class GenerateScrambleSequence extends AsyncTask<String, Void, String> {
 
         @Override
@@ -2256,6 +2443,7 @@ public class TimerFragment extends BaseFragment
             scrambleText.setText(R.string.generating_scramble);
             scrambleText.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
             scrambleText.setClickable(false);
+            showLoadingLine(getString(R.string.generating_scramble));
 
             scrambleButtonHint.setVisibility(View.GONE);
             scrambleButtonEdit.setVisibility(View.GONE);
@@ -2267,50 +2455,14 @@ public class TimerFragment extends BaseFragment
             new BroadcastBuilder(CATEGORY_UI_INTERACTIONS, ACTION_SCRAMBLE_GENERATING)
                     .broadcast();
 
-            hideImage();
-            if (!isRunning)
-                progressSpinner.setVisibility(View.VISIBLE);
+            // The picture stays where it is and pulses until the new one is ready
+            startImagePulse();
             isLocked = true;
         }
 
         @Override
         protected String doInBackground(String... params) {
-            if (currentPuzzle.equals(PuzzleUtils.TYPE_OTHER))
-                return " ";
-
-            // The puzzles of the Non-WCA tab are scrambled by csTimer's code
-            if (generator != null && generator.isCsPuzzle()) {
-                String fromCsTimer = generator.generateCsScramble(CubicTimer.getAppContext());
-                return fromCsTimer != null ? fromCsTimer : "An error has occurred";
-            }
-
-            try {
-                // MBLD : generate scramble multi times
-                if (currentPuzzle.equals(PuzzleUtils.TYPE_333MBLD)) {
-                    int i;
-                    String scramble = "";
-                    for (i = 0; i < currentMbldNum; i++) {
-                        if (i != 0) scramble = scramble + "\n";
-                        scramble = scramble + (i+1) + ") " + generator.getPuzzle().generateScramble();
-                    }
-
-                    return scramble;
-                }
-
-                String scramble = generator.getPuzzle().generateScramble();
-
-                // Clock : remove pin moves at the end of scramble to comply with 2024 regulation
-                //         without updating tnoodle-lib
-                if (currentPuzzle.equals(PuzzleUtils.TYPE_CLOCK)) {
-                    scramble = scramble.replaceAll("(UR|UL|DR|DL| )+$", "");
-                }
-                return scramble;
-            } catch (Exception e) {
-                Log.e(TAG, "Invalid puzzle for generator");
-            } catch (java.lang.VerifyError e) {
-                Log.e(TAG, "java.lang.VerifyError");
-            }
-            return "An error has occurred";
+            return buildScramble();
         }
 
         @Override
@@ -2321,6 +2473,7 @@ public class TimerFragment extends BaseFragment
         @Override
         protected void onPostExecute(String scramble) {
             setScramble(scramble);
+            prefetchNextScramble();
         }
     }
 
@@ -2332,6 +2485,7 @@ public class TimerFragment extends BaseFragment
         // Wide moves are shown in the style chosen in the settings ("Rw" or "r")
         final String scramble = com.hatopigeon.cubictimer.utils.WideMoves.toPreferred(rawScramble, currentPuzzle);
         realScramble = scramble;
+        stopLoadingLine();
 
         if (currentTimerMode.equals(TIMER_MODE_TIMER)) {
             // save the scramble especially for MBLD
@@ -2391,8 +2545,10 @@ public class TimerFragment extends BaseFragment
 
         if (scrambleImgEnabled)
             generateScrambleImage();
-        else
+        else {
             progressSpinner.setVisibility(View.INVISIBLE);
+            stopImagePulse();
+        }
         isLocked = false;
 
         if (showHintsEnabled)
@@ -2433,6 +2589,7 @@ public class TimerFragment extends BaseFragment
         @Override
         protected void onPostExecute(Drawable drawable) {
             super.onPostExecute(drawable);
+            stopImagePulse();
             if (!isRunning) {
                 if (scrambleImg != null)
                     showImage();
