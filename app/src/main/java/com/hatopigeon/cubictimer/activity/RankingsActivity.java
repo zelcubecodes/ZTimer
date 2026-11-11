@@ -62,6 +62,13 @@ public class RankingsActivity extends AppCompatActivity {
     private boolean loading = false;
     private int requestToken = 0;
 
+    // Rankings already seen are kept, so coming back to one shows it at once while it refreshes
+    private final Map<String, String> rankingCache = new HashMap<>();
+    private String loadKey = "";
+    private boolean showingCached = false;
+    private boolean skeletonShown = false;
+    private com.hatopigeon.cubictimer.wca.SpinnerDrawable statusSpinner;
+
     private LinearLayout page;
     private LinearLayout eventRow;
     private TextView regionButton, singleTab, averageTab, status;
@@ -377,9 +384,23 @@ public class RankingsActivity extends AppCompatActivity {
         final int token = ++requestToken;
         loading = true;
         error = null;
+        loadKey = region + "|" + (average ? "a" : "s") + "|" + eventId;
         items = new JSONArray();
-        showStatus("Loading rankings...");
+        showingCached = false;
+        String cached = rankingCache.get(loadKey);
+        if (cached != null) {
+            try {
+                items = new JSONArray(cached);
+                showingCached = true;
+            } catch (Exception ignored) {
+                items = new JSONArray();
+            }
+        }
+        // Optimistic: a ranking seen before is shown straight away and refreshed behind it
+        showStatus(showingCached ? "Refreshing rankings..." : "Loading rankings...");
         renderList();
+        skeletonShown = !showingCached;
+        if (!showingCached) addSkeletonRows();
         final String base = API + "/rank/" + region + "/" + (average ? "average" : "single") + "/" + eventId;
         WcaHttp.get(base + ".json", new WcaHttp.Callback() {
             @Override
@@ -400,6 +421,12 @@ public class RankingsActivity extends AppCompatActivity {
                     public void onError(String message2) {
                         if (token != requestToken) return;
                         loading = false;
+                        skeletonShown = false;
+                        if (showingCached) {
+                            showingCached = false;
+                            showStatus("Could not refresh. Showing the saved ranking.");
+                            return;
+                        }
                         String why = WcaHttp.describe(RankingsActivity.this, message);
                         error = why.startsWith("No internet") ? why : "No ranking found for this event and region";
                         showStatus(error + ".");
@@ -414,15 +441,28 @@ public class RankingsActivity extends AppCompatActivity {
         try {
             JSONObject root = new JSONObject(body);
             JSONArray arr = root.optJSONArray("items");
-            items = arr == null ? new JSONArray() : arr;
+            JSONArray fresh = arr == null ? new JSONArray() : arr;
+            String freshText = fresh.toString();
+            boolean unchanged = showingCached && freshText.equals(rankingCache.get(loadKey));
+            rankingCache.put(loadKey, freshText);
+            showingCached = false;
             loading = false;
+            if (unchanged) {
+                // Nothing new: leave the list as it is, so it does not jump
+                showStatus("");
+                return;
+            }
+            items = fresh;
             showStatus(items.length() == 0 ? "No results for this ranking." : "");
         } catch (Exception e) {
             loading = false;
             error = "Unexpected ranking data";
             showStatus(error + ".");
         }
+        boolean animate = skeletonShown;
+        skeletonShown = false;
         renderList();
+        if (animate && items.length() > 0) animateRowsIn();
     }
 
     /** True when this is a country ranking and the person's country is known and different. */
@@ -439,6 +479,86 @@ public class RankingsActivity extends AppCompatActivity {
     private void showStatus(String s) {
         status.setText(s);
         status.setVisibility(s.isEmpty() ? View.GONE : View.VISIBLE);
+        // A small spinning arc in front of the line while it says something is loading
+        boolean busy = s.startsWith("Loading") || s.startsWith("Refreshing");
+        if (statusSpinner == null) {
+            statusSpinner = new com.hatopigeon.cubictimer.wca.SpinnerDrawable(text, dp(2));
+            statusSpinner.setBounds(0, 0, dp(16), dp(16));
+            status.setGravity(Gravity.CENTER_VERTICAL);
+            status.setCompoundDrawablePadding(dp(8));
+        }
+        status.setCompoundDrawablesRelative(busy ? statusSpinner : null, null, null, null);
+        if (busy) statusSpinner.start(); else statusSpinner.stop();
+    }
+
+    /** A grey bar standing in for a piece of text that has not arrived yet. */
+    private View skeletonBar(int widthDp, int heightDp) {
+        View v = new View(this);
+        v.setBackground(rounded((itemText & 0x00FFFFFF) | 0x22000000, dp(4)));
+        v.setLayoutParams(new LinearLayout.LayoutParams(dp(widthDp), dp(heightDp)));
+        return v;
+    }
+
+    /**
+     * Boxes shaped like the real rows (place, name, ID, result) that gently pulse in a wave. They
+     * show up at once, and the real rows fade in over them when the data arrives.
+     */
+    private void addSkeletonRows() {
+        for (int i = 0; i < 8; i++) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(14), dp(10), dp(14), dp(10));
+            row.setBackground(rounded(itemBg, dp(8)));
+
+            LinearLayout place = new LinearLayout(this);
+            place.addView(skeletonBar(22, 18));
+            row.addView(place, new LinearLayout.LayoutParams(dp(36), ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            LinearLayout mid = new LinearLayout(this);
+            mid.setOrientation(LinearLayout.VERTICAL);
+            View nameBar = skeletonBar(150 - (i % 3) * 20, 16);
+            ((LinearLayout.LayoutParams) nameBar.getLayoutParams()).bottomMargin = dp(6);
+            mid.addView(nameBar);
+            mid.addView(skeletonBar(90, 11));
+            LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            mp.setMargins(dp(4), 0, dp(8), 0);
+            row.addView(mid, mp);
+
+            row.addView(skeletonBar(56, 18));
+
+            final android.animation.ObjectAnimator pulse =
+                    android.animation.ObjectAnimator.ofFloat(row, "alpha", 0.5f, 1f);
+            pulse.setDuration(750);
+            pulse.setStartDelay(i * 80L);
+            pulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            row.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+                @Override public void onViewAttachedToWindow(View view) { pulse.start(); }
+                @Override public void onViewDetachedFromWindow(View view) { pulse.cancel(); }
+            });
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            rp.setMargins(0, dp(3), 0, dp(3));
+            list.addView(row, rp);
+        }
+    }
+
+    /** The real rows slide in one after another, so the data arrives into the boxes smoothly. */
+    private void animateRowsIn() {
+        for (int i = 0; i < list.getChildCount(); i++) {
+            View c = list.getChildAt(i);
+            c.setAlpha(0f);
+            c.setTranslationY(dp(6));
+            c.animate().alpha(1f).translationY(0f)
+                    .setStartDelay(Math.min(i, 12) * 30L).setDuration(200).start();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (statusSpinner != null) statusSpinner.stop();
+        super.onDestroy();
     }
 
     private void renderList() {
@@ -511,6 +631,8 @@ public class RankingsActivity extends AppCompatActivity {
             }
             String f = WcaFlags.emoji(iso);
             tvs[0].setText((f.isEmpty() ? "" : f + " ") + n);
+            tvs[0].setAlpha(0.3f);
+            tvs[0].animate().alpha(1f).setDuration(200).start();
         }));
         if (limit < items.length()) {
             TextView more = pill("Show more");
