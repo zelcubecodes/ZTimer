@@ -296,8 +296,6 @@ public class TimerFragment extends BaseFragment
     private ArrayList<BluetoothDevice> bleDevices;
     private long bleScanPeriod;
     private boolean isScanning = false;
-    // QiYi manufacturer data seen during scanning, keyed by device address (troubleshooting)
-    private final java.util.HashMap<String, byte[]> bleMfrData = new java.util.HashMap<>();
 
     // definitions for GAN Smart Timer / GAN Halo Timer
     private static final int GAN_MANUFACTURER_ID = 0x4147;
@@ -2995,12 +2993,6 @@ public class TimerFragment extends BaseFragment
             ArrayList<BluetoothDevice> devices = new ArrayList<BluetoothDevice>();
             for (ScanResult result : results) {
                 devices.add(result.getDevice());
-                if (result.getScanRecord() != null) {
-                    byte[] mfr = result.getScanRecord().getManufacturerSpecificData(QIYI_MANUFACTURER_ID);
-                    if (mfr != null) {
-                        bleMfrData.put(result.getDevice().getAddress(), mfr);
-                    }
-                }
                 //Log.d(TAG, "BLE Scan : Name = " + result.getDevice().getName());
                 //Log.d(TAG, "BLE Scan : Name = " + result.getScanRecord().getDeviceName());
                 //Log.d(TAG, "BLE Scan : Addr = " + result.getDevice().getAddress());
@@ -3063,46 +3055,6 @@ public class TimerFragment extends BaseFragment
         private Cipher qiyiDecryptCipher;
         private Cipher qiyiEncryptCipher;
         private int qiyiPreviousState = QIYITIMER_STATE_IDLE;
-        private int qiyiRxCount = 0;
-        private String gattSummary = "";
-        private final ArrayList<BluetoothGattCharacteristic> extraNotifyChars = new ArrayList<>();
-
-        private String shortUuid(UUID u) {
-            String str = u.toString();
-            if (str.endsWith("-0000-1000-8000-00805f9b34fb")) return str.substring(4, 8);
-            return str.substring(0, 8);
-        }
-
-        // Temporary troubleshooting dialog: shows what the adapter offers
-        private void showQiyiInfoDialog(final String mac) {
-            final TextView statusView = bleStatusMessage;
-            if (statusView == null) return;
-            byte[] mfr = bleMfrData.get(mac);
-            final String info = "Device: " + mac + "\n"
-                    + "QiYi manufacturer data: " + (mfr != null ? bytesToHex(mfr) : "none") + "\n\n"
-                    + gattSummary;
-            statusView.post(() -> {
-                if (isAdded() && mContext != null) {
-                    ThemeUtils.roundDialog(mContext, new MaterialDialog.Builder(mContext)
-                            .title("QiYi adapter info")
-                            .content(info)
-                            .positiveText("OK")
-                            .show());
-                }
-            });
-        }
-
-        // Shows QiYi connection progress on the Bluetooth status line (for troubleshooting)
-        private void qiyiDebug(final String text) {
-            final TextView statusView = bleStatusMessage;
-            if (statusView == null) return;
-            statusView.post(() -> {
-                if (bleStatusMessage != null) {
-                    bleStatusMessage.setText(getString(R.string.timer_ble_status_message)
-                            + getString(R.string.timer_ble_status_connect_message) + " | " + text);
-                }
-            });
-        }
 
         private static final byte[] QIYI_HELLO_HEADER_1 = new byte[] {
                 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -3148,26 +3100,6 @@ public class TimerFragment extends BaseFragment
             // Return false if a required service has not been discovered.
             BluetoothGattService ganTimerService = gatt.getService(UUID.fromString(GANTIMER_TIMER_SERVICE_UUID));
             BluetoothGattService qiyiTimerService = gatt.getService(UUID.fromString(QIYI_TIMER_SERVICE_UUID));
-
-            // list every service/characteristic the device offers (troubleshooting)
-            StringBuilder sb = new StringBuilder();
-            extraNotifyChars.clear();
-            for (BluetoothGattService svc : gatt.getServices()) {
-                sb.append("Service ").append(shortUuid(svc.getUuid())).append("\n");
-                for (BluetoothGattCharacteristic ch : svc.getCharacteristics()) {
-                    int props = ch.getProperties();
-                    sb.append("  ").append(shortUuid(ch.getUuid()))
-                            .append(" props 0x").append(Integer.toHexString(props)).append("\n");
-                    boolean canNotify = (props & (BluetoothGattCharacteristic.PROPERTY_NOTIFY
-                            | BluetoothGattCharacteristic.PROPERTY_INDICATE)) != 0;
-                    boolean isGenericAttribute = svc.getUuid().toString().startsWith("00001801");
-                    if (canNotify && !isGenericAttribute) {
-                        extraNotifyChars.add(ch);
-                    }
-                }
-            }
-            gattSummary = sb.toString();
-            Log.d(TAG, "GATT layout:\n" + gattSummary);
 
             if (ganTimerService != null) {
                 btMode = BT_MODE_GAN_TIMER;
@@ -3261,38 +3193,10 @@ public class TimerFragment extends BaseFragment
                             onQiyiPacket(value);
                         }
                     });
-            int readProps = qiyiReadCharacteristic.getProperties();
-            if ((readProps & BluetoothGattCharacteristic.PROPERTY_NOTIFY) == 0
-                    && (readProps & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
-                enableIndications(qiyiReadCharacteristic)
-                        .fail((device, status) -> qiyiDebug("indicate failed, status " + status))
-                        .enqueue();
-            } else {
-                enableNotifications(qiyiReadCharacteristic)
-                        .fail((device, status) -> qiyiDebug("notify failed, status " + status))
-                        .enqueue();
-            }
-
-            // also listen to every other characteristic that can send data, to see what the adapter sends
-            for (BluetoothGattCharacteristic ch : extraNotifyChars) {
-                if (ch.getUuid().equals(qiyiReadCharacteristic.getUuid())) continue;
-                final String chId = shortUuid(ch.getUuid());
-                setNotificationCallback(ch).with((device, data) ->
-                        qiyiDebug("char " + chId + " data " + bytesToHex(data.getValue())));
-                if ((ch.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
-                    enableNotifications(ch).enqueue();
-                } else {
-                    enableIndications(ch).enqueue();
-                }
-            }
-
-            qiyiRxCount = 0;
-            resetQiyiBuffer();
+            enableNotifications(qiyiReadCharacteristic).enqueue();
 
             String mac = getBluetoothDevice().getAddress();
             Log.d(TAG, "Qiyi MAC Address = " + mac);
-            qiyiDebug("QiYi hello sent, MAC " + mac + ", waiting for data");
-            showQiyiInfoDialog(mac);
             sendQiyiHello(mac, QIYI_HELLO_HEADER_1);
             sendQiyiHello(mac, QIYI_HELLO_HEADER_2);
         }
@@ -3395,9 +3299,7 @@ public class TimerFragment extends BaseFragment
                 byte[] pkt = baosPkt.toByteArray();
                 Log.d(TAG, "Qiyi TX packet" + pktNum + " (" + pkt.length + "): " + bytesToHex(pkt));
 
-                writeCharacteristic(qiyiWriteCharacteristic, pkt, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
-                        .fail((device, status) -> qiyiDebug("write failed, status " + status))
-                        .enqueue();
+                writeCharacteristic(qiyiWriteCharacteristic, pkt, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT).enqueue();
 
                 pktNum++;
             }
@@ -3411,15 +3313,11 @@ public class TimerFragment extends BaseFragment
 
             Log.d(TAG, "Qiyi RX packet (" + packet.length + "): " + bytesToHex(packet));
 
-            qiyiRxCount++;
-            qiyiDebug("QiYi rx #" + qiyiRxCount + " (" + packet.length + " bytes)");
-
             int pktNum = packet[0] & 0xFF;
 
             if (pktNum != qiyiNextPktNum) {
                 resetQiyiBuffer();
                 Log.d(TAG, "Qiyi RX packet : packet num error");
-                qiyiDebug("QiYi rx #" + qiyiRxCount + " packet number error");
                 return;
             }
 
@@ -3429,7 +3327,6 @@ public class TimerFragment extends BaseFragment
                 if (qiyiMsgLen <= 0) {
                     resetQiyiBuffer();
                     Log.d(TAG, "Qiyi RX packet : message size error");
-                    qiyiDebug("QiYi rx #" + qiyiRxCount + " message size error");
                     return;
                 }
                 qiyiCipherLen = ((qiyiMsgLen + 15) / 16) * 16;
@@ -3460,7 +3357,6 @@ public class TimerFragment extends BaseFragment
             } catch (GeneralSecurityException e) {
                 resetQiyiBuffer();
                 Log.e(TAG, "Qiyi decrypt error", e);
-                qiyiDebug("QiYi rx #" + qiyiRxCount + " decrypt error");
                 return;
             }
 
@@ -3494,13 +3390,7 @@ public class TimerFragment extends BaseFragment
             }
 
             int cmd = ((msg[8] & 0xFF) << 8) | (msg[9] & 0xFF);
-            if (cmd != 0x1003) {
-                qiyiDebug("QiYi rx #" + qiyiRxCount + " cmd 0x" + Integer.toHexString(cmd) + " (ignored)");
-                return;
-            }
-
-            // payload must hold at least dpId, dpType and dpLen
-            if (pldLen < 4) return;
+            if (cmd != 0x1003) return;
 
             byte[] pld = Arrays.copyOfRange(msg, 12, 12 + pldLen);
 
@@ -3508,8 +3398,6 @@ public class TimerFragment extends BaseFragment
             int dpType = pld[1] & 0xFF;
             int dpLen = ((pld[2] & 0xFF) << 8) | (pld[3] & 0xFF);
             byte[] dp = Arrays.copyOfRange(pld, 4, 4+dpLen);
-
-            qiyiDebug("QiYi rx #" + qiyiRxCount + " dp " + dpId + "/" + dpType + " len " + dpLen);
 
             if (dpId == 1 && dpType == 1) {
                 // finish
