@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trainer_generating_case">Generating case...</string>
+    <string name="trainer_case_error">Could not generate a case</string>
+</resources>
