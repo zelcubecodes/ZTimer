@@ -224,7 +224,7 @@ public final class TrainerSets {
     }
 
     /** The groups the sets are sorted into, the same ones csTimer's scramble menu uses. */
-    public static final String[] FAMILIES = {"CFOP", "Roux", "Big cubes", "Megaminx", "Pyraminx", "Skewb", "2x2x2", "4x4x4", "Square-1", "FTO"};
+    public static final String[] FAMILIES = {"CFOP", "Roux", "Big cubes", "Megaminx", "Pyraminx", "Skewb", "2x2x2", "Square-1", "FTO"};
 
     private static final TrainerSubset[][] FAMILY_SETS = {
             // 3x3x3 CFOP
@@ -236,8 +236,10 @@ public final class TrainerSets {
                     TrainerSubset.THREEGENL, TrainerSubset.RRU},
             // 3x3x3 Roux
             {TrainerSubset.SBRX, TrainerSubset.CMLL, TrainerSubset.LSE, TrainerSubset.LSEMU},
-            // Big cubes
-            {TrainerSubset.Y4CTO, TrainerSubset.EDGE5, TrainerSubset.EDGE6, TrainerSubset.EDGE7},
+            // Big cubes (the 4x4x4 sets first, then the edges of the bigger cubes)
+            {TrainerSubset.EDGE4, TrainerSubset.Y4UDC, TrainerSubset.Y4UD3,
+                    TrainerSubset.Y4L8E, TrainerSubset.Y4POLL, TrainerSubset.Y4PPLL,
+                    TrainerSubset.Y4CTO, TrainerSubset.EDGE5, TrainerSubset.EDGE6, TrainerSubset.EDGE7},
             // Megaminx
             {TrainerSubset.MINX2GEN, TrainerSubset.MLSLL, TrainerSubset.MGMPLL, TrainerSubset.MGMLL,
                     TrainerSubset.MGMS2L},
@@ -248,9 +250,6 @@ public final class TrainerSets {
             // 2x2x2
             {TrainerSubset.X2EG, TrainerSubset.X2CLL, TrainerSubset.X2EG1, TrainerSubset.X2EG2,
                     TrainerSubset.X2LS, TrainerSubset.X2NB},
-            // 4x4x4
-            {TrainerSubset.EDGE4, TrainerSubset.Y4UDC, TrainerSubset.Y4UD3,
-                    TrainerSubset.Y4L8E, TrainerSubset.Y4POLL, TrainerSubset.Y4PPLL},
             // Square-1
             {TrainerSubset.SQCSP, TrainerSubset.SQPLL},
             // FTO
