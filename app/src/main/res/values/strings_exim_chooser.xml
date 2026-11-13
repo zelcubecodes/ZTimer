@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exim_tab_puzzles" translatable="false">Puzzles</string>
+    <string name="exim_label_trainer_set" translatable="false">Trainer set</string>
+    <string name="exim_label_group" translatable="false">Group</string>
+    <string name="exim_all_groups" translatable="false">All groups</string>
+</resources>
