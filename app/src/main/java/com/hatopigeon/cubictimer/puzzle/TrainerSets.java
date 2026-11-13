@@ -413,11 +413,11 @@ public final class TrainerSets {
             case X2NB:
                 return "2x2 No bar";
             case Y4UDC:
-                return "UD centers";
+                return "4x4 UD centers";
             case Y4UD3:
-                return "UD + 3 edges";
+                return "4x4 UD + 3 edges";
             case Y4L8E:
-                return "Last 8 edges";
+                return "4x4 Last 8 edges";
             case Y4POLL:
                 return "4x4 POLL";
             case Y4PPLL:
