@@ -2,20 +2,21 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android"
     android:opacity="opaque">
 
-    <!-- The background color, preferably the same as your normal theme -->
+    <!-- Launch screen background: the same pastel pink as the app icon -->
     <item>
-        <shape>
+        <shape android:shape="rectangle">
             <gradient
-                android:startColor="#FFF7DA"
-                android:endColor="#FDE17E"
-                android:angle="-45"/>
+                android:startColor="#FFCCEA"
+                android:endColor="#FFA3D5"
+                android:angle="315" />
         </shape>
     </item>
 
-    <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@drawable/icon_launch" />
-    </item>
+    <!-- Ztimer logo (vector, scales to every screen) -->
+    <item
+        android:width="216dp"
+        android:height="216dp"
+        android:gravity="center"
+        android:drawable="@drawable/ic_launcher_z" />
 
 </layer-list>
