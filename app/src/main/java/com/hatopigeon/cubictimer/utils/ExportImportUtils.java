@@ -1,5 +1,7 @@
 package com.hatopigeon.cubictimer.utils;
 
+import com.hatopigeon.cubictimer.database.DatabaseHandler;
+
 import org.joda.time.DateTime;
 
 /**
@@ -105,7 +107,9 @@ public final class ExportImportUtils {
     public static String getExternalFileNameForExport(String puzzleType, String puzzleCategory) {
         // Assume that the puzzle type is sanitary, but the category may be entered by the user,
         // so it may cause problems unless it is sanitized first.
+        // A whole trainer set is exported with the "all categories" wildcard; name it "All".
+        final String category = DatabaseHandler.SUBTYPE_ALL.equals(puzzleCategory) ? "All" : puzzleCategory;
         return String.format(EXTERNAL_FILE_NAME_TEMPLATE,
-                        puzzleType, sanitizeFileName(puzzleCategory), getFileTimeStamp());
+                        puzzleType, sanitizeFileName(category), getFileTimeStamp());
     }
 }
