@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
@@ -12,31 +13,83 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@android:color/white"
-        android:minWidth="220dp"
+        android:minWidth="280dp"
         android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/chooserTabs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/name_puzzle" />
+            android:layout_marginBottom="16dp"
+            app:tabGravity="fill"
+            app:tabIndicatorColor="?colorAccent"
+            app:tabMode="fixed"
+            app:tabSelectedTextColor="?colorAccent"
+            app:tabTextColor="#757575" />
 
-        <Spinner
-            android:id="@+id/puzzleSpinner"
+        <!-- Puzzles tab: WCA puzzles, then Non-WCA puzzles -->
+        <LinearLayout
+            android:id="@+id/puzzleSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
+            android:orientation="vertical">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/name_category" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/name_puzzle" />
 
-        <Spinner
-            android:id="@+id/categorySpinner"
+            <Spinner
+                android:id="@+id/puzzleSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/name_category" />
+
+            <Spinner
+                android:id="@+id/categorySpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp" />
+
+        </LinearLayout>
+
+        <!-- Trainer tab: trainer sets and their groups -->
+        <LinearLayout
+            android:id="@+id/trainerSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/exim_label_trainer_set" />
+
+            <Spinner
+                android:id="@+id/trainerSetSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/exim_label_group" />
+
+            <Spinner
+                android:id="@+id/trainerGroupSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp" />
+
+        </LinearLayout>
 
         <TextView
             android:id="@+id/selectButton"
