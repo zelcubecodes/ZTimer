@@ -15,7 +15,7 @@ android {
         compileSdk 36
         targetSdkVersion 36
         versionCode 77
-        versionName "3.9.0"
+        versionName "V1.1"
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
     }
