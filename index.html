@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ZTimer</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#14171c;--dim:#6b7280;--line:#dfe3e8;--accent:#2f6df6;--ok:#16a34a;--bad:#dc2626;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#181b21;--text:#eef0f4;--dim:#8b93a1;--line:#2a2f38;--accent:#6b9bff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px}
+header h1{font-size:20px;margin:0 auto 0 0}
+select,button{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+main{max-width:900px;margin:0 auto;padding:0 16px 32px;display:grid;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px}
+#scramble{font:600 18px/1.5 ui-monospace,monospace;text-align:center;word-break:break-word}
+#img{display:flex;justify-content:center;margin-top:10px}
+#img svg{max-width:240px;max-height:160px;width:auto;height:auto}
+#timer{text-align:center;user-select:none;touch-action:none;padding:36px 8px;cursor:pointer}
+#time{font:700 clamp(56px,16vw,120px)/1 ui-monospace,monospace}
+#time.hold{color:var(--bad)}#time.ready{color:var(--ok)}
+#hint{color:var(--dim);font-size:14px;margin-top:6px}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+#lyrics{text-align:center;min-height:150px;display:grid;align-content:center;gap:6px}
+#lyrics .l{color:var(--dim);font-size:16px;min-height:1.4em}
+#lyrics .c{color:var(--text);font-size:clamp(20px,4.5vw,30px);font-weight:700;min-height:1.4em}
+#lstatus{color:var(--dim);font-size:13px;margin-top:8px}
+#stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;text-align:center}
+#stats b{display:block;font-size:20px}#stats span{color:var(--dim);font-size:13px}
+#list{max-height:260px;overflow:auto;font-family:ui-monospace,monospace;font-size:15px}
+#list div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)}
+dialog{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:20px;max-width:460px}
+dialog input{width:100%;font:inherit;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
+a{color:var(--accent)}footer{color:var(--dim);font-size:12px;text-align:center;padding:0 16px 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>ZTimer</h1>
+  <select id="puzzle" aria-label="Puzzle"></select>
+  <button id="spBtn">Connect Spotify</button>
+</header>
+<main>
+  <section class="card">
+    <div id="scramble">Loading scramble…</div>
+    <div id="img"></div>
+    <div class="row"><button id="newScr">New scramble</button></div>
+  </section>
+  <section class="card" id="timer">
+    <div id="time">0.00</div>
+    <div id="hint">Hold Space (or press and hold here), release to start. Any key or tap stops.</div>
+  </section>
+  <div class="row" style="margin:0">
+    <button id="plus2">+2</button><button id="dnf">DNF</button><button id="del">Delete last</button>
+  </div>
+  <section class="card" id="lyrics" aria-live="polite">
+    <div class="l" id="l0"></div><div class="c" id="l1">Lyrics from Spotify will show here</div><div class="l" id="l2"></div><div class="l" id="l3"></div>
+    <div id="lstatus"></div>
+    <div class="row"><button id="offM">Lyrics earlier</button><button id="offP">Lyrics later</button></div>
+  </section>
+  <section class="card" id="stats"></section>
+  <section class="card">
+    <div id="list"></div>
+    <div class="row"><button id="exp">Export</button><button id="imp">Import</button><button id="clr">Clear puzzle</button><input id="file" type="file" accept=".json" hidden></div>
+  </section>
+</main>
+<dialog id="spDialog">
+  <form method="dialog">
+    <h3 style="margin-top:0">Connect Spotify</h3>
+    <p>1. Create an app at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a>.<br>
+    2. Add this Redirect URI to it: <b id="redir" style="word-break:break-all"></b><br>
+    3. Paste the app's Client ID below.</p>
+    <input id="cid" placeholder="Spotify Client ID" autocomplete="off">
+    <div class="row"><button value="cancel">Cancel</button><button id="cidSave" value="ok">Save and connect</button></div>
+  </form>
+</dialog>
+<footer>Scrambles by csTimer (GPL-3.0). Lyrics from LRCLIB. Playback info from Spotify. Unofficial fan project, not affiliated with Spotify or the WCA.</footer>
+<script src="cstimer_bundle.js"></script>
+<script src="app.js"></script>
+<script src="lyrics.js"></script>
+</body>
+</html>
