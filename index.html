@@ -3,58 +3,84 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ZTimer</title>
+<meta name="description" content="ZTimer Web: a free speedcubing timer. Unofficial fan project inspired by csTimer and ZTimer. GPL-3.0.">
+<title>ZTimer Web</title>
+<!--
+  ZTimer Web. Copyright (C) 2026 Zel (ZelCubes). Licensed under the GNU General Public License v3.0
+  (see LICENSE.txt in the repository). Source: https://github.com/zelcubecodes/ZTimer
+  Page layout and behaviour are inspired by csTimer (https://cstimer.net, Chen Shuang, GPL-3.0).
+  This file and app.js are original code written for this project; cstimer_bundle.js is csTimer code.
+  Full credits are in the "Credits" dialog. No warranty.
+-->
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--text:#14171c;--dim:#6b7280;--line:#dfe3e8;--accent:#2f6df6;--ok:#16a34a;--bad:#dc2626;color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#181b21;--text:#eef0f4;--dim:#8b93a1;--line:#2a2f38;--accent:#6b9bff}}
+:root{--bg:#f4f5f7;--bar:#e6e9ee;--card:#fff;--text:#161a20;--dim:#667085;--line:#d5dae1;--acc:#1f7a4d;--ok:#16a34a;--bad:#dc2626;--warn:#d97706;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#101216;--bar:#1a1d23;--card:#171a20;--text:#e9ecf1;--dim:#8d96a5;--line:#2b303a;--acc:#4cc38a;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#101216;--bar:#1a1d23;--card:#171a20;--text:#e9ecf1;--dim:#8d96a5;--line:#2b303a;--acc:#4cc38a;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px}
-header h1{font-size:20px;margin:0 auto 0 0}
-select,button{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;cursor:pointer}
-button:hover{border-color:var(--accent)}
-main{max-width:900px;margin:0 auto;padding:0 16px 32px;display:grid;gap:12px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px}
-#scramble{font:600 18px/1.5 ui-monospace,monospace;text-align:center;word-break:break-word}
-#img{display:flex;justify-content:center;margin-top:10px}
-#img svg{max-width:240px;max-height:160px;width:auto;height:auto}
-#timer{text-align:center;user-select:none;touch-action:none;padding:36px 8px;cursor:pointer}
-#time{font:700 clamp(56px,16vw,120px)/1 ui-monospace,monospace}
-#time.hold{color:var(--bad)}#time.ready{color:var(--ok)}
-#hint{color:var(--dim);font-size:14px;margin-top:6px}
-.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
-#stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;text-align:center}
-#stats b{display:block;font-size:20px}#stats span{color:var(--dim);font-size:13px}
-#list{max-height:260px;overflow:auto;font-family:ui-monospace,monospace;font-size:15px}
-#list div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)}
-a{color:var(--accent)}footer{color:var(--dim);font-size:12px;text-align:center;padding:0 16px 24px}
+html,body{height:100%}
+body{margin:0;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font:15px/1.4 system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,select,textarea{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+#top{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 10px;background:var(--bar);border-bottom:1px solid var(--line)}
+.logo{font-size:18px;font-weight:700;color:var(--acc);margin-right:8px}.sp{flex:1}
+#scrbar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line)}
+#scr{flex:1;text-align:center;font:600 clamp(14px,2.3vw,21px)/1.5 ui-monospace,monospace;word-break:break-word;max-height:30vh;overflow:auto}
+#wrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(230px,310px) 1fr}
+#left{display:flex;flex-direction:column;gap:8px;padding:8px;border-right:1px solid var(--line);min-height:0}
+#mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px;min-height:0;user-select:none;touch-action:none}
+#st{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+#st th{color:var(--dim);font-weight:400;font-size:12px;text-align:right}
+#st td{padding:3px 4px;text-align:right;border-top:1px solid var(--line)}#st td:first-child{text-align:left;color:var(--dim)}
+#st td[data-a]{cursor:pointer}#st td[data-a]:hover{color:var(--acc)}
+#sum{color:var(--dim);font-size:13px}
+#times{flex:1;min-height:60px;overflow:auto;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
+.t{padding:2px 7px;border:1px solid var(--line);border-radius:6px;background:var(--card);font:13px ui-monospace,monospace;cursor:pointer}
+#time{font:700 clamp(64px,17vw,150px)/1 ui-monospace,monospace;cursor:pointer}
+#time.hold{color:var(--bad)}#time.ready{color:var(--ok)}#time.insp{color:var(--warn)}
+#hint{color:var(--dim);font-size:13px;text-align:center}
+#qa{display:flex;gap:6px}
+#img svg{max-width:min(300px,80vw);max-height:190px;width:auto;height:auto}
+footer{padding:6px 10px;font-size:12px;color:var(--dim);text-align:center;border-top:1px solid var(--line)}
+footer button{padding:0 4px;border:0;background:none;color:var(--acc);text-decoration:underline}
+dialog{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:14px;width:min(520px,94vw);max-height:88vh}
+dialog::backdrop{background:#0008}
+dialog h3{margin:0 0 8px}dialog label{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0}
+dialog .g{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}dialog pre{white-space:pre-wrap;word-break:break-word;font:13px ui-monospace,monospace}
+dialog table{border-collapse:collapse;width:100%;font-size:13px}dialog td,dialog th{border-top:1px solid var(--line);padding:4px;text-align:left;vertical-align:top}
+dialog textarea{width:100%}a{color:var(--acc)}
+@media (max-width:720px){#wrap{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}#mid{order:1}#left{order:2;border-right:0;border-top:1px solid var(--line)}}
 </style>
 </head>
 <body>
-<header>
-  <h1>ZTimer</h1>
-  <select id="puzzle" aria-label="Puzzle"></select>
+<header id="top">
+  <span class="logo">ZTimer</span>
+  <button id="bSess" data-a="sessions"></button>
+  <button id="bPuz" data-a="puzzles"></button>
+  <span class="sp"></span>
+  <button data-a="options">Options</button>
+  <button data-a="export">Export / Import</button>
 </header>
-<main>
-  <section class="card">
-    <div id="scramble">Loading scramble…</div>
-    <div id="img"></div>
-    <div class="row"><button id="newScr">New scramble</button></div>
-  </section>
-  <section class="card" id="timer">
+<div id="scrbar">
+  <button data-a="prev" title="Previous scramble">&#9664;</button>
+  <div id="scr">Loading scramble…</div>
+  <button data-a="next" title="Next scramble">&#9654;</button>
+</div>
+<div id="wrap">
+  <aside id="left">
+    <table id="st"></table>
+    <div id="sum"></div>
+    <div id="times"></div>
+  </aside>
+  <main id="mid">
     <div id="time">0.00</div>
     <div id="hint">Hold Space (or press and hold here), release to start. Any key or tap stops.</div>
-  </section>
-  <div class="row" style="margin:0">
-    <button id="plus2">+2</button><button id="dnf">DNF</button><button id="del">Delete last</button>
-  </div>
-  <section class="card" id="stats"></section>
-  <section class="card">
-    <div id="list"></div>
-    <div class="row"><button id="exp">Export</button><button id="imp">Import</button><button id="clr">Clear puzzle</button><input id="file" type="file" accept=".json" hidden></div>
-  </section>
-</main>
-<footer>Scrambles by csTimer (GPL-3.0). Unofficial fan project, not affiliated with the WCA.</footer>
+    <div id="qa"><button data-a="q2">+2</button><button data-a="qd">DNF</button><button data-a="qx">Delete</button><button data-a="qn">Details</button></div>
+    <div id="img"></div>
+  </main>
+</div>
+<footer>ZTimer Web is an unofficial fan project, free software under GPL-3.0. Inspired by csTimer and ZTimer. <button data-a="credits">Credits and licences</button></footer>
+<dialog id="dlg"><div id="db"></div><form method="dialog" class="g"><button>Close</button></form></dialog>
+<input id="file" type="file" accept=".json,.txt,.csv" hidden>
 <script src="cstimer_bundle.js"></script>
 <script src="app.js"></script>
 </body>
