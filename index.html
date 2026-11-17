@@ -1,87 +1,268 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="ZTimer Web: a free speedcubing timer. Unofficial fan project inspired by csTimer and ZTimer. GPL-3.0.">
-<title>ZTimer Web</title>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <!--
-  ZTimer Web. Copyright (C) 2026 Zel (ZelCubes). Licensed under the GNU General Public License v3.0
-  (see LICENSE.txt in the repository). Source: https://github.com/zelcubecodes/ZTimer
-  Page layout and behaviour are inspired by csTimer (https://cstimer.net, Chen Shuang, GPL-3.0).
-  This file and app.js are original code written for this project; cstimer_bundle.js is csTimer code.
-  Full credits are in the "Credits" dialog. No warranty.
+  ZTimer Web - Copyright (C) 2026 Zel (ZelCubes). Based on csTimer (C) Shuang Chen (cs0x7f) and contributors.
+  Licensed under the GNU General Public License v3.0. Source: https://github.com/zelcubecodes/ZTimer
+  and the original csTimer source: https://github.com/cs0x7f/cstimer . No warranty. See CREDITS.md.
 -->
-<style>
-:root{--bg:#f4f5f7;--bar:#e6e9ee;--card:#fff;--text:#161a20;--dim:#667085;--line:#d5dae1;--acc:#1f7a4d;--ok:#16a34a;--bad:#dc2626;--warn:#d97706;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#101216;--bar:#1a1d23;--card:#171a20;--text:#e9ecf1;--dim:#8d96a5;--line:#2b303a;--acc:#4cc38a;color-scheme:dark}}
-:root[data-theme=dark]{--bg:#101216;--bar:#1a1d23;--card:#171a20;--text:#e9ecf1;--dim:#8d96a5;--line:#2b303a;--acc:#4cc38a;color-scheme:dark}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font:15px/1.4 system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-button,select,textarea{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
-button:hover{border-color:var(--acc)}
-#top{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 10px;background:var(--bar);border-bottom:1px solid var(--line)}
-.logo{font-size:18px;font-weight:700;color:var(--acc);margin-right:8px}.sp{flex:1}
-#scrbar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line)}
-#scr{flex:1;text-align:center;font:600 clamp(14px,2.3vw,21px)/1.5 ui-monospace,monospace;word-break:break-word;max-height:30vh;overflow:auto}
-#wrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(230px,310px) 1fr}
-#left{display:flex;flex-direction:column;gap:8px;padding:8px;border-right:1px solid var(--line);min-height:0}
-#mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px;min-height:0;user-select:none;touch-action:none}
-#st{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-#st th{color:var(--dim);font-weight:400;font-size:12px;text-align:right}
-#st td{padding:3px 4px;text-align:right;border-top:1px solid var(--line)}#st td:first-child{text-align:left;color:var(--dim)}
-#st td[data-a]{cursor:pointer}#st td[data-a]:hover{color:var(--acc)}
-#sum{color:var(--dim);font-size:13px}
-#times{flex:1;min-height:60px;overflow:auto;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
-.t{padding:2px 7px;border:1px solid var(--line);border-radius:6px;background:var(--card);font:13px ui-monospace,monospace;cursor:pointer}
-#time{font:700 clamp(64px,17vw,150px)/1 ui-monospace,monospace;cursor:pointer}
-#time.hold{color:var(--bad)}#time.ready{color:var(--ok)}#time.insp{color:var(--warn)}
-#hint{color:var(--dim);font-size:13px;text-align:center}
-#qa{display:flex;gap:6px}
-#img svg{max-width:min(300px,80vw);max-height:190px;width:auto;height:auto}
-footer{padding:6px 10px;font-size:12px;color:var(--dim);text-align:center;border-top:1px solid var(--line)}
-footer button{padding:0 4px;border:0;background:none;color:var(--acc);text-decoration:underline}
-dialog{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:14px;width:min(520px,94vw);max-height:88vh}
-dialog::backdrop{background:#0008}
-dialog h3{margin:0 0 8px}dialog label{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0}
-dialog .g{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}dialog pre{white-space:pre-wrap;word-break:break-word;font:13px ui-monospace,monospace}
-dialog table{border-collapse:collapse;width:100%;font-size:13px}dialog td,dialog th{border-top:1px solid var(--line);padding:4px;text-align:left;vertical-align:top}
-dialog textarea{width:100%}a{color:var(--acc)}
-@media (max-width:720px){#wrap{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}#mid{order:1}#left{order:2;border-right:0;border-top:1px solid var(--line)}}
-</style>
+<html>
+ <head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+  <meta name="keywords" content="timer, speedcubing, rubiks cube timer, scrambler">
+  <title>ZTimer Web - Speedcubing Timer</title>
+  <script type="text/javascript">
+var CSTIMER_VERSION = '2026.10.31-zt1';
+var LANG_SET = '|en-us';
+var LANG_STR = 'English';
+var LANG_CUR = 'en-us';
+  </script>
+  <script type="text/javascript" src="en-us.js"></script>
+  <link rel='stylesheet' type='text/css' href='style.css'>
+  <script type="text/javascript" src="jquery.min.js"></script>
+  <script type="text/javascript" src="cstimer.js"></script>
 </head>
 <body>
-<header id="top">
-  <span class="logo">ZTimer</span>
-  <button id="bSess" data-a="sessions"></button>
-  <button id="bPuz" data-a="puzzles"></button>
-  <span class="sp"></span>
-  <button data-a="options">Options</button>
-  <button data-a="export">Export / Import</button>
-</header>
-<div id="scrbar">
-  <button data-a="prev" title="Previous scramble">&#9664;</button>
-  <div id="scr">Loading scramble…</div>
-  <button data-a="next" title="Next scramble">&#9654;</button>
+<div id="leftbar">
+  <div class="mybutton c1"><div><span></span><span class="icon">&#59796;</span></div></div>
+  <div class="mybutton c2"><div><span></span><span class="icon">&#59846;</span></div></div>
+  <div class="mybutton c3"><div><span></span><span class="icon">&#59648;</span></div></div>
+  <div id="logo" class="mybutton"><div><span>ZTimer</span></div></div>
+  <div class="mybutton c4"><div><span></span><span class="icon">&#59835;</span></div></div>
+  <div class="mybutton c5"><div><span></span><span class="icon">&#59710;</span></div></div>
+  <div class="mybutton c6"><div><span></span><span class="icon">&#59795;</span></div></div>
 </div>
-<div id="wrap">
-  <aside id="left">
-    <table id="st"></table>
-    <div id="sum"></div>
-    <div id="times"></div>
-  </aside>
-  <main id="mid">
-    <div id="time">0.00</div>
-    <div id="hint">Hold Space (or press and hold here), release to start. Any key or tap stops.</div>
-    <div id="qa"><button data-a="q2">+2</button><button data-a="qd">DNF</button><button data-a="qx">Delete</button><button data-a="qn">Details</button></div>
-    <div id="img"></div>
-  </main>
+<div id="gray"></div>
+<div><img id="bgImage"></div>
+<div id="about" style="display:none;">
+<h1>ZTimer Web <small>(based on csTimer) - speedcubing timer</small></h1>
+
+<h2>Credits and licences</h2>
+<p><b>ZTimer Web</b> is an unofficial fan project, free software under the <a class="click" href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GNU GPL v3.0</a>. It is <b>not</b> made, endorsed or sponsored by csTimer or the World Cube Association. Source code, the list of changes and full credits: <a class="click" href="https://github.com/zelcubecodes/ZTimer" target="_blank" rel="noopener">github.com/zelcubecodes/ZTimer</a> (files CREDITS.md and ztimer-web-changes.patch).</p>
+<table class="table"><tr><th>Project</th><th>What ZTimer Web uses</th></tr>
+<tr><td><b>csTimer</b> by Shuang Chen (cs0x7f), UI designed by Yue Zhang, GPL-3.0<br><a class="click" href="https://cstimer.net/" target="_blank" rel="noopener">cstimer.net</a> · <a class="click" href="https://github.com/cs0x7f/cstimer" target="_blank" rel="noopener">source</a> · <a class="click" href="https://github.com/cs0x7f/cstimer/graphs/contributors" target="_blank" rel="noopener">contributors</a></td>
+<td><b>Almost everything in this timer</b>: the interface and layout, timer, inspection, sessions, statistics, all scramble generators and scramble images, solvers and tools. This site is a modified copy of csTimer's source code, rebranded and with the online features removed. The csTimer name is not used for this site.</td></tr>
+<tr><td><b>ZTimer</b> Android app by Zel (ZelCubes), GPL-3.0<br><a class="click" href="https://github.com/zelcubecodes/ZTimer" target="_blank" rel="noopener">source</a></td>
+<td>The project this website belongs to, and its idea of grouping puzzles into WCA and Non-WCA. Other zTimer features are planned.</td></tr>
+<tr><td><b>Cubic Timer</b> (hato-ya) and <b>Twisty Timer</b> (Ari Neto), GPL-3.0</td><td>Ancestors of the ZTimer app.</td></tr>
+<tr><td><b>Third-party libraries inside csTimer</b></td><td>jQuery (MIT), three.js (MIT), pnltri.js (see its licence), isaac.js (MIT), LZ-String (WTFPL), and the cube solving code by csTimer's author. Their notices are kept in the source in csTimer's repository.</td></tr></table>
+<p>Modifications to csTimer by Zel (2026): branding, online services and language switching removed, files flattened for GitHub Pages. See ztimer-web-changes.patch.</p>
+<h2>Introduction</h2>
+<p>ZTimer Web is a modified version of ZTimer Web for speedcubers. It keeps ZTimer Web's scramblers, scramble images, statistics, sessions and tools, and runs entirely in your browser. Your solves are stored on this device only.</p>
+<ul>
+<li>Scrambles for all WCA events, many non-WCA puzzles and training subsets (F2L, OLL, PLL, ZBLL and more).</li>
+<li>Time-split timing, any number of sessions, session split and merge, and detailed statistics.</li>
+<li>Solvers and tools such as Cross, Xcross, 2x2x2 face, Skewb face and SQ1 shape, scramble images, metronome and a batch scramble generator.</li>
+<li>Back up your solves to a local file from the Export button.</li>
+</ul>
+<p>Features that depend on ZTimer Web's own servers (online accounts, WCA or Google backup, online competitions and battles) are switched off in this version.</p>
+<h2>Basic functions</h2>
+<ul>
+<li><strong>How to start timing</strong> - Hold the space bar (or both of left and right Ctrl keys, or touch the screen on mobile devices) and wait for the timer to turn green, the timer will start timing once the space bar is released, press any key to stop timing and the solving time will be record.</li>
+<li><strong>UI description</strong> - There are 6 buttons near the logo of ZTimer Web: option, export, scramble, list times, donate, tools, click on the <strong>scramble</strong>, <strong>list times</strong>, <strong>tool</strong> to open the corresponding function panel.</li>
+<li><strong>Scramble panel</strong> - In the Scramble panel, you can select scramble type, set scramble length and case filter (if available), review previous scramble, generate next scramble.</li>
+<li><strong>List times panel</strong> - In the list times panel, you can open session manager by clicking "Session", select/add/delete sessions, empty session by the selector and the button next to, then you can view the current single/average, best single/average, and the full time list.</li>
+<li><strong>Tools panel</strong> - In the tool panel, you can select specific auxiliary functions, including scramble image, scramble generators, solvers, other kinds of statistics, etc.</li>
+</ul>
+<h2>Keyboard shortcut</h2>
+<table class="table" style="display: inline-block;">
+<tr><th>Key</th><td>Function</td></tr>
+<tr><th>Alt + 1</th><td>Scramble type to Square-1</td></tr>
+<tr><th>Alt + 2 ~ 7</th><td>Scramble type to 2x2x2~7x7x7</td></tr>
+<tr><th>Alt + p/m/c/s</th><td>Scramble type to pyra/megaminx/clock/skewb</td></tr>
+<tr><th>Alt + i</th><td>Scramble type to input</td></tr>
+<tr><th>Alt + d</th><td>Remove all solves in current session</td></tr>
+<tr><th>Ctrl/Alt + z</th><td>Remove the latest solve</td></tr>
+<tr><th>Alt + up/down</th><td>To next/last session</td></tr>
+<tr><th>Alt + left/right</th><td>Display last/next scramble</td></tr>
+<tr><th>Ctrl + 1/2/3</th><td>The latest solve is OK/+2/DNF</td></tr>
+<tr><th>Ctrl + Alt + t/i/s/v/g/q/b/l</th><td>Entering in times with timer/typing/stackmat/virtual/bluetooth cube/qcube/bluetooth timer/last layer</td></tr>
+</table>
+
+<table class="table" style="display: inline-block;">
+<tr><th>Gesture</th><td>Function</td></tr>
+<tr><th>Up left</th><td>The latest solve is DNF</td></tr>
+<tr><th>Up</th><td>The latest solve is +2</td></tr>
+<tr><th>Up right</th><td>The latest solve is OK</td></tr>
+<tr><th>Left</th><td>Last scramble</td></tr>
+<tr><th>Right</th><td>Next scramble</td></tr>
+<tr><th>Down left</th><td>Add comment to the latest solve</td></tr>
+<tr><th>Down</th><td>Remove the latest solve</td></tr>
+<tr><th>Down right</th><td>Check the latest solve</td></tr>
+</table>
+
+<table class="table" id="vrckey" style="display: inline-block;">
+<tr><th colspan=10>Virtual Cube Key Map</th></tr>
+</table>
+
+<h2>Option details</h2>
+<ul>
+<li><strong data="opt_ahide">Hide all elements when timing</strong>. Hide logo and all panels when timing.</li>
+<li><strong data="opt_useMilli">Use milliseconds</strong>. Display the millisecond digit, no matter whether it is checked, the internal timing accuracy of ZTimer Web is 1 millisecond.</li>
+<li><strong data="opt_timeFormat">Time format</strong>. Time format to display.</li>
+<li><strong data="opt_atexpa">Auto export (every 100 solves)</strong>. If checked, ZTimer Web will export the solves automatically per 100 solves to the specified place, local file, ZTimer Web server, or Google Storage.</li>
+<li><strong data="opt_expp">Import non-latest data</strong>. If you've uploaded multiple backups, you can import from one of the up to 10 most recently uploaded backups, if you accidentally upload an empty backup, this option will help you retrieve your solves.</li>
+<li><strong data="opt_useLogo">hint messages in logo</strong>. cstimer's Logo will serve as an information display panel that prompts for a variety of information you may be interested in, such as breaking PB.</li>
+<li><strong data="opt_showAvg">show average label</strong>. Two lines of labels are displayed below the the main timer, the current two averages, ao5 and ao12 by default.</li>
+<li><strong data="opt_zoom">Zoom</strong>. You can adjust sizes of all elements by this option.</li>
+<li><strong data="opt_font">Select timer&#x27;s font</strong>. Font of the main timer.</li>
+<li><strong data="opt_uidesign">UI design is</strong>. You can switch ui design to material-like, or hide shadows by this option.</li>
+<li><strong data="opt_view">UI style is</strong>. Switch between desktop and mobile views.</li>
+<li><strong data="opt_wndScr">Scramble panel display style</strong>. Make scramble panel embedded into background.</li>
+<li><strong data="opt_wndStat">Statistics panel display style</strong>. Make list times panel embedded into background.</li>
+<li><strong data="opt_wndTool">Tools panel display style</strong>. Make tool panel embedded into background.</li>
+<li><strong data="opt_bgImgO">background image opacity</strong>. Opacity of the background image.</li>
+<li><strong data="opt_bgImgS">background image</strong>. You can select your own image as the background image, however, only https urls are available due to security constraint of the browser.</li>
+<li><strong data="opt_timerSize">Timer size</strong>. Set the size of main timer.</li>
+<li><strong data="opt_smallADP">Use small font after decimal point</strong>. Use a smaller font size after the digital point in main timer.</li>
+<li><strong data="opt_color">Select color theme</strong>. Select color schemes of ZTimer Web. Click ZTimer Web's logo to show more color schemes.</li>
+<li><strong data="opt_useMouse">Use mouse timer</strong>. Use mouse to start timer, keyboard-trigger will also be available.</li>
+<li><strong data="opt_useIns">Use WCA inspection</strong>. Enable WCA inspection procedure, which is a 15-second countdown, auto +2/DNF penalty will also be enabled if you inspecting more than 15 seconds.</li>
+<li><strong data="opt_voiceIns">Voice alert of WCA inspection</strong>. Alert at 8s/12s of inspection, to simulate the alert from judge in WCA competitions.</li>
+<li><strong data="opt_voiceVol">Voice volume</strong>. Voice level of the alert above.</li>
+<li><strong data="opt_input">Add solves by</strong>. ZTimer Web is able to add solves by several ways, it supports manually input, automatically record from a stackmat timer, connect to a bluetooth smart cube or play virtual Rubik's cube, besides keyboard timing.</li>
+<li><strong data="opt_intUN">Unit when entering an integer</strong>. When you type an integer XXX in the input box, what does it mean, XXX second or XXX centisecond or XXX millisecond?</li>
+<li><strong data="opt_timeU">Timer update is</strong>. How timer is updated when timing.</li>
+<li><strong data="opt_preTime">Time to hold the space bar (seconds)</strong>. How long the space bar should be held before the timer turns green.</li>
+<li><strong data="opt_phases">Multi-phase</strong>. Number of phases, press any key to mark a split point when timing.</li>
+<li><strong data="opt_stkHead">Use Stackmat status information</strong>. Stackmat will report its state, e.g. whether left or right area is touched, then ZTimer Web is able to use these information, however, the data error might occur and cause unexpected behavior.</li>
+<li><strong data="opt_scrSize">Scramble size</strong>. Size of the scramble text.</li>
+<li><strong data="opt_scrASize">Auto scramble size</strong>. The size of the scramble text will be automatically adjusted by the length of the scramble, which works with together previous option.</li>
+<li><strong data="opt_scrMono">Monospaced scramble</strong>. Use monospaced font for scramble text.</li>
+<li><strong data="opt_scrLim">Limit the height of scramble area</strong>. When the scramble area is too high, a scroll bar will occur to avoid the raising of the scramble panel.</li>
+<li><strong data="opt_scrAlign">Alignment of scramble area</strong>. Alignment of the whole scramble area, include scramble type selector.</li>
+<li><strong data="opt_preScr">pre-scramble</strong>. Pre moves before scramble, which is used for virtual Rubik's cube and scramble image.</li>
+<li><strong data="opt_scrNeut">Color neutral</strong>. If turned on, the position/first-layer color of some training scrambles will be random.</li>
+<li><strong data="opt_scrEqPr">Probabilities for training-scramble states</strong>. For training scrambles, the probability of each case can be set to: follow the probability of the actual solving process; or let all cases appear with equal probability; or let all cases appear randomly in sequence (that is, to ensure that all N cases appear at least once in the next 2 N scrambles).</li>
+<li><strong data="opt_scrFast">Use fast scramble for 4x4x4 (non-official)</strong>. WCA official 4x4x4 scramble requires huge computation resources, select this option to use a random-move scramble for 4x4x4 instead.</li>
+<li><strong data="opt_scrKeyM">Label key move(s) in scramble</strong>. Mark a key move in the scramble, e.g. the move that take the state away from square shape in SQ1 scrambles.</li>
+<li><strong data="opt_scrClk">Action when clicking scramble</strong>. Behavior when you click on the scramble text, copy scramble or generate next scramble.</li>
+<li><strong data="opt_trim">Number of solves trimmed from the better side</strong>. Number of solves trimmed at head and tail of solves when calculating average.</li>
+<li><strong data="opt_statsum">Show summary before time list</strong>. Show the statistics table before time list.</li>
+<li><strong data="opt_statthres">Show target time for session best</strong>. In the statistics table, the time required to refresh personal best after next solve is displayed. "N/A" means the next solve will not refresh PB no matter how fast it is, "&#8734;" means any time except DNF will refresh PB.</li>
+<li><strong data="opt_printScr">Print scramble(s) in statistics</strong>. Print scramble in round statistics dialog.</li>
+<li><strong data="opt_printDate">Print solving date in statistics</strong>. Print solving date in round statistics dialog.</li>
+<li><strong data="opt_imrename">Rename session immediately after creation</strong>. Immediately rename a session after creating it.</li>
+<li><strong data="opt_scr2ss">Create new session when switching scramble type</strong>. When switching scramble type, a new session will be created.</li>
+<li><strong data="opt_statinv">Invert time list</strong>. Invert the time list, thus, latest solves will at the bottom of the time list.</li>
+<li><strong data="opt_statclr">Enable session emptying</strong>. When disabled, an '+' button (for session creating) will replace the 'X' button besides the session selector, thus, when clicked, a new empty session will be created instead of clearing the whole session.</li>
+<li><strong data="opt_absidx">Show absolute index in statistics report</strong>. Show absolute index in the session instead of 1 to number of solves (e.g. 1/2/3 for mo3) in round statistics.</li>
+<li><strong data="opt_rsfor1s">Show stat. when clicking solve number</strong>. When click the first row of the time list, show a round statistics for a single solve.</li>
+<li><strong data="opt_statal">Statistical indicators</strong>. Statistical indicator for the statistics table, when customizing, aoX and moX are available.</li>
+<li><strong data="opt_delmul">Enable multiple deletion</strong>. Able to delete multiple solves starts from a solve, for avoid misunderstand, the selected solve will be the oldest solve to delete.</li>
+<li><strong data="opt_disPrec">time distribution precision</strong>. Time interval for the time distribution tool.</li>
+<li><strong data="opt_solSpl">Show solution progressively</strong>. If selected, only the length of a solution from a solver is displayed, and you can view the solution one move by one move, otherwise, the whole solution is displayed.</li>
+<li><strong data="opt_imgSize">Scramble image size</strong>. Set the size of scramble image.</li>
+<li><strong data="opt_NTools">Number of tools</strong>. ZTimer Web is able to show up to 4 tools simultaneously.</li>
+<li><strong data="opt_useKSC">Use keyboard shortcut</strong>. Use keyboard shortcut to switch scramble type, generate next scramble, switch between sessions. Click ZTimer Web's logo to show details.</li>
+<li><strong data="opt_useGES">Use gesture control</strong>. Use gestures (swiping in different directions) to switch OK/+2/DNF, add comments, generate next scramble, etc. Also available on non-touch screen devices when mouse timer is enabled. Click ZTimer Web's logo to show details.</li>
+<li><strong data="opt_vrcSpeed">VRC base speed (tps)</strong>. Base turn speed of the virtual Rubik's cube, the turn will be speed up if there are multiple moves to turn.</li>
+<li><strong data="opt_vrcMP">Multi-phase</strong>. Automatic multi-phase split for virtual Rubik's cube and bluetooth cube.</li>
+<li><strong data="opt_giiMode">Bluetooth cube mode</strong>. Usage mode of smart cube: In normal mode, you need to manually scramble the cube until it is consistent with the scrambled state; in training mode, after pressing the space (or touching the screen on the touch screen), the virtual cube will directly change to the scrambled state. You need to solve virtual cube partially (depends on scramble, e.g. permutation of last layer is not checked in oll training) instead of physical cube; In continuous training mode, in addition to training mode, once the virtual cube is solved, you will directly enter the next solve without pressing space. You can also press ESC (on a touch screen, hold the screen for 2 seconds) to exit the solve.</li>
+<li><strong data="opt_giiVRC">Show virtual bluetooth cube</strong>. Show a virtual Rubik's cube in the main timer when connecting to a bluetooth cube.</li>
+<li><strong data="opt_giiSD">Mark scrambled after staying</strong>. For a bluetooth cube, ZTimer Web cannot know whether a move is from for scrambling or solving.</li>
+<li><strong data="opt_giiSK">Mark scrambled with spacebar</strong>. When the space bar is pressed, the bluetooth cube is marked scrambled, any turns after that will treated as the start of timing.</li>
+<li><strong data="opt_giiSM">Mark scrambled by doing</strong>. Use specific move sequences on the bluetooth cube to mark scrambled.</li>
+<li><strong data="opt_giiBS">Beep when marked scrambled</strong>. Beep when some of scramble-finish signal is triggered.</li>
+<li><strong data="opt_giiRST">Reset Bluetooth cube when connected</strong>. When connecting to a bluetooth cube, ZTimer Web will detect whether it is solved, if not, there might be some hardware problems or the cube is really unsolved.</li>
+<li><strong data="opt_giiAED">Auto hardware error detection</strong>. Some bluetooth cubes will loss some of moves due to hardware failure, ZTimer Web will try to detect such case.</li>
+</ul>
+<h2>Tools details</h2>
+<ul>
+<li><strong data="tool_scrgen">Scramble Generator</strong>. You are able to generate up to 999 scrambles with one click by this tool.</li>
+<li><strong data="tool_cfm">Confirm time</strong>. Tool to view current solves with its comment, scramble, solving date and reconstruction if available, which is also the dialog when you click on a solve.</li>
+<li><strong data="tool_hugestats">cross-session stats</strong>. You are able to do cross-session statistics with this tool.</li>
+<li><strong data="tool_stats">Statistics</strong>. Statistic table similar with the table in the list times panel.</li>
+<li><strong data="tool_distribution">time distribution</strong>. Time distribution and stability analysis, &lt;X Y/Z means there are totally Z solves less than X seconds, and all of the latest Y solves are less than X seconds in the session.</li>
+<li><strong data="tool_trend">time trend</strong>. Shows a trend curve of all solves in current session.</li>
+<li><strong data="tool_dlystat">Daily Statistics</strong>. Count number of solves each day/week/month/year.</li>
+<li><strong data="tool_image">draw scramble</strong>. Scramble image to verify a correct scramble, all WCA puzzles are supported.</li>
+<li><strong data="tool_roux1">Solvers &gt; Roux S1</strong>. Roux 1st step solver, which solves a 1x2x3 block.</li>
+<li><strong data="tool_eoline">Solvers &gt; EOLine</strong>. EO line solver, which solves orientations of all 12 edges, and positions of DF and DB edges.</li>
+<li><strong data="tool_cross">Solvers &gt; Cross</strong>. Cross solver, which solve DF, DL, DR, DB edges.</li>
+<li><strong data="tool_222face">Solvers &gt; 2x2x2 face</strong>. 2x2x2 face solver, which solves a face of 2x2x2 cube.</li>
+<li><strong data="tool_333cf">Solvers &gt; Cross + F2L</strong>. Cross and F2L solver, which solves Cross and 4 F2Ls with computer search, so the solution might be far from human solutions.</li>
+<li><strong data="tool_333roux">Solvers &gt; Roux S1 + S2</strong>. Roux 1st and 2nd step solver, which firstly solves a 1x2x3 block on the left face and then expend another 1x2x3 block on the right face with R, M, r, U.</li>
+<li><strong data="tool_333petrus">Solvers &gt; 2x2x2 + 2x2x3</strong>. Petrus 1st and 2nd step solver, which firstly solves an 2x2x2 block on the left and then expend it to a 2x2x3 on the left.</li>
+<li><strong data="tool_333zz">Solvers &gt; EOLine + ZZF2L</strong>. Eoline and ZZF2L solver, which firstly solves the EOLine and then solve one of left 1x2x3 or right 1x2x3 and the solve the other 2x2x3.</li>
+<li><strong data="tool_sq1cs">Solvers &gt; SQ1 S1 + S2</strong>. SQ1 1st and 2nd step solver, which firstly solves the shape of SQ1 and then split U pieces and D pieces.</li>
+<li><strong data="tool_pyrv">Solvers &gt; Pyraminx V</strong>. Pyraminx V solver, which solves three corners and two edges to shape into a 'V' pattern for pyraminx.</li>
+<li><strong data="tool_skbl1">Solvers &gt; Skewb Face</strong>. Skewb face solver, which solves a layer of skewb, more specifically, 1 center and 4 neighbor corners.</li>
+<li><strong data="tool_giikerutil">Bluetooth Cube</strong>. Auxiliary tool for bluetooth cube, which is able to show current state, battery power, real-time reconstruction etc.</li>
+<li><strong data="tool_mtrnm">metronome</strong>. Metronome, besides beeping at specific frequency, you make it beep at specific time after starting solve as well.</li>
+<li><strong data="tool_syncseed">Common Scramble</strong>. Using same scrambles with friends by setting a common seed.</li>
+<li><strong data="tool_stackmatutil">stackmat</strong>. Auxiliary tool for Stackmat, which is able to view the status, power and noise level of the signal, etc.</li>
+</ul>
+<h2>Links</h2>
+<ul>
+<li><a class="click" href="https://cubingchina.com/" title="">Cubing China</a></li>
+<li><a class="click" href="/new/" title="">ZTimer Web beta version</a></li>
+<li><a class="click" href="/src/" title="">ZTimer Web beta version with uncompressed files</a></li>
+<li><a class="click" href="https://github.com/cs0x7f/cstimer" title="">ZTimer Web source code</a></li>
+</ul>
+<h2>Color schemes</h2>
+<ul style="font-family: monospace; padding-left:0;">
+<li><a class="click" href="#000#efc#fdd#fbb#00f#ff0#000"></a></li>
+<li><a class="click" href="#fff#000#555#888#aaa#000#aaa"></a></li>
+<li><a class="click" href="#9aa#023#034#b80#28d#678#034"></a></li>
+<li><a class="click" href="#fff#000#000#000#fff#fff#000"></a></li>
+<li><a class="click" href="#000#fff#ccc#ddd#555#fff#888"></a></li>
+<li><a class="click" href="#000#ffe#ff9#ff0#00f#fa0#000"></a></li>
+<li><a class="click" href="#fff#600#668#408#ccf#0ff#000"></a></li>
+<li><a class="click" href="#678#ffe#eed#ffe#28d#678#eed"></a></li>
+<li><a class="click" href="#fff#227#9c3#563#580#dad#000"></a></li>
+<li><a class="click" href="#000#0ff#fdd#fbb#00f#ff0#000"></a></li>
+<li><a class="click" href="#000#af0#fdd#fbb#00f#ff0#000"></a></li>
+<li><a class="click" href="#000#cff#fdd#fbb#00f#ff0#000"></a></li>
+<li><a class="click" href="#000#fd8#fb6#fa5#734#000#fb6"></a></li>
+<li><a class="click" href="#000#fff#fff#fff#00f#ff0#000"></a></li>
+<li><a class="click" href="#0f0#000#333#666#ccc#0f0#333"></a></li>
+<li><a class="click" href="#0ff#000#000#000#0ff#0ff#000"></a></li>
+<li><a class="click" href="#555#bba#ddc#edc#750#761#ddc"></a></li>
+<li><a class="click" href="#99a#203#304#70b#82d#508#204"></a></li>
+<li><a class="click" href="#e80#111#517#406#fff#fff#111"></a></li>
+<li><a class="click" href="#fc4#023#034#c32#28d#000#034"></a></li>
+<li><a class="click" href="#fff#000#444#e31#fe4#18f#fff"></a></li>
+<li><a class="click" href="#fff#09d#06a#f70#fff#fff#000"></a></li>
+<li><a class="click" href="#fff#69c#235#47b#fff#fff#124"></a></li>
+<li><a class="click" href="#fff#922#374#922#000#000#eb4"></a></li>
+<li><a class="click" href="#19b#bff#cff#aef#3ce#19b#cff"></a></li>
+<li><a class="click" href="#fff#000#000#666#fff#fff#000"></a></li>
+<li><a class="click" href="#9aa#023#034#157#169#678#034"></a></li>
+<li><a class="click" href="#584#cba#ddc#edc#750#761#edc"></a></li>
+<li><a class="click" href="#888#000#000#333#ccc#7d4#000"></a></li>
+<li><a class="click" href="#b00#000#000#000#c00#c00#000"></a></li>
+</ul>
+
+<div class="donate helptable" style="line-height:1.5em;">
+<h2>Support the original developers</h2>
+<p>ZTimer Web is free software and takes no donations. It is built on ZTimer Web, written by Shuang Chen (cs0x7f) with a UI designed by Yue Zhang. If you enjoy this timer, please visit <a class="click" href="https://cstimer.net/" target="_blank" rel="noopener">cstimer.net</a> and the <a class="click" href="https://github.com/cs0x7f/cstimer" target="_blank" rel="noopener">ZTimer Web repository</a> and support the original project.</p>
 </div>
-<footer>ZTimer Web is an unofficial fan project, free software under GPL-3.0. Inspired by csTimer and ZTimer. <button data-a="credits">Credits and licences</button></footer>
-<dialog id="dlg"><div id="db"></div><form method="dialog" class="g"><button>Close</button></form></dialog>
-<input id="file" type="file" accept=".json,.txt,.csv" hidden>
-<script src="cstimer_bundle.js"></script>
-<script src="app.js"></script>
-</body>
-</html>
+<div class="instruction">
+<p><strong>In case of failure check that Bluetooth is enabled on your system!</strong></p>
+<p>Browser you are using must support Web Bluetooth API. Consider using compatible browser, the best choice is:</p>
+<ul>
+<li>Chrome on macOS, Linux, Android or Windows</li>
+<li>Bluefy on iOS</li>
+</ul>
+<p>Also you can check complete list of <a class="click" href="https://github.com/WebBluetoothCG/web-bluetooth/blob/main/implementation-status.md" title="">supported browsers</a>.</p>
+<p>For some bluetooth cubes, we need you to provide the MAC address of your cube to decrypt the data. <strong>ZTimer Web is able to automatically read MAC address of the cube if you properly setup your browser:</strong></p>
+<ul>
+<li>Chrome: enable chrome://flags/#enable-experimental-web-platform-features flag in browser settings.</li>
+<li>Bluefy: turn on Enable BLE Advertisements option in browser settings.</li>
+</ul>
+<p>If you have difficulties with cube MAC address, you may read <a class="click" href="https://gist.github.com/afedotov/52057533a8b27a0277598160c384ae71" title="">GAN Smart Cubes MAC address FAQ</a>.</p>
+</div>
+</div>
+<table id="timer" border="0"><tbody>
+<tr><td id="container">
+<div id="lcd"></div>
+<div id="avgstr"></div>
+</td></tr>
+</tbody></table>
+<table id="rtimer" border="0" style="position:absolute; right:0%; height:100%;"><tbody>
+<tr><td id="multiphase"></td></tr>
+</tbody></table>
+</body></html>
