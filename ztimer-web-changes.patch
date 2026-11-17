@@ -78,6 +78,251 @@ diff -ruN cstimer-master/src/js/logohint.js zt/src/js/logohint.js
  		logocc.removeClass('hint');
  		var duration = (curMsg.length + 15) * 0.1 + 's';
  		logocc.css({
+diff -ruN cstimer-master/src/js/scramble/scramble.js zt/src/js/scramble/scramble.js
+--- cstimer-master/src/js/scramble/scramble.js	2026-11-13 09:23:00.000000000 +0000
++++ zt/src/js/scramble/scramble.js	2026-11-17 04:17:59.032003017 +0000
+@@ -302,6 +302,22 @@
+ 		}
+ 	}
+ 
++	// ZTimer Web: choose between Rw (WCA) and r (csTimer) wide moves for 4x4 and bigger cubes. Display only.
++	function wideNotation(type, scramble) {
++		var mode = kernel.getProp('scrWide', 'd');
++		if (mode == 'd' || !/^(444|555|666|777|888|999|101010|111111|r\d{3,})/.test(type)) {
++			return scramble;
++		}
++		if (mode == 'r') {
++			return scramble.replace(/(^|\s)([UDFRLB])w(?=['2\s\\]|$)/g, function(m, a, b) {
++				return a + b.toLowerCase();
++			});
++		}
++		return scramble.replace(/(^|\s)([udfrlb])(?=['2\s\\]|$)/g, function(m, a, b) {
++			return a + b.toUpperCase() + 'w';
++		});
++	}
++
+ 	function scrStd(type, scramble, len, forDisplay, forceKeyM) {
+ 		scramble = scramble || '';
+ 		len = len || 0;
+@@ -316,7 +332,7 @@
+ 			var fontSize = kernel.getProp('scrASize') ? Math.max(0.25, Math.round(Math.pow(50 / Math.max(scrTxt.length, 10), 0.30) * 20) / 20) : 1;
+ 			sdiv.css('font-size', fontSize + 'em');
+ 			DEBUG && console.log('[scrFontSize]', fontSize);
+-			return scramble.replace(/~/g, '&nbsp;').replace(/\\n/g, '\n')
++			return wideNotation(type, scramble).replace(/~/g, '&nbsp;').replace(/\\n/g, '\n')
+ 				.replace(/`(.*?)`/g, forceKeyM || kernel.getProp('scrKeyM', false) ? '<u>$1</u>' : '$1');
+ 		} else {
+ 			return [type, scrTxt, len];
+@@ -910,6 +926,7 @@
+ 		kernel.regProp('scramble', 'scrMono', 0, PROPERTY_SCRMONO, [true], 1);
+ 		kernel.regProp('scramble', 'scrLim', 0, PROPERTY_SCRLIM, [false], 1);
+ 		kernel.regProp('scramble', 'scrAlign', 1, PROPERTY_SCRALIGN, ['c', ['c', 'l', 'r'], PROPERTY_SCRALIGN_STR.split('|')], 1);
++		kernel.regProp('scramble', 'scrWide', 1, 'Wide move notation (4x4 and bigger)', ['d', ['d', 'w', 'r'], ['As generated', 'Rw (WCA style)', 'r (csTimer style)']], 1);
+ 		kernel.regProp('scramble', 'scrWrap', 1, PROPERTY_SCRWRAP, ['b', ['b', 'n'], PROPERTY_SCRWRAP_STR.split('|')], 1);
+ 		kernel.regProp('scramble', 'preScr', 1, "pre-scramble", ['',
+ 			["", "y", "y2", "y'", "z2", "z2 y", "z2 y2", "z2 y'", "z'", "z' y", "z' y2", "z' y'", "z", "z y", "z y2", "z y'", "x'", "x' y", "x' y2", "x' y'", "x", "x y", "x y2", "x y'"],
+diff -ruN cstimer-master/src/js/tools/wca.js zt/src/js/tools/wca.js
+--- cstimer-master/src/js/tools/wca.js	1970-01-01 00:00:00.000000000 +0000
++++ zt/src/js/tools/wca.js	2026-11-17 04:17:59.001257724 +0000
+@@ -0,0 +1,160 @@
++"use strict";
++
++/*
++ * ZTimer Web: WCA data tool (world records, upcoming competitions, WCA ID lookup).
++ * Idea from the WCA pages of the ZTimer Android app. New code, Copyright (C) 2026 Zel (ZelCubes), GPL-3.0.
++ * Data comes live from the public WCA API. All of it belongs to the World Cube Association.
++ */
++var wcaTool = execMain(function() {
++	var API = 'https://www.worldcubeassociation.org/api/v0/';
++	var EVENTS = [['333', '3x3'], ['222', '2x2'], ['444', '4x4'], ['555', '5x5'], ['666', '6x6'], ['777', '7x7'],
++		['333bf', '3x3 Blindfolded'], ['333fm', '3x3 Fewest Moves'], ['333oh', '3x3 One-Handed'], ['clock', 'Clock'],
++		['minx', 'Megaminx'], ['pyram', 'Pyraminx'], ['skewb', 'Skewb'], ['sq1', 'Square-1'],
++		['444bf', '4x4 Blindfolded'], ['555bf', '5x5 Blindfolded'], ['333mbf', '3x3 Multi-Blind']];
++	var tab = 'records';
++	var body;
++
++	function esc(s) {
++		return String(s == null ? '' : s).replace(/[&<>"]/g, function(c) {
++			return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c];
++		});
++	}
++
++	function fmt(ev, v, isAvg) {
++		if (!v || v <= 0) {
++			return '-';
++		}
++		if (ev == '333fm') {
++			return isAvg ? (v / 100).toFixed(2) : String(v);
++		}
++		if (ev == '333mbf') {
++			var missed = v % 100, secs = Math.floor(v / 100) % 100000, diff = 99 - Math.floor(v / 10000000) % 100;
++			var solved = diff + missed;
++			return solved + '/' + (solved + missed) + ' ' + Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2);
++		}
++		var s = v / 100;
++		if (s >= 60) {
++			var m = Math.floor(s / 60);
++			return m + ':' + ('0' + (s - m * 60).toFixed(2)).slice(-5);
++		}
++		return s.toFixed(2);
++	}
++
++	function get(path, ok) {
++		body.html('Loading...');
++		var mine = body;
++		fetch(API + path).then(function(r) {
++			if (!r.ok) {
++				throw new Error(r.status);
++			}
++			return r.json();
++		}).then(function(j) {
++			if (mine == body) {
++				ok(j);
++			}
++		}).catch(function() {
++			if (mine == body) {
++				body.html('Could not load data from the WCA. Check your connection or the WCA ID and try again.');
++			}
++		});
++	}
++
++	function records() {
++		get('records', function(j) {
++			var wr = j.world_records || {};
++			var h = '<table class="table" style="margin:auto;"><tr><th>Event</th><th>Single</th><th>Average</th></tr>';
++			EVENTS.forEach(function(e) {
++				var r = wr[e[0]];
++				if (r) {
++					h += '<tr><td>' + esc(e[1]) + '</td><td>' + fmt(e[0], r.single, false) + '</td><td>' + fmt(e[0], r.average, true) + '</td></tr>';
++				}
++			});
++			body.html('<b>World records</b><br>' + h + '</table>');
++		});
++	}
++
++	function competitions() {
++		var country = (localStorage['ztimer.wcaCountry'] || '').toUpperCase();
++		var input = $('<input type="text" maxlength="2" style="width:2em; text-align:center;">').val(country);
++		var d = new Date();
++		var today = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
++		var ctl = $('<div>Country code (e.g. US, blank for worldwide): </div>').append(input, ' ',
++			$('<input type="button">').val('Go').click(function() {
++				localStorage['ztimer.wcaCountry'] = input.val().toUpperCase();
++				competitions();
++			}));
++		var q = 'competitions?sort=start_date&per_page=25&start=' + today + (country.length == 2 ? '&country_iso2=' + country : '');
++		get(q, function(j) {
++			var h = '<table class="table" style="margin:auto; text-align:left;">';
++			(j || []).forEach(function(c) {
++				h += '<tr><td>' + esc(c.start_date) + (c.end_date != c.start_date ? '<br>' + esc(c.end_date) : '') + '</td><td><a class="click" target="_blank" rel="noopener" href="https://www.worldcubeassociation.org/competitions/' +
++					encodeURIComponent(c.id) + '">' + esc(c.name) + '</a><br>' + esc(c.city) + ' ' + esc(c.country_iso2) + '</td></tr>';
++			});
++			body.empty().append('<b>Upcoming competitions</b><br>', ctl, h + (j && j.length ? '' : '<tr><td>No upcoming competitions found.</td></tr>') + '</table>');
++		});
++	}
++
++	function person() {
++		var id = $('<input type="text" maxlength="10" style="width:8em;" placeholder="2015ABCD01">').val(localStorage['ztimer.wcaId'] || '');
++		var out = $('<div>');
++		var ctl = $('<div>WCA ID: </div>').append(id, ' ', $('<input type="button">').val('Look up').click(function() {
++			var v = id.val().toUpperCase().replace(/[^0-9A-Z]/g, '');
++			localStorage['ztimer.wcaId'] = v;
++			if (!/^\d{4}[A-Z]{4}\d{2}$/.test(v)) {
++				out.html('A WCA ID looks like 2015ABCD01.');
++				return;
++			}
++			out.html('Loading...');
++			fetch(API + 'persons/' + v).then(function(r) {
++				if (!r.ok) {
++					throw new Error(r.status);
++				}
++				return r.json();
++			}).then(function(j) {
++				var p = j.person || {}, pr = j.personal_records || {};
++				var h = '<b>' + esc(p.name) + '</b> (' + esc(p.country_iso2) + ') - <a class="click" target="_blank" rel="noopener" href="https://www.worldcubeassociation.org/persons/' + v + '">' + v + '</a><br>' +
++					'Competitions: ' + esc(j.competition_count) + '<table class="table" style="margin:auto;"><tr><th>Event</th><th>Single</th><th>NR</th><th>WR</th><th>Average</th><th>NR</th><th>WR</th></tr>';
++				EVENTS.forEach(function(e) {
++					var r = pr[e[0]];
++					if (r) {
++						var s = r.single || {}, a = r.average || {};
++						h += '<tr><td>' + esc(e[1]) + '</td><td>' + fmt(e[0], s.best, false) + '</td><td>' + esc(s.country_rank || '-') + '</td><td>' + esc(s.world_rank || '-') +
++							'</td><td>' + fmt(e[0], a.best, true) + '</td><td>' + esc(a.country_rank || '-') + '</td><td>' + esc(a.world_rank || '-') + '</td></tr>';
++					}
++				});
++				out.html(h + '</table>');
++			}).catch(function() {
++				out.html('Could not find that WCA ID, or the WCA could not be reached.');
++			});
++		}));
++		body.empty().append(ctl, out);
++	}
++
++	function show() {
++		({records: records, competitions: competitions, person: person})[tab]();
++	}
++
++	function execFunc(fdiv) {
++		if (!fdiv) {
++			body = null;
++			return;
++		}
++		body = $('<div style="margin-top:0.5em;">');
++		var tabs = $('<div>');
++		[['records', 'Records'], ['competitions', 'Competitions'], ['person', 'WCA ID']].forEach(function(t) {
++			tabs.append($('<span class="click" style="margin:0 0.6em;">').html(t[1]).click(function() {
++				tab = t[0];
++				body = $('<div style="margin-top:0.5em;">').replaceAll(body);
++				show();
++			}));
++		});
++		fdiv.empty().append(tabs, body, '<div style="font-size:0.75em; margin-top:0.8em;">Data: World Cube Association, ' +
++			'<a class="click" target="_blank" rel="noopener" href="https://www.worldcubeassociation.org/">worldcubeassociation.org</a>, through its public API. ' +
++			'All competition data is owned and maintained by the WCA. ZTimer Web is not affiliated with the WCA.</div>');
++		show();
++	}
++
++	$(function() {
++		tools.regTool('wca', 'WCA data', execFunc);
++	});
++});
+diff -ruN cstimer-master/src/js/tools/zquick.js zt/src/js/tools/zquick.js
+--- cstimer-master/src/js/tools/zquick.js	1970-01-01 00:00:00.000000000 +0000
++++ zt/src/js/tools/zquick.js	2026-11-17 04:17:59.000410363 +0000
+@@ -0,0 +1,34 @@
++"use strict";
++
++/*
++ * ZTimer Web: quick action buttons under the timer (OK, +2, DNF, delete, comment).
++ * Idea from the ZTimer Android app's quick actions. New code, Copyright (C) 2026 Zel (ZelCubes), GPL-3.0.
++ * It only sends csTimer's own 'ctrl' signals, the same ones its keyboard shortcuts use.
++ */
++var zquick = execMain(function() {
++	var bar = $('<div id="zquick" style="margin-top:0.6em; text-align:center;"/>');
++
++	function btn(label, cmd, title) {
++		return $('<input type="button" style="margin:0 0.2em;">').val(label).attr('title', title).click(function() {
++			kernel.pushSignal('ctrl', ['stats', cmd]);
++		});
++	}
++
++	function update() {
++		bar.toggle(!!kernel.getProp('zQuick'));
++	}
++
++	$(function() {
++		kernel.regProp('ui', 'zQuick', 0, 'Show quick action buttons under the timer', [true], 1);
++		bar.append(btn('OK', 'OK', 'Clear the penalty of the last solve'), btn('+2', '+2', 'Add a 2 second penalty to the last solve'),
++			btn('DNF', 'DNF', 'Mark the last solve as DNF'), btn('Delete', 'undo', 'Delete the last solve'),
++			btn('Comment', 'cmt', 'Add a comment to the last solve'));
++		// do not let a press on these buttons start or stop the timer
++		bar.on('mousedown mouseup touchstart touchend keydown keyup', function(e) {
++			e.stopPropagation();
++		});
++		bar.appendTo('#container');
++		kernel.regListener('zquick', 'property', update, /^zQuick$/);
++		update();
++	});
++});
 diff -ruN cstimer-master/src/js/worker.js zt/src/js/worker.js
 --- cstimer-master/src/js/worker.js	2026-11-13 09:23:00.000000000 +0000
 +++ zt/src/js/worker.js	2026-11-16 13:05:12.157663732 +0000
@@ -112,8 +357,17 @@ diff -ruN cstimer-master/src/lang/en-us.js zt/src/lang/en-us.js
  var STATS_PREC_STR = 'Auto|0.1s|0.2s|0.5s|1s|2s|5s|10s|20s|50s|100s';
  var STATS_TYPELEN = 'type of list %d|length of list %d|average|mean';
 --- cstimer-master/Makefile	2026-11-13 09:23:00.000000000 +0000
-+++ zt/Makefile	2026-11-16 13:05:12.156856568 +0000
-@@ -76,8 +76,6 @@
++++ zt/Makefile	2026-11-17 04:17:59.031552767 +0000
+@@ -68,6 +68,8 @@
+ stats/trainstat.js \
+ tools/tools.js \
+ tools/image.js \
++tools/zquick.js \
++tools/wca.js \
+ tools/cross.js \
+ tools/eoline.js \
+ tools/roux1.js \
+@@ -76,8 +78,6 @@
  tools/pat3x3gen.js \
  tools/bluetoothutil.js \
  tools/metronome.js \

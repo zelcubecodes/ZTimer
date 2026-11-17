@@ -9,11 +9,14 @@ It is not made, endorsed or sponsored by csTimer or the World Cube Association.
 - Source: https://github.com/cs0x7f/cstimer (contributors: https://github.com/cs0x7f/cstimer/graphs/contributors)
 - Licence: GNU GPL v3.0
 
-The website is a **modified copy of csTimer's source code** (snapshot version 2026.10.31). Everything about the interface,
+The website is a **modified copy of csTimer's source code** (snapshot version 2026.10.31, ZTimer Web build zt2). Everything about the interface,
 timer, inspection, sessions, statistics, scramblers, scramble images, solvers and tools comes from csTimer.
 
 ### Changes made by ZTimer Web (2026, Zel / ZelCubes)
 The complete change list is `ztimer-web-changes.patch` (a diff against the csTimer source). In short:
+- Added three features with new code, inspired by the ZTimer Android app: quick action buttons under the timer
+  (`tools/zquick.js`), a wide move notation setting Rw / r (`scramble.js`), and a WCA data tool with records,
+  competitions and WCA ID lookup (`tools/wca.js`). WCA data is loaded live from the WCA public API; it is owned by the World Cube Association.
 - Renamed to ZTimer Web; logo text, page title and About page changed; csTimer's affiliate links and donation widgets removed.
 - Features that call csTimer's own servers were switched off: csTimer account backup, WCA and Google backup,
   online competition and online battle scramble types.
