@@ -1,0 +1,59 @@
+/* ZTimer Web theme: gives the site the look of the ZTimer Android app.
+   Copyright (C) 2026 Zel (ZelCubes), GPL-3.0. Colours and font come from the ZTimer app (colors.xml, styles.xml).
+   Loaded after style.css; !important is used because csTimer injects its colour theme at run time. */
+@font-face{font-family:'Quicksand';src:url('Quicksand_Medium.ttf') format('truetype');font-weight:400 600;font-display:swap}
+@font-face{font-family:'Quicksand';src:url('Quicksand_Bold.ttf') format('truetype');font-weight:700 900;font-display:swap}
+:root{--zt-a:#1959ff;--zt-b:#3b12ff;--zt-bar:#0045f6;--zt-tab:#2900ef;--zt-amber:#ffd740;--zt-glass:rgba(10,12,90,.30);--zt-glass2:rgba(255,255,255,.14);--zt-ink:#1b1b2f}
+html,body{background:linear-gradient(160deg,var(--zt-a) 0%,var(--zt-b) 100%) fixed #2a2fff!important;color:#fff!important;font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:500}
+input,select,textarea,button{font-family:inherit}
+#avgstr,#avgstr *{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important}
+/* timer */
+#lcd,#lcd *{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:700!important;color:#fff!important;text-shadow:0 4px 24px rgba(0,0,40,.35);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#avgstr,#avgstr *{color:rgba(255,255,255,.82)!important}
+#avgstr .click:hover,#avgstr .click:active{background:var(--zt-glass2)!important}
+/* left bar and logo */
+#leftbar{background:var(--zt-bar)!important;border:0!important;box-shadow:0 2px 14px rgba(0,0,60,.35)!important;border-radius:0 0 18px 0}
+.mybutton,.tab{background:transparent!important;border:0!important;border-radius:14px!important;color:#fff!important}
+#leftbar .icon{color:#fff!important}
+#leftbar>div:not(#logo)>div>span:not(.icon){color:transparent!important}
+html:not(.m) #leftbar>div:not(#logo)>div:hover>span:not(.icon){color:#fff!important}
+html:not(.m) #leftbar>div:not(#logo)>div:hover>span.icon{color:transparent!important}
+input.icon,.mywindow input.icon,.dialog input.icon{font-family:iconfont,Arial!important}
+html:not(.m) .mybutton:hover,.mybutton:active,.tab:active{background:var(--zt-glass2)!important}
+.mybutton.enable,.tab.enable{background:rgba(255,255,255,.24)!important}
+#logo,#logo>div,#logo span{background:transparent!important;color:#fff!important;border:0!important;font-weight:700!important;letter-spacing:.02em;text-shadow:none}
+#logo span{font-style:normal!important}
+/* windows: scramble, session, stats, tools */
+.mywindow{background:var(--zt-glass)!important;color:#fff!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:16px!important;box-shadow:0 6px 24px rgba(0,0,70,.25)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.mywindow::before,#leftbar::before{box-shadow:none!important}
+.mywindow,.mywindow *{border-color:rgba(255,255,255,.18)!important}
+.mywindow .click,.mywindow a,.mywindow .times.pb{color:var(--zt-amber)!important}
+.mywindow input[type=text],.mywindow select,.mywindow input[type=button]{color:#fff!important;background:var(--zt-glass2)!important;border:1px solid rgba(255,255,255,.25)!important;border-radius:10px!important;font-family:inherit}
+.mywindow select option{color:#1b1b2f;background:#fff}
+.mywindow table th{background:rgba(255,255,255,.12)!important;color:#fff!important}
+html:not(.m) .times:hover,html:not(.m) .click:hover,.times:active,.click:active{background:var(--zt-glass2)!important}
+.selected{background:rgba(255,215,64,.25)!important}
+/* dialogs and popups: white cards like the app */
+.dialog,.popup{background:#fff!important;color:var(--zt-ink)!important;border:0!important;border-radius:20px!important;box-shadow:0 12px 40px rgba(0,0,80,.45)!important}
+.dialog *,.popup *{border-color:#e3e6f2!important}
+.dialog,.dialog table,.dialog td,.dialog th,.dialog span,.dialog div,.popup,.popup span,.popup div{color:var(--zt-ink)}
+.dialog .click,.dialog a,.popup .click,.popup a{color:#1959ff!important}
+.dialog input[type=text],.dialog select,.dialog textarea,.popup input,.popup select{color:var(--zt-ink)!important;background:#f2f4fb!important;border:1px solid #d6dbee!important;border-radius:10px!important}
+.dialog input[type=button],.dialog .buttonOK,.popup input[type=button]{color:#fff!important;background:var(--zt-a)!important;border:0!important;border-radius:12px!important;padding:6px 16px!important;font-weight:700}
+.dialog .mybutton,.dialog .tab{color:var(--zt-ink)!important}
+.dialog .mybutton.enable,.dialog .tab.enable,.dialog .selected,.dialog table.opttable tr th:first-child{background:#e4e9ff!important}
+.dialog table.opttable tr:nth-child(odd) td:first-child,.dialog input:disabled{background:#f6f7fc!important}
+.dialog .title{font-weight:700!important;color:var(--zt-a)!important}
+textarea{color:var(--zt-ink)!important;background:#f2f4fb!important}
+#gray{background:rgba(8,6,60,.55)!important}
+/* bottom bar (ZTimer tabs) */
+#zbar{background:var(--zt-tab)!important;border:0!important;border-radius:20px 20px 0 0!important;box-shadow:0 -4px 18px rgba(0,0,60,.35)!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+#zbar .mybutton{color:rgba(255,255,255,.7)!important;font-weight:700;border-radius:14px!important;background:transparent!important}
+#zbar .mybutton.enable{color:#fff!important;background:rgba(255,255,255,.2)!important;box-shadow:inset 0 -3px 0 var(--zt-amber)}
+/* quick action buttons */
+#zquick>*{background:rgba(255,255,255,.18)!important;color:#fff!important;border:1px solid rgba(255,255,255,.28)!important;border-radius:999px!important;font-weight:700;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#zquick>*:active{background:rgba(255,255,255,.34)!important}
+/* scrollbars */
+*{scrollbar-color:rgba(255,255,255,.35) transparent}
+.dialog .title,.dialog .title *{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important}
+.dialog input[type=button].enable{background:var(--zt-amber)!important;color:var(--zt-ink)!important}
