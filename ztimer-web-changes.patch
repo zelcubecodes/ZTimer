@@ -287,7 +287,7 @@ diff -ruN cstimer-master/src/js/tools/wca.js zt/src/js/tools/wca.js
 +});
 diff -ruN cstimer-master/src/js/tools/zquick.js zt/src/js/tools/zquick.js
 --- cstimer-master/src/js/tools/zquick.js	1970-01-01 00:00:00.000000000 +0000
-+++ zt/src/js/tools/zquick.js	2026-11-17 04:17:59.000410363 +0000
++++ zt/src/js/tools/zquick.js	2026-11-17 04:22:43.714630889 +0000
 @@ -0,0 +1,34 @@
 +"use strict";
 +
@@ -297,10 +297,10 @@ diff -ruN cstimer-master/src/js/tools/zquick.js zt/src/js/tools/zquick.js
 + * It only sends csTimer's own 'ctrl' signals, the same ones its keyboard shortcuts use.
 + */
 +var zquick = execMain(function() {
-+	var bar = $('<div id="zquick" style="margin-top:0.6em; text-align:center;"/>');
++	var bar = $('<div id="zquick" style="margin-top:12px; text-align:center; font-size:16px; line-height:1.4;"/>');
 +
 +	function btn(label, cmd, title) {
-+		return $('<input type="button" style="margin:0 0.2em;">').val(label).attr('title', title).click(function() {
++		return $('<input type="button" style="margin:2px 3px; padding:4px 12px; font-size:16px; width:auto; height:auto; min-width:0;">').val(label).attr('title', title).click(function() {
 +			kernel.pushSignal('ctrl', ['stats', cmd]);
 +		});
 +	}
