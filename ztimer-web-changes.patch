@@ -121,10 +121,27 @@ diff -ruN cstimer-master/src/js/scramble/scramble.js zt/src/js/scramble/scramble
  		kernel.regProp('scramble', 'scrWrap', 1, PROPERTY_SCRWRAP, ['b', ['b', 'n'], PROPERTY_SCRWRAP_STR.split('|')], 1);
  		kernel.regProp('scramble', 'preScr', 1, "pre-scramble", ['',
  			["", "y", "y2", "y'", "z2", "z2 y", "z2 y2", "z2 y'", "z'", "z' y", "z' y2", "z' y'", "z", "z y", "z y2", "z y'", "x'", "x' y", "x' y2", "x' y'", "x", "x y", "x y2", "x y'"],
+diff -ruN cstimer-master/src/js/stats/stats.js zt/src/js/stats/stats.js
+--- cstimer-master/src/js/stats/stats.js	2026-11-13 09:23:00.000000000 +0000
++++ zt/src/js/stats/stats.js	2026-11-17 08:09:31.587325237 +0000
+@@ -1808,6 +1808,13 @@
+ 				floatCfm.setCfm(2000);
+ 			} else if (value[1] == 'DNF') {
+ 				floatCfm.setCfm(-1);
++			} else if (value[1] == 'tgl2' || value[1] == 'tglDNF') { // ZTimer Web: press again to remove the penalty
++				if (times.length > 0) {
++					var curPen = times[times.length - 1][0][0], tgtPen = value[1] == 'tgl2' ? 2000 : -1;
++					floatCfm.setCfm(curPen == tgtPen ? 0 : tgtPen);
++				}
++			} else if (value[1] == 'sum') { // ZTimer Web: open the statistics of this session
++				getStats(times_stats_table, timesAt);
+ 			} else if (value[1] == 'cfm') {
+ 				floatCfm.proc(times.length - 1);
+ 			} else if (value[1] == 'cmt') {
 diff -ruN cstimer-master/src/js/tools/wca.js zt/src/js/tools/wca.js
 --- cstimer-master/src/js/tools/wca.js	1970-01-01 00:00:00.000000000 +0000
-+++ zt/src/js/tools/wca.js	2026-11-17 04:17:59.001257724 +0000
-@@ -0,0 +1,160 @@
++++ zt/src/js/tools/wca.js	2026-11-17 08:09:31.588055023 +0000
+@@ -0,0 +1,162 @@
 +"use strict";
 +
 +/*
@@ -281,45 +298,183 @@ diff -ruN cstimer-master/src/js/tools/wca.js zt/src/js/tools/wca.js
 +		show();
 +	}
 +
++	window['zWcaRender'] = execFunc; // used by the bottom bar in zbar.js
++
 +	$(function() {
 +		tools.regTool('wca', 'WCA data', execFunc);
 +	});
 +});
-diff -ruN cstimer-master/src/js/tools/zquick.js zt/src/js/tools/zquick.js
---- cstimer-master/src/js/tools/zquick.js	1970-01-01 00:00:00.000000000 +0000
-+++ zt/src/js/tools/zquick.js	2026-11-17 04:22:43.714630889 +0000
-@@ -0,0 +1,34 @@
+diff -ruN cstimer-master/src/js/tools/zbar.js zt/src/js/tools/zbar.js
+--- cstimer-master/src/js/tools/zbar.js	1970-01-01 00:00:00.000000000 +0000
++++ zt/src/js/tools/zbar.js	2026-11-17 08:09:31.519989840 +0000
+@@ -0,0 +1,97 @@
 +"use strict";
 +
 +/*
-+ * ZTimer Web: quick action buttons under the timer (OK, +2, DNF, delete, comment).
-+ * Idea from the ZTimer Android app's quick actions. New code, Copyright (C) 2026 Zel (ZelCubes), GPL-3.0.
-+ * It only sends csTimer's own 'ctrl' signals, the same ones its keyboard shortcuts use.
++ * ZTimer Web: bottom navigation bar like the ZTimer Android app: Timer, Solves, Stats, Trainer, WCA.
++ * Idea from ZTimer. New code, Copyright (C) 2026 Zel (ZelCubes), GPL-3.0.
++ * Every item opens a window that csTimer already has (times list, session statistics,
++ * training scramble types) or the WCA data tool from wca.js.
 + */
-+var zquick = execMain(function() {
-+	var bar = $('<div id="zquick" style="margin-top:12px; text-align:center; font-size:16px; line-height:1.4;"/>');
++var zbar = execMain(function() {
++	var H = 52;
++	var bar = $('<div id="zbar" class="mywindow"/>').css({
++		position: 'fixed', left: 0, right: 0, bottom: 0, top: 'auto', width: 'auto', height: H + 'px', zIndex: 45, margin: 0, padding: 0,
++		borderRadius: 0, display: 'none', alignItems: 'center', justifyContent: 'space-around', boxSizing: 'border-box'
++	});
++	var items = {};
++	var TRAIN = [['PLL', 'pll'], ['OLL', 'oll'], ['COLL', 'coll'], ['ZBLL', 'zbll'], ['CMLL', 'cmll'], ['ZBLS', 'zbls'], ['ZZLL', 'zzll'],
++		['2GLL', '2gll'], ['EOLine', 'eoline'], ['F2L', 'f2l'], ['Last layer', 'll'], ['LSLL', 'lsll2'], ['VLS', 'vls'],
++		['WVLS', 'wvls'], ['EOLS', 'eols'], ['TTLL', 'ttll'], ['2nd block', 'sbrx']];
 +
-+	function btn(label, cmd, title) {
-+		return $('<input type="button" style="margin:2px 3px; padding:4px 12px; font-size:16px; width:auto; height:auto; min-width:0;">').val(label).attr('title', title).click(function() {
-+			kernel.pushSignal('ctrl', ['stats', cmd]);
++	function item(key, label, fn) {
++		items[key] = $('<div class="mybutton"/>').text(label).css({
++			position: 'relative', float: 'none', flex: '1 1 0', width: 'auto', minWidth: 0, height: '42px', lineHeight: '42px', margin: '0 3px',
++			padding: 0, textAlign: 'center', fontSize: '15px', cursor: 'pointer', overflow: 'hidden'
++		}).click(fn).appendTo(bar);
++	}
++
++	function windowButton(n) {
++		return $('#leftbar .c' + n);
++	}
++
++	function openDialog(title, div) {
++		kernel.showDialog([div, 0], 'ztbar', title);
++	}
++
++	function timerPage() {
++		kernel.hideDialog();
++		[4, 6].forEach(function(n) {
++			if (windowButton(n).hasClass('enable')) {
++				windowButton(n).click();
++			}
 +		});
 +	}
 +
++	function solvesPage() {
++		kernel.hideDialog();
++		if (!windowButton(4).hasClass('enable')) {
++			windowButton(4).click();
++		}
++	}
++
++	function statsPage() {
++		kernel.pushSignal('ctrl', ['stats', 'sum']);
++	}
++
++	function trainerPage() {
++		var div = $('<div style="text-align:center;"/>');
++		var curType = kernel.getProp('scrType');
++		div.append('<div style="margin-bottom:0.6em;">Pick a last-layer or training set. Choose cases in the scramble window\'s filter, as in csTimer.</div>');
++		[['3x3x3 (normal)', '333']].concat(TRAIN).forEach(function(t) {
++			div.append($('<input type="button">').val(t[0]).css({margin: '3px'}).addClass(curType == t[1] ? 'enable' : '').click(function() {
++				kernel.setProp('scrType', t[1]);
++				kernel.hideDialog();
++			}));
++		});
++		openDialog('Trainer', div);
++	}
++
++	function wcaPage() {
++		var div = $('<div style="text-align:center;"/>');
++		if (window['zWcaRender']) {
++			window['zWcaRender'](div);
++		}
++		openDialog('WCA', div);
++	}
++
 +	function update() {
-+		bar.toggle(!!kernel.getProp('zQuick'));
++		var on = !!kernel.getProp('zBar');
++		bar.css('display', on ? 'flex' : 'none');
++		$('html').toggleClass('zbar', on);
++	}
++
++	$(function() {
++		kernel.regProp('ui', 'zBar', 0, 'Show the bottom navigation bar', [true], 1);
++		$('<style>html.zbar body { height: calc(100% - ' + H + 'px) !important; }</style>').appendTo('head');
++		item('timer', 'Timer', timerPage);
++		item('solves', 'Solves', solvesPage);
++		item('stats', 'Stats', statsPage);
++		item('trainer', 'Trainer', trainerPage);
++		item('wca', 'WCA', wcaPage);
++		bar.appendTo('body');
++		kernel.regListener('zbar', 'property', update, /^zBar$/);
++		setInterval(function() {
++			items['solves'].toggleClass('enable', windowButton(4).hasClass('enable'));
++		}, 400);
++		update();
++	});
++});
+diff -ruN cstimer-master/src/js/tools/zquick.js zt/src/js/tools/zquick.js
+--- cstimer-master/src/js/tools/zquick.js	1970-01-01 00:00:00.000000000 +0000
++++ zt/src/js/tools/zquick.js	2026-11-17 08:09:31.518554577 +0000
+@@ -0,0 +1,69 @@
++"use strict";
++
++/*
++ * ZTimer Web: quick action buttons under the timer, laid out like the ZTimer Android app:
++ * Delete, Retry (show the same scramble again), DNF, +2 and Comment. DNF and +2 toggle.
++ * Idea from ZTimer. New code, Copyright (C) 2026 Zel (ZelCubes), GPL-3.0.
++ * The bar sits above csTimer's invisible touch layer so that it can receive clicks.
++ */
++var zquick = execMain(function() {
++	var bar = $('<div id="zquick"/>').css({position: 'fixed', zIndex: 40, display: 'none', whiteSpace: 'nowrap', fontSize: '16px'});
++	var allowed = true;
++
++	function btn(label, title, fn) {
++		return $('<input type="button">').val(label).attr({title: title, 'aria-label': title}).css({
++			margin: '0 6px', padding: '0', width: '48px', height: '42px', minWidth: '0', fontSize: '20px', cursor: 'pointer'
++		}).click(function() {
++			fn();
++			this.blur();
++		});
++	}
++
++	function ctrl(a, b) {
++		return function() {
++			kernel.pushSignal('ctrl', [a, b]);
++		};
++	}
++
++	function place() {
++		if (bar.css('display') == 'none') {
++			return;
++		}
++		var a = $('#avgstr'), w = bar.outerWidth(), h = bar.outerHeight();
++		var left = ($(window).width() - w) / 2, top = $(window).height() - h - 80;
++		if (a.length && a.is(':visible')) {
++			var r = a[0].getBoundingClientRect();
++			left = r.left + r.width / 2 - w / 2;
++			top = Math.min(r.bottom + 14, $(window).height() - h - 66);
++		}
++		bar.css({left: Math.max(4, left) + 'px', top: Math.max(4, top) + 'px'});
++	}
++
++	function update() {
++		bar.css('display', allowed && kernel.getProp('zQuick') ? 'block' : 'none');
++		place();
 +	}
 +
 +	$(function() {
 +		kernel.regProp('ui', 'zQuick', 0, 'Show quick action buttons under the timer', [true], 1);
-+		bar.append(btn('OK', 'OK', 'Clear the penalty of the last solve'), btn('+2', '+2', 'Add a 2 second penalty to the last solve'),
-+			btn('DNF', 'DNF', 'Mark the last solve as DNF'), btn('Delete', 'undo', 'Delete the last solve'),
-+			btn('Comment', 'cmt', 'Add a comment to the last solve'));
-+		// do not let a press on these buttons start or stop the timer
-+		bar.on('mousedown mouseup touchstart touchend keydown keyup', function(e) {
-+			e.stopPropagation();
-+		});
-+		bar.appendTo('#container');
++		bar.append(
++			btn('\u2715', 'Delete the last solve', function() {
++				if (confirm('Delete the last solve?')) {
++					kernel.pushSignal('ctrl', ['stats', 'undo']);
++				}
++			}),
++			btn('\u21BB', 'Retry: show the previous scramble again', ctrl('scramble', 'last')),
++			btn('DNF', 'DNF (press again to remove)', ctrl('stats', 'tglDNF')),
++			btn('+2', 'Add 2 seconds (press again to remove)', ctrl('stats', 'tgl2')),
++			btn('\u270E', 'Comment on the last solve', ctrl('stats', 'cmt'))
++		).appendTo('body');
 +		kernel.regListener('zquick', 'property', update, /^zQuick$/);
++		// csTimer hides its interface while the timer is running
++		kernel.regListener('zquick', 'ashow', function(signal, value) {
++			allowed = !!value;
++			update();
++		});
++		setInterval(place, 300);
 +		update();
 +	});
 +});
@@ -357,17 +512,18 @@ diff -ruN cstimer-master/src/lang/en-us.js zt/src/lang/en-us.js
  var STATS_PREC_STR = 'Auto|0.1s|0.2s|0.5s|1s|2s|5s|10s|20s|50s|100s';
  var STATS_TYPELEN = 'type of list %d|length of list %d|average|mean';
 --- cstimer-master/Makefile	2026-11-13 09:23:00.000000000 +0000
-+++ zt/Makefile	2026-11-17 04:17:59.031552767 +0000
-@@ -68,6 +68,8 @@
++++ zt/Makefile	2026-11-17 08:09:31.588336039 +0000
+@@ -68,6 +68,9 @@
  stats/trainstat.js \
  tools/tools.js \
  tools/image.js \
 +tools/zquick.js \
 +tools/wca.js \
++tools/zbar.js \
  tools/cross.js \
  tools/eoline.js \
  tools/roux1.js \
-@@ -76,8 +78,6 @@
+@@ -76,8 +79,6 @@
  tools/pat3x3gen.js \
  tools/bluetoothutil.js \
  tools/metronome.js \
