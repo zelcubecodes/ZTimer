@@ -1,3 +1,24 @@
+diff -ruN cstimer-master/src/css/style.css zt/src/css/style.css
+--- cstimer-master/src/css/style.css	2026-11-13 09:23:00.000000000 +0000
++++ zt/src/css/style.css	2026-11-17 08:30:49.509181954 +0000
+@@ -863,7 +863,7 @@
+ 	bottom: 30%;
+ }
+ 
+-.dialoginput, .dialogstats, .dialogexport, .dialogscropt, .dialogdonate {
++.dialoginput, .dialogztbar, .dialogstats, .dialogexport, .dialogscropt, .dialogdonate {
+ 	left: 20%;
+ 	right: 20%;
+ 	top: 20%;
+@@ -1200,7 +1200,7 @@
+ 	font-size: 1.2em;
+ }
+ 
+-.m .dialogoption, .m .dialogshare, .m .dialoginput, .m .dialogstats, .m .dialogcasestats, .m .dialogssmgr, .m .dialogscropt, .m .dialogexport, .m .dialoglogo, .m .dialogdonate {
++.m .dialogoption, .m .dialogshare, .m .dialoginput, .m .dialogstats, .m .dialogztbar, .m .dialogcasestats, .m .dialogssmgr, .m .dialogscropt, .m .dialogexport, .m .dialoglogo, .m .dialogdonate {
+ 	left: 5%;
+ 	right: 5%;
+ }
 diff -ruN cstimer-master/src/js/export.js zt/src/js/export.js
 --- cstimer-master/src/js/export.js	2026-11-13 09:23:00.000000000 +0000
 +++ zt/src/js/export.js	2026-11-16 13:05:12.158173257 +0000
@@ -306,7 +327,7 @@ diff -ruN cstimer-master/src/js/tools/wca.js zt/src/js/tools/wca.js
 +});
 diff -ruN cstimer-master/src/js/tools/zbar.js zt/src/js/tools/zbar.js
 --- cstimer-master/src/js/tools/zbar.js	1970-01-01 00:00:00.000000000 +0000
-+++ zt/src/js/tools/zbar.js	2026-11-17 08:09:31.519989840 +0000
++++ zt/src/js/tools/zbar.js	2026-11-17 08:30:49.509950057 +0000
 @@ -0,0 +1,97 @@
 +"use strict";
 +
@@ -363,7 +384,7 @@ diff -ruN cstimer-master/src/js/tools/zbar.js zt/src/js/tools/zbar.js
 +	}
 +
 +	function trainerPage() {
-+		var div = $('<div style="text-align:center;"/>');
++		var div = $('<div style="text-align:center; overflow-y:auto;"/>');
 +		var curType = kernel.getProp('scrType');
 +		div.append('<div style="margin-bottom:0.6em;">Pick a last-layer or training set. Choose cases in the scramble window\'s filter, as in csTimer.</div>');
 +		[['3x3x3 (normal)', '333']].concat(TRAIN).forEach(function(t) {
@@ -376,7 +397,7 @@ diff -ruN cstimer-master/src/js/tools/zbar.js zt/src/js/tools/zbar.js
 +	}
 +
 +	function wcaPage() {
-+		var div = $('<div style="text-align:center;"/>');
++		var div = $('<div style="text-align:center; overflow-y:auto;"/>');
 +		if (window['zWcaRender']) {
 +			window['zWcaRender'](div);
 +		}
