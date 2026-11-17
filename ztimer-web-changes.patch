@@ -426,6 +426,100 @@ diff -ruN cstimer-master/src/js/tools/zbar.js zt/src/js/tools/zbar.js
 +		update();
 +	});
 +});
+diff -ruN cstimer-master/src/js/tools/zmigrate.js zt/src/js/tools/zmigrate.js
+--- cstimer-master/src/js/tools/zmigrate.js	1970-01-01 00:00:00.000000000 +0000
++++ zt/src/js/tools/zmigrate.js	2026-11-17 08:38:24.924679505 +0000
+@@ -0,0 +1,90 @@
++"use strict";
++
++/*
++ * ZTimer Web: one-time offer to rescue solves saved by the first (non-csTimer) version of this website.
++ * They live in this browser's localStorage. csTimer cannot read them, so this converts them into a csTimer
++ * export file that can be loaded with csTimer's own Export > Import. New code, Copyright (C) 2026 Zel (ZelCubes), GPL-3.0.
++ */
++var zmigrate = execMain(function() {
++	function collect() {
++		var out = [];
++		try {
++			var v2 = JSON.parse(localStorage['ztimer.v2']);
++			(v2.sessions || []).forEach(function(s) {
++				if (s.solves && s.solves.length) {
++					out.push({name: s.name, type: s.puzzle, solves: s.solves});
++				}
++			});
++		} catch (e) {}
++		if (!out.length) {
++			try {
++				var groups = {};
++				JSON.parse(localStorage['ztimer.solves'] || '[]').forEach(function(v) {
++					(groups[v.puzzle] = groups[v.puzzle] || []).push(v);
++				});
++				for (var k in groups) {
++					out.push({name: k, type: k, solves: groups[k]});
++				}
++			} catch (e) {}
++		}
++		return out;
++	}
++
++	function build(list) {
++		var obj = {}, sd = {};
++		list.forEach(function(s, i) {
++			var n = i + 1;
++			obj['session' + n] = s.solves.map(function(x) {
++				return [[x.pen == 2 ? -1 : (x.pen == 1 ? 2000 : 0), x.ms], x.scr || '', x.note || '', Math.round((x.ts || 0) / 1000)];
++			});
++			sd[n] = {name: String(s.name), opt: {scrType: s.type}, rank: n, stat: [s.solves.length, 0, 0]};
++		});
++		var props = {};
++		try {
++			props = mathlib.str2obj(localStorage['properties']) || {};
++		} catch (e) {}
++		props.sessionData = JSON.stringify(sd);
++		props.sessionN = list.length;
++		obj.properties = props;
++		return obj;
++	}
++
++	function download(list) {
++		var a = document.createElement('a');
++		a.href = URL.createObjectURL(new Blob([JSON.stringify(build(list))], {type: 'text/plain'}));
++		a.download = 'ztimer-web-earlier-solves.txt';
++		document.body.appendChild(a);
++		a.click();
++		a.remove();
++	}
++
++	function ask(list) {
++		var total = 0;
++		list.forEach(function(s) {
++			total += s.solves.length;
++		});
++		var div = $('<div style="text-align:center; overflow-y:auto;"/>').append(
++			'<p>Found ' + total + ' solves in ' + list.length + ' sessions saved on this device by the earlier version of ZTimer Web.</p>' +
++			'<p>Download them as a file, then open <b>Export</b> and use <b>Import from file</b> to bring them into this timer. ' +
++			'Importing replaces the sessions that are in the timer now.</p>',
++			$('<input type="button">').val('Download my earlier solves').css({margin: '4px'}).click(function() {
++				download(list);
++			}),
++			$('<input type="button">').val('Do not ask again').css({margin: '4px'}).click(function() {
++				localStorage['ztimer.migrateAsked'] = '1';
++				kernel.hideDialog();
++			}));
++		kernel.showDialog([div, 0], 'ztbar', 'Earlier solves found');
++	}
++
++	$(function() {
++		setTimeout(function() {
++			if (!localStorage['ztimer.migrateAsked']) {
++				var list = collect();
++				if (list.length) {
++					ask(list);
++				}
++			}
++		}, 1500);
++	});
++});
 diff -ruN cstimer-master/src/js/tools/zquick.js zt/src/js/tools/zquick.js
 --- cstimer-master/src/js/tools/zquick.js	1970-01-01 00:00:00.000000000 +0000
 +++ zt/src/js/tools/zquick.js	2026-11-17 08:09:31.518554577 +0000
@@ -533,18 +627,19 @@ diff -ruN cstimer-master/src/lang/en-us.js zt/src/lang/en-us.js
  var STATS_PREC_STR = 'Auto|0.1s|0.2s|0.5s|1s|2s|5s|10s|20s|50s|100s';
  var STATS_TYPELEN = 'type of list %d|length of list %d|average|mean';
 --- cstimer-master/Makefile	2026-11-13 09:23:00.000000000 +0000
-+++ zt/Makefile	2026-11-17 08:09:31.588336039 +0000
-@@ -68,6 +68,9 @@
++++ zt/Makefile	2026-11-17 08:38:24.957435190 +0000
+@@ -68,6 +68,10 @@
  stats/trainstat.js \
  tools/tools.js \
  tools/image.js \
 +tools/zquick.js \
 +tools/wca.js \
 +tools/zbar.js \
++tools/zmigrate.js \
  tools/cross.js \
  tools/eoline.js \
  tools/roux1.js \
-@@ -76,8 +79,6 @@
+@@ -76,8 +80,6 @@
  tools/pat3x3gen.js \
  tools/bluetoothutil.js \
  tools/metronome.js \

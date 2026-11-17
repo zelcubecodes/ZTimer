@@ -17,6 +17,8 @@ The complete change list is `ztimer-web-changes.patch` (a diff against the csTim
 - Added three features with new code, inspired by the ZTimer Android app: quick action buttons under the timer
   (Delete, Retry, DNF, +2, Comment; `tools/zquick.js`), a bottom navigation bar with Timer, Solves, Stats, Trainer and WCA (`tools/zbar.js`), a wide move notation setting Rw / r (`scramble.js`), and a WCA data tool with records,
   competitions and WCA ID lookup (`tools/wca.js`). WCA data is loaded live from the WCA public API; it is owned by the World Cube Association.
+- Added `tools/zmigrate.js`: a one-time offer to convert solves from the first (non-csTimer) ZTimer Web into a csTimer import file.
+- Added an offline/installable setup (`manifest.webmanifest`, `sw.js`). The app icon is the ZTimer Android app icon.
 - Renamed to ZTimer Web; logo text, page title and About page changed; csTimer's affiliate links and donation widgets removed.
 - Features that call csTimer's own servers were switched off: csTimer account backup, WCA and Google backup,
   online competition and online battle scramble types.
