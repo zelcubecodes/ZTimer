@@ -57,3 +57,72 @@ textarea{color:var(--zt-ink)!important;background:#f2f4fb!important}
 *{scrollbar-color:rgba(255,255,255,.35) transparent}
 .dialog .title,.dialog .title *{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important}
 .dialog input[type=button].enable{background:var(--zt-amber)!important;color:var(--zt-ink)!important}
+
+/* ===== App-style icons on the left bar and quick buttons (same Material icons as the Android app) ===== */
+#leftbar .icon{font-size:0!important;display:inline-block!important;width:28px!important;height:28px!important;vertical-align:middle;background-color:currentColor;-webkit-mask:var(--zi) center/contain no-repeat;mask:var(--zi) center/contain no-repeat}
+#leftbar .c1 .icon{--zi:var(--zi-settings)}
+#leftbar .c2 .icon{--zi:var(--zi-share)}
+#leftbar .c3 .icon{--zi:var(--zi-category)}
+#leftbar .c4 .icon{--zi:var(--zi-list)}
+#leftbar .c5 .icon{--zi:var(--zi-help)}
+#leftbar .c6 .icon{--zi:var(--zi-build)}
+#zquick input.zq{font-size:0!important;background-image:var(--zw)!important;background-repeat:no-repeat!important;background-position:center!important;background-size:22px!important}
+
+/* ===== Bottom tabs (icon only, like the app) ===== */
+#zbar .ztab{flex:1 1 0;display:flex;align-items:center;justify-content:center;height:44px;margin:0 4px;border-radius:14px;color:rgba(255,255,255,.62);cursor:pointer;position:relative;transition:background .15s,color .15s}
+#zbar .ztab .zi{width:26px;height:26px}
+#zbar .ztab.on{color:#fff;background:rgba(255,255,255,.2)}
+#zbar .ztab.on::after{content:"";position:absolute;left:50%;bottom:3px;width:18px;height:3px;margin-left:-9px;border-radius:3px;background:var(--zt-amber)}
+html:not(.m) #zbar .ztab:hover{background:rgba(255,255,255,.14)}
+
+/* ===== Pages that the tabs switch to ===== */
+#zpages{position:fixed;left:0;right:0;top:0;bottom:52px;z-index:44;overflow:hidden;background:linear-gradient(160deg,var(--zt-a) 0%,var(--zt-b) 100%) #2a2fff;display:none}
+.zpage{position:absolute;inset:0;display:flex;flex-direction:column;max-width:900px;margin:0 auto;padding:8px 8px 0;box-sizing:border-box}
+.zp-head{flex:none;display:flex;align-items:center;gap:10px;height:54px;padding:0 10px 0 16px;border-radius:14px;background:var(--zt-bar);box-shadow:0 3px 10px rgba(0,0,60,.3);color:#fff}
+.zp-title{font-size:18px;font-weight:700}
+.zp-sub{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;opacity:.8;text-align:right}
+.zp-gear{flex:none;width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.zp-gear:active{background:rgba(255,255,255,.2)}
+.zp-body{flex:1;min-height:0;overflow:auto;padding:12px 2px 16px;-webkit-overflow-scrolling:touch}
+.zp-note{margin:0 4px 12px;font-size:13px;opacity:.85;line-height:1.4}
+/* solve list page: csTimer's stats window moved in */
+#stats.zpage-stats{position:static!important;display:block!important;width:auto!important;height:auto!important;max-height:none!important;margin:0!important;left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;overflow:visible!important;resize:none!important;background:transparent!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+#stats.zpage-stats::before,#stats.zpage-stats>.chide{display:none!important}
+/* stats page */
+.zgraph{border-radius:16px;background:var(--zt-glass);border:1px solid rgba(255,255,255,.16);padding:8px;margin-bottom:12px;overflow:hidden}
+.zgraph canvas{display:block}
+.zcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.zcard{background:#fff;color:var(--zt-ink);border-radius:16px;padding:12px 14px;box-shadow:0 4px 14px rgba(0,0,70,.2)}
+.zc-l{font-size:12px;font-weight:700;color:#6b6f8f;text-transform:uppercase;letter-spacing:.04em}
+.zc-v{font-size:26px;font-weight:700;color:var(--zt-a);line-height:1.2;margin-top:2px}
+.zc-s{font-size:12px;color:#6b6f8f;margin-top:2px}
+.zlegend{display:flex;gap:14px;justify-content:center;margin-top:12px;font-size:12px;font-weight:700}
+.zlegend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:5px}
+/* trainer page */
+.ztiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.ztile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:88px;padding:10px;border:0;border-radius:16px;background:#fff;color:var(--zt-ink);font-family:inherit;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,70,.2)}
+.ztile b{font-size:20px;color:var(--zt-a)}
+.ztile span{font-size:11px;color:#6b6f8f;text-align:center;line-height:1.2}
+.ztile.on{background:var(--zt-amber)}
+.ztile:active{transform:scale(.97)}
+/* WCA page: its content was written for a dialog, so give it white card text */
+.zwca{background:#fff;color:var(--zt-ink);border-radius:16px;padding:14px;box-shadow:0 4px 14px rgba(0,0,70,.2)}
+.zwca *{color:var(--zt-ink)}
+.zwca .click,.zwca a{color:var(--zt-a)!important}
+.zwca input,.zwca select{color:var(--zt-ink)!important;background:#f2f4fb!important;border:1px solid #d6dbee!important;border-radius:10px!important;padding:4px 8px}
+.zwca input[type=button]{color:#fff!important;background:var(--zt-a)!important;border:0!important}
+/* solves page */
+.zsessrow{display:flex;align-items:center;gap:10px;margin:0 4px 12px;font-size:13px;font-weight:700}
+.zsessrow select{background:var(--zt-glass2);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:5px 8px;font-family:inherit}
+.zsessrow select option{color:#1b1b2f;background:#fff}
+.zcount{margin-left:auto;opacity:.8}
+.zlist{display:flex;flex-direction:column;gap:8px}
+.zrow{display:flex;align-items:center;gap:10px;background:#fff;color:var(--zt-ink);border-radius:14px;padding:10px 14px;box-shadow:0 3px 10px rgba(0,0,70,.18);cursor:pointer}
+.zrow:active{background:#e4e9ff}
+.zr-n{flex:none;min-width:28px;font-size:12px;font-weight:700;color:#8a8eab}
+.zr-t{font-size:24px;font-weight:700;color:var(--zt-a)}
+.zr-t.dnf{color:#d32f2f}
+.zr-p{font-size:11px;font-weight:700;background:var(--zt-amber);border-radius:8px;padding:2px 6px}
+.zr-a{margin-left:auto;text-align:right;font-size:12px;line-height:1.35;font-weight:700}
+.zr-a i{font-style:normal;color:#8a8eab;font-weight:500}
+.zr-d{flex:none;width:44px;text-align:right;font-size:11px;color:#8a8eab}
