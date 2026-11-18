@@ -459,7 +459,16 @@
     [['Delete', 'remove'], ['Retry', 'retry'], ['DNF', 'dnf'], ['Add 2', 'plus2'], ['Comment', 'comment']].forEach(function (m) {
       $('#zquick input').filter(function () { return (this.title || '').indexOf(m[0]) === 0; }).addClass('zq zi-' + m[1]).val('');
     });
+    var GLYPH = { e8ce: 'settings', e60d: 'imgpref', eae9: 'palette', e6b6: 'timer', e900: 'category', e9bb: 'help', e993: 'build', e69d: 'edit' };
+    function iconify() {
+      $('.dialog span.icon:not([data-zi])').each(function () {
+        var code = (this.textContent.charCodeAt(0) || 0).toString(16), n = GLYPH[code];
+        if (code === 'e9bb' && $(this).parent().hasClass('tab')) n = 'graph';
+        $(this).attr('data-zi', 1); if (n) $(this).addClass('zi zi-' + n);
+      });
+    }
     new MutationObserver(function () {
+      iconify();
       $('.dialog tr').filter(function () { return /^\s*Show advertisements/i.test($(this).text()); }).hide();
     }).observe(document.body, { childList: true, subtree: true });
     document.addEventListener('keydown', keyBlock, true);

@@ -236,3 +236,14 @@ html.zt-light #lcd,html.zt-light #lcd *{text-shadow:none}
 .zsb:active{background:#cdd6ff}
 .zsb.off{opacity:.35;pointer-events:none}
 .zshare:disabled{opacity:.45;cursor:default}
+
+/* ===== Less csTimer, more ZTimer ===== */
+/* everything the old button column did is in the side menu now, so the column and the little solve window go on desktop too */
+html:not(.m) #leftbar,html:not(.m) #stats{display:none!important}
+html:not(.m) #zactionbar{left:8px}
+html:not(.m) #scrambleDiv{left:8px!important;right:8px!important;width:auto!important}
+html:not(.m) #zcorner-l{left:16px}
+/* the app's icons replace csTimer's icon font in dialogs and on the scramble card */
+.dialog span.icon.zi{font-size:0!important;display:inline-block;width:20px;height:20px;margin-right:6px;vertical-align:middle;background-color:currentColor;-webkit-mask:var(--zi) center/contain no-repeat;mask:var(--zi) center/contain no-repeat}
+#scrambleDiv input.icon.icon{font-size:0!important;width:26px;height:26px;padding:0;border-radius:0!important;background-color:var(--zt-ink)!important;-webkit-mask:var(--zi-settings) center/20px no-repeat;mask:var(--zi-settings) center/20px no-repeat}
+.dialog .tab span,.dialog .tab{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:700}
