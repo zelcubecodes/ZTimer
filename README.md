@@ -8,7 +8,7 @@ Source code: https://github.com/zelcubecodes/ZTimer
 
 A website version of Ztimer lives in the root of this repository and is hosted with GitHub Pages: https://zelcubecodes.github.io/ZTimer/
 
-It is a **modified copy of csTimer** (https://cstimer.net/, https://github.com/cs0x7f/cstimer, by Shuang Chen and contributors, GPL v3) with ZTimer features added: quick action buttons, a bottom bar, a trainer shortcut and WCA data. It is free software under the same GPL v3 licence. See [CREDITS.md](CREDITS.md) for full credits and [ztimer-web-changes.patch](ztimer-web-changes.patch) for every change made to csTimer's source. Not affiliated with csTimer or the World Cube Association.
+It is a **modified copy of csTimer** (https://cstimer.net/, https://github.com/cs0x7f/cstimer, by Shuang Chen and contributors, GPL v3) with ZTimer features added: the look of the Android app (colour themes, top bar, side menu, icon tabs that switch between Timer, Solves, Stats, Trainer and WCA pages), a puzzle chooser, adding times by hand, a statistics page with graph and distribution, quick action buttons, trainer sets and WCA data. It is free software under the same GPL v3 licence. See [CREDITS.md](CREDITS.md) for full credits and [ztimer-web-changes.patch](ztimer-web-changes.patch) for every change made to csTimer's source. Not affiliated with csTimer or the World Cube Association.
 
 ## License
 

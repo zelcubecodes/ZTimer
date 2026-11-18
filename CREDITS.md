@@ -9,7 +9,7 @@ It is not made, endorsed or sponsored by csTimer or the World Cube Association.
 - Source: https://github.com/cs0x7f/cstimer (contributors: https://github.com/cs0x7f/cstimer/graphs/contributors)
 - Licence: GNU GPL v3.0
 
-The website is a **modified copy of csTimer's source code** (snapshot version 2026.10.31, ZTimer Web build zt2). Everything about the interface,
+The website is a **modified copy of csTimer's source code** (snapshot version 2026.10.31, ZTimer Web build zt10). Everything about the interface,
 timer, inspection, sessions, statistics, scramblers, scramble images, solvers and tools comes from csTimer.
 
 ### Changes made by ZTimer Web (2026, Zel / ZelCubes)
@@ -29,6 +29,14 @@ The complete change list is `ztimer-web-changes.patch` (a diff against the csTim
 
 To rebuild: take the csTimer source, apply `ztimer-web-changes.patch`, run `make`, and use `dist/js/cstimer.js`,
 `dist/js/twisty.js` and `src/css/style.css` with `index.html` and `en-us.js`.
+
+### The ZTimer look and feel (interface layer on top of csTimer)
+New files by Zel (ZelCubes), GPL-3.0, written for ZTimer Web and not part of csTimer's source: `ztimer-ui.js` (tab pages, top bar, side menu,
+puzzle chooser, theme picker, add time, statistics page), `ztimer-theme.css` (colours and layout) and `ztimer-icons.css` (icons).
+- Colours, the 19 colour themes, layout ideas and the tab icons come from the ZTimer Android app (GPL-3.0, by the same author).
+- Icons: Material Design icons by Google (Apache License 2.0), as used in the ZTimer Android app, converted to CSS masks. A few are drawn for the app by Zel.
+- Fonts (SIL Open Font License 1.1): **Quicksand** by Andrew Paglinawan (the two font files `Quicksand_Medium.ttf` and `Quicksand_Bold.ttf`, copied from the app),
+  and **Lato** by Łukasz Dziedzic, loaded from Google Fonts for the timer digits (the site falls back to Quicksand when it is offline).
 
 ## ZTimer (Android app)
 - Author: Zel (ZelCubes), GPL-3.0, https://github.com/zelcubecodes/ZTimer

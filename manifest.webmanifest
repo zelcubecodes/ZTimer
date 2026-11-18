@@ -1,14 +1,22 @@
 {
   "name": "ZTimer Web",
   "short_name": "ZTimer",
-  "description": "Speedcubing timer based on csTimer. Free software, GPL-3.0.",
+  "description": "Speedcubing timer in the style of the ZTimer app, built on csTimer. Free software, GPL-3.0.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#101216",
-  "theme_color": "#101216",
+  "background_color": "#1959ff",
+  "theme_color": "#0045f6",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }

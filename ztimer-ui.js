@@ -197,11 +197,33 @@
     }
     c.fillStyle = fg(); c.textAlign = 'center'; c.fillText('1', L, H - 6); c.fillText(String(n), W - R, H - 6);
   }
+  function drawHistogram(cv, a) {
+    var W = cv.parentNode.clientWidth || 320, H = 170, dpr = window.devicePixelRatio || 1;
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    var c = cv.getContext('2d'); c.scale(dpr, dpr); c.clearRect(0, 0, W, H); c.textAlign = 'center';
+    var v = a.map(function (x) { return x.t; }).filter(function (x) { return x !== Infinity; });
+    if (v.length < 3) { c.fillStyle = fg(); c.font = '600 14px Quicksand,sans-serif'; c.fillText('Needs at least 3 solves', W / 2, H / 2); return; }
+    var lo = Math.min.apply(null, v), hi = Math.max.apply(null, v), steps = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 30000, 60000], bw = 60000;
+    for (var i = 0; i < steps.length; i++) if (Math.ceil((hi - lo + 1) / steps[i]) <= 10) { bw = steps[i]; break; }
+    var start = Math.floor(lo / bw) * bw, n = Math.max(1, Math.ceil((hi - start + 1) / bw)), bins = [], mx = 0;
+    for (var b = 0; b < n; b++) bins.push(0);
+    v.forEach(function (t) { var k = Math.min(n - 1, Math.floor((t - start) / bw)); bins[k]++; if (bins[k] > mx) mx = bins[k]; });
+    var L = 8, R = 8, T = 18, B = 22, w = (W - L - R) / n, h = H - T - B;
+    c.font = '700 11px Quicksand,sans-serif';
+    bins.forEach(function (k, j) {
+      var bh = h * k / mx, x = L + j * w;
+      c.globalAlpha = .9; c.fillStyle = fg(); c.fillRect(x + 3, T + h - bh, w - 6, bh);
+      c.globalAlpha = 1; if (k) c.fillText(String(k), x + w / 2, T + h - bh - 4);
+      c.globalAlpha = .85; c.fillText(((start + j * bw) / 1000).toFixed(bw < 1000 ? 1 : 0), x + w / 2, H - 6); c.globalAlpha = 1;
+    });
+  }
   function renderStats(p) {
     var a = solves(), r = compute(a), body = p.find('.zp-body').empty();
     subtitle(p);
     var cv = document.createElement('canvas');
     body.append($('<div class="zgraph"></div>').append(cv));
+    var hv = document.createElement('canvas');
+    body.append($('<h3 class="zp-h">Time distribution</h3>'), $('<div class="zgraph"></div>').append(hv));
     var cards = $('<div class="zcards"></div>').appendTo(body);
     cards.append(card('Solves', r.n, r.dnf ? r.dnf + ' DNF' : ''), card('Best', pretty(r.best)), card('Mean', pretty(r.mean)), card('Worst', pretty(r.worst)));
     [5, 12, 100].forEach(function (n) {
@@ -209,7 +231,7 @@
     });
     body.append($('<div class="zlegend"></div>').html('<span style="--c:var(--zt-fg)">time</span><span style="--c:#ff5252">ao5</span><span style="--c:#69f0ae">ao12</span><span style="--c:#18ffff">ao100</span>'));
     body.append($('<button class="zshare"></button>').append(icon('share'), $('<span>Copy summary</span>')).on('click', function () { copySummary(a, r); }));
-    drawChart(cv, r, a);
+    drawChart(cv, r, a); drawHistogram(hv, a);
   }
   function copySummary(a, r) {
     var c = currentPuzzle(), f = function (v) { return v == null ? '-' : pretty(v); };
@@ -230,10 +252,13 @@
     var body = p.find('.zp-body').empty(), cur = kernel.getProp('scrType');
     subtitle(p);
     body.append($('<p class="zp-note"></p>').text('Pick a set. You will get scrambles for that set on the timer. Choose single cases with the filter in the scramble window, as in csTimer.'));
+    var gear = $('#scrambleDiv input.icon');
+    $('<button class="zshare"></button>').append(icon('settings'), $('<span>Choose cases for the current set</span>')).prop('disabled', gear.prop('disabled'))
+      .on('click', function () { show('timer'); setTimeout(function () { $('#scrambleDiv input.icon').click(); }, 250); }).css('margin', '0 4px 14px').appendTo(body);
     var grid = $('<div class="ztiles"></div>').appendTo(body);
     SETS.forEach(function (s) {
       $('<button class="ztile"></button>').toggleClass('on', cur === s[2]).append($('<b></b>').text(s[0]), $('<span></span>').text(s[1]))
-        .on('click', function () { kernel.setProp('scrType', s[2]); show('timer'); }).appendTo(grid);
+        .on('click', function () { kernel.setProp('scrType', s[2]); show('timer'); if (s[2] !== '333') toast('<b>' + s[0] + '</b> scrambles are on.<br>Use the scramble card to choose cases.'); }).appendTo(grid);
     });
   }
 
@@ -293,6 +318,21 @@
     drawer = $('<div id="zdrawer"></div>').append($('<div class="zd-dim"></div>').on('click', closeDrawer), panel).appendTo('body');
   }
 
+  function scrambleButtons() {
+    var card = $('#scrambleDiv');
+    if (!card.length) return;
+    var nb = card.find('.title > nobr').eq(1), spans = nb.children('span');
+    if (!card.children('.zscrb').length) {
+      var box = $('<div class="zscrb"></div>').appendTo(card);
+      $('<button class="zsb zsb-last" title="Previous scramble" aria-label="Previous scramble"></button>').append(icon('undo')).on('click', function () {
+        card.find('.title > nobr').eq(1).children('span').eq(0).click();
+      }).appendTo(box);
+      $('<button class="zsb" title="New scramble" aria-label="New scramble"></button>').append(icon('retry')).on('click', function () {
+        card.find('.title > nobr').eq(1).children('span').eq(1).click();
+      }).appendTo(box);
+    }
+    card.find('.zsb-last').toggleClass('off', !spans.eq(0).hasClass('click'));
+  }
   function placeCorners() {
     if (!cornerR) return;
     var tw = $('#toolsDiv'), r = tw.length && tw.is(':visible') ? tw[0].getBoundingClientRect() : null;
@@ -414,7 +454,7 @@
     buildDrawer();
     cornerL = $('<div id="zcorner-l" class="zcorner"></div>').appendTo('body');
     cornerR = $('<div id="zcorner-r" class="zcorner"></div>').appendTo('body');
-    setInterval(function () { if (current === 'timer') { updateBar(); updateCorners(); placeCorners(); } }, 500);
+    setInterval(function () { if (current === 'timer') { updateBar(); updateCorners(); placeCorners(); scrambleButtons(); } }, 500);
     $(window).on('resize', placeCorners);
     [['Delete', 'remove'], ['Retry', 'retry'], ['DNF', 'dnf'], ['Add 2', 'plus2'], ['Comment', 'comment']].forEach(function (m) {
       $('#zquick input').filter(function () { return (this.title || '').indexOf(m[0]) === 0; }).addClass('zq zi-' + m[1]).val('');
