@@ -3,34 +3,34 @@
    Loaded after style.css; !important is used because csTimer injects its colour theme at run time. */
 @font-face{font-family:'Quicksand';src:url('Quicksand_Medium.ttf') format('truetype');font-weight:400 600;font-display:swap}
 @font-face{font-family:'Quicksand';src:url('Quicksand_Bold.ttf') format('truetype');font-weight:700 900;font-display:swap}
-:root{--zt-a:#1959ff;--zt-b:#3b12ff;--zt-bar:#0045f6;--zt-tab:#2900ef;--zt-amber:#ffd740;--zt-glass:rgba(10,12,90,.30);--zt-glass2:rgba(255,255,255,.14);--zt-ink:#1b1b2f}
-html,body{background:linear-gradient(160deg,var(--zt-a) 0%,var(--zt-b) 100%) fixed #2a2fff!important;color:#fff!important;font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:500}
+:root{--zt-a:#1959ff;--zt-b:#3b12ff;--zt-bar:#0045f6;--zt-tab:#2900ef;--zt-amber:#ffd740;--zt-fg:#fff;--zt-link:#2962ff;--zt-onlink:#fff;--zt-glass:rgba(10,12,90,.30);--zt-glass2:color-mix(in srgb,var(--zt-fg) 14%,transparent);--zt-ink:#1b1b2f;--zt-shadow:0 4px 24px rgba(0,0,40,.35);--zt-shadow2:0 1px 6px rgba(0,0,40,.35)}
+html,body{background:linear-gradient(160deg,var(--zt-a) 0%,var(--zt-b) 100%) fixed #2a2fff!important;color:var(--zt-fg)!important;font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:500}
 input,select,textarea,button{font-family:inherit}
 #avgstr,#avgstr *{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important}
 /* timer */
-#lcd,#lcd *{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:700!important;color:#fff!important;text-shadow:0 4px 24px rgba(0,0,40,.35);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-#avgstr,#avgstr *{color:rgba(255,255,255,.82)!important}
+#lcd,#lcd *{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:700!important;color:var(--zt-fg)!important;text-shadow:var(--zt-shadow);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#avgstr,#avgstr *{color:color-mix(in srgb,var(--zt-fg) 82%,transparent)!important}
 #avgstr .click:hover,#avgstr .click:active{background:var(--zt-glass2)!important}
 /* left bar and logo */
 #leftbar{background:var(--zt-bar)!important;border:0!important;box-shadow:0 2px 14px rgba(0,0,60,.35)!important;border-radius:0 0 18px 0}
-.mybutton,.tab{background:transparent!important;border:0!important;border-radius:14px!important;color:#fff!important}
-#leftbar .icon{color:#fff!important}
+.mybutton,.tab{background:transparent!important;border:0!important;border-radius:14px!important;color:var(--zt-fg)!important}
+#leftbar .icon{color:var(--zt-fg)!important}
 #leftbar>div:not(#logo)>div>span:not(.icon){color:transparent!important}
-html:not(.m) #leftbar>div:not(#logo)>div:hover>span:not(.icon){color:#fff!important}
+html:not(.m) #leftbar>div:not(#logo)>div:hover>span:not(.icon){color:var(--zt-fg)!important}
 html:not(.m) #leftbar>div:not(#logo)>div:hover>span.icon{color:transparent!important}
 input.icon,.mywindow input.icon,.dialog input.icon{font-family:iconfont,Arial!important}
 html:not(.m) .mybutton:hover,.mybutton:active,.tab:active{background:var(--zt-glass2)!important}
-.mybutton.enable,.tab.enable{background:rgba(255,255,255,.24)!important}
-#logo,#logo>div,#logo span{background:transparent!important;color:#fff!important;border:0!important;font-weight:700!important;letter-spacing:.02em;text-shadow:none}
+.mybutton.enable,.tab.enable{background:color-mix(in srgb,var(--zt-fg) 24%,transparent)!important}
+#logo,#logo>div,#logo span{background:transparent!important;color:var(--zt-fg)!important;border:0!important;font-weight:700!important;letter-spacing:.02em;text-shadow:none}
 #logo span{font-style:normal!important}
 /* windows: scramble, session, stats, tools */
-.mywindow{background:var(--zt-glass)!important;color:#fff!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:16px!important;box-shadow:0 6px 24px rgba(0,0,70,.25)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.mywindow{background:var(--zt-glass)!important;color:var(--zt-fg)!important;border:1px solid color-mix(in srgb,var(--zt-fg) 18%,transparent)!important;border-radius:16px!important;box-shadow:0 6px 24px rgba(0,0,70,.25)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .mywindow::before,#leftbar::before{box-shadow:none!important}
-.mywindow,.mywindow *{border-color:rgba(255,255,255,.18)!important}
+.mywindow,.mywindow *{border-color:color-mix(in srgb,var(--zt-fg) 18%,transparent)!important}
 .mywindow .click,.mywindow a,.mywindow .times.pb{color:var(--zt-amber)!important}
-.mywindow input[type=text],.mywindow select,.mywindow input[type=button]{color:#fff!important;background:var(--zt-glass2)!important;border:1px solid rgba(255,255,255,.25)!important;border-radius:10px!important;font-family:inherit}
+.mywindow input[type=text],.mywindow select,.mywindow input[type=button]{color:var(--zt-fg)!important;background:var(--zt-glass2)!important;border:1px solid color-mix(in srgb,var(--zt-fg) 25%,transparent)!important;border-radius:10px!important;font-family:inherit}
 .mywindow select option{color:#1b1b2f;background:#fff}
-.mywindow table th{background:rgba(255,255,255,.12)!important;color:#fff!important}
+.mywindow table th{background:color-mix(in srgb,var(--zt-fg) 12%,transparent)!important;color:var(--zt-fg)!important}
 html:not(.m) .times:hover,html:not(.m) .click:hover,.times:active,.click:active{background:var(--zt-glass2)!important}
 .selected{background:rgba(255,215,64,.25)!important}
 /* dialogs and popups: white cards like the app */
@@ -39,22 +39,22 @@ html:not(.m) .times:hover,html:not(.m) .click:hover,.times:active,.click:active{
 .dialog,.dialog table,.dialog td,.dialog th,.dialog span,.dialog div,.popup,.popup span,.popup div{color:var(--zt-ink)}
 .dialog .click,.dialog a,.popup .click,.popup a{color:#1959ff!important}
 .dialog input[type=text],.dialog select,.dialog textarea,.popup input,.popup select{color:var(--zt-ink)!important;background:#f2f4fb!important;border:1px solid #d6dbee!important;border-radius:10px!important}
-.dialog input[type=button],.dialog .buttonOK,.popup input[type=button]{color:#fff!important;background:var(--zt-a)!important;border:0!important;border-radius:12px!important;padding:6px 16px!important;font-weight:700}
+.dialog input[type=button],.dialog .buttonOK,.popup input[type=button]{color:var(--zt-onlink)!important;background:var(--zt-link)!important;border:0!important;border-radius:12px!important;padding:6px 16px!important;font-weight:700}
 .dialog .mybutton,.dialog .tab{color:var(--zt-ink)!important}
 .dialog .mybutton.enable,.dialog .tab.enable,.dialog .selected,.dialog table.opttable tr th:first-child{background:#e4e9ff!important}
 .dialog table.opttable tr:nth-child(odd) td:first-child,.dialog input:disabled{background:#f6f7fc!important}
-.dialog .title{font-weight:700!important;color:var(--zt-a)!important}
+.dialog .title{font-weight:700!important;color:var(--zt-link)!important}
 textarea{color:var(--zt-ink)!important;background:#f2f4fb!important}
 #gray{background:rgba(8,6,60,.55)!important}
 /* bottom bar (ZTimer tabs) */
 #zbar{background:var(--zt-tab)!important;border:0!important;border-radius:20px 20px 0 0!important;box-shadow:0 -4px 18px rgba(0,0,60,.35)!important;-webkit-backdrop-filter:none;backdrop-filter:none}
-#zbar .mybutton{color:rgba(255,255,255,.7)!important;font-weight:700;border-radius:14px!important;background:transparent!important}
-#zbar .mybutton.enable{color:#fff!important;background:rgba(255,255,255,.2)!important;box-shadow:inset 0 -3px 0 var(--zt-amber)}
+#zbar .mybutton{color:color-mix(in srgb,var(--zt-fg) 70%,transparent)!important;font-weight:700;border-radius:14px!important;background:transparent!important}
+#zbar .mybutton.enable{color:var(--zt-fg)!important;background:color-mix(in srgb,var(--zt-fg) 20%,transparent)!important;box-shadow:inset 0 -3px 0 var(--zt-amber)}
 /* quick action buttons */
-#zquick>*{background:rgba(255,255,255,.18)!important;color:#fff!important;border:1px solid rgba(255,255,255,.28)!important;border-radius:999px!important;font-weight:700;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-#zquick>*:active{background:rgba(255,255,255,.34)!important}
+#zquick>*{background:color-mix(in srgb,var(--zt-fg) 18%,transparent)!important;color:var(--zt-fg)!important;border:1px solid color-mix(in srgb,var(--zt-fg) 28%,transparent)!important;border-radius:999px!important;font-weight:700;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#zquick>*:active{background:color-mix(in srgb,var(--zt-fg) 34%,transparent)!important}
 /* scrollbars */
-*{scrollbar-color:rgba(255,255,255,.35) transparent}
+*{scrollbar-color:color-mix(in srgb,var(--zt-fg) 35%,transparent) transparent}
 .dialog .title,.dialog .title *{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important}
 .dialog input[type=button].enable{background:var(--zt-amber)!important;color:var(--zt-ink)!important}
 
@@ -69,58 +69,58 @@ textarea{color:var(--zt-ink)!important;background:#f2f4fb!important}
 #zquick input.zq{font-size:0!important;background-image:var(--zw)!important;background-repeat:no-repeat!important;background-position:center!important;background-size:22px!important}
 
 /* ===== Bottom tabs (icon only, like the app) ===== */
-#zbar .ztab{flex:1 1 0;display:flex;align-items:center;justify-content:center;height:44px;margin:0 4px;border-radius:14px;color:rgba(255,255,255,.62);cursor:pointer;position:relative;transition:background .15s,color .15s}
+#zbar .ztab{flex:1 1 0;display:flex;align-items:center;justify-content:center;height:44px;margin:0 4px;border-radius:14px;color:color-mix(in srgb,var(--zt-fg) 62%,transparent);cursor:pointer;position:relative;transition:background .15s,color .15s}
 #zbar .ztab .zi{width:26px;height:26px}
-#zbar .ztab.on{color:#fff;background:rgba(255,255,255,.2)}
+#zbar .ztab.on{color:var(--zt-fg);background:color-mix(in srgb,var(--zt-fg) 20%,transparent)}
 #zbar .ztab.on::after{content:"";position:absolute;left:50%;bottom:3px;width:18px;height:3px;margin-left:-9px;border-radius:3px;background:var(--zt-amber)}
-html:not(.m) #zbar .ztab:hover{background:rgba(255,255,255,.14)}
+html:not(.m) #zbar .ztab:hover{background:color-mix(in srgb,var(--zt-fg) 14%,transparent)}
 
 /* ===== Pages that the tabs switch to ===== */
 #zpages{position:fixed;left:0;right:0;top:0;bottom:52px;z-index:44;overflow:hidden;background:linear-gradient(160deg,var(--zt-a) 0%,var(--zt-b) 100%) #2a2fff;display:none}
 .zpage{position:absolute;inset:0;display:flex;flex-direction:column;max-width:900px;margin:0 auto;padding:8px 8px 0;box-sizing:border-box}
-.zp-head{flex:none;display:flex;align-items:center;gap:10px;height:54px;padding:0 10px 0 16px;border-radius:14px;background:var(--zt-bar);box-shadow:0 3px 10px rgba(0,0,60,.3);color:#fff}
+.zp-head{flex:none;display:flex;align-items:center;gap:10px;height:54px;padding:0 10px 0 16px;border-radius:14px;background:var(--zt-bar);box-shadow:0 3px 10px rgba(0,0,60,.3);color:var(--zt-fg)}
 .zp-title{font-size:18px;font-weight:700}
 .zp-sub{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;opacity:.8;text-align:right}
-.zp-gear{flex:none;width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.zp-gear:active{background:rgba(255,255,255,.2)}
+.zp-gear{flex:none;width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:var(--zt-fg);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.zp-gear:active{background:color-mix(in srgb,var(--zt-fg) 20%,transparent)}
 .zp-body{flex:1;min-height:0;overflow:auto;padding:12px 2px 16px;-webkit-overflow-scrolling:touch}
 .zp-note{margin:0 4px 12px;font-size:13px;opacity:.85;line-height:1.4}
 /* solve list page: csTimer's stats window moved in */
 #stats.zpage-stats{position:static!important;display:block!important;width:auto!important;height:auto!important;max-height:none!important;margin:0!important;left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;overflow:visible!important;resize:none!important;background:transparent!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none;backdrop-filter:none}
 #stats.zpage-stats::before,#stats.zpage-stats>.chide{display:none!important}
 /* stats page */
-.zgraph{border-radius:16px;background:var(--zt-glass);border:1px solid rgba(255,255,255,.16);padding:8px;margin-bottom:12px;overflow:hidden}
+.zgraph{border-radius:16px;background:var(--zt-glass);border:1px solid color-mix(in srgb,var(--zt-fg) 16%,transparent);padding:8px;margin-bottom:12px;overflow:hidden}
 .zgraph canvas{display:block}
 .zcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .zcard{background:#fff;color:var(--zt-ink);border-radius:16px;padding:12px 14px;box-shadow:0 4px 14px rgba(0,0,70,.2)}
 .zc-l{font-size:12px;font-weight:700;color:#6b6f8f;text-transform:uppercase;letter-spacing:.04em}
-.zc-v{font-size:26px;font-weight:700;color:var(--zt-a);line-height:1.2;margin-top:2px}
+.zc-v{font-size:26px;font-weight:700;color:var(--zt-link);line-height:1.2;margin-top:2px}
 .zc-s{font-size:12px;color:#6b6f8f;margin-top:2px}
 .zlegend{display:flex;gap:14px;justify-content:center;margin-top:12px;font-size:12px;font-weight:700}
 .zlegend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:5px}
 /* trainer page */
 .ztiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .ztile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:88px;padding:10px;border:0;border-radius:16px;background:#fff;color:var(--zt-ink);font-family:inherit;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,70,.2)}
-.ztile b{font-size:20px;color:var(--zt-a)}
+.ztile b{font-size:20px;color:var(--zt-link)}
 .ztile span{font-size:11px;color:#6b6f8f;text-align:center;line-height:1.2}
 .ztile.on{background:var(--zt-amber)}
 .ztile:active{transform:scale(.97)}
 /* WCA page: its content was written for a dialog, so give it white card text */
 .zwca{background:#fff;color:var(--zt-ink);border-radius:16px;padding:14px;box-shadow:0 4px 14px rgba(0,0,70,.2)}
 .zwca *{color:var(--zt-ink)}
-.zwca .click,.zwca a{color:var(--zt-a)!important}
+.zwca .click,.zwca a{color:var(--zt-link)!important}
 .zwca input,.zwca select{color:var(--zt-ink)!important;background:#f2f4fb!important;border:1px solid #d6dbee!important;border-radius:10px!important;padding:4px 8px}
-.zwca input[type=button]{color:#fff!important;background:var(--zt-a)!important;border:0!important}
+.zwca input[type=button]{color:var(--zt-onlink)!important;background:var(--zt-link)!important;border:0!important}
 /* solves page */
 .zsessrow{display:flex;align-items:center;gap:10px;margin:0 4px 12px;font-size:13px;font-weight:700}
-.zsessrow select{background:var(--zt-glass2);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:5px 8px;font-family:inherit}
+.zsessrow select{background:var(--zt-glass2);color:var(--zt-fg);border:1px solid color-mix(in srgb,var(--zt-fg) 30%,transparent);border-radius:10px;padding:5px 8px;font-family:inherit}
 .zsessrow select option{color:#1b1b2f;background:#fff}
 .zcount{margin-left:auto;opacity:.8}
 .zlist{display:flex;flex-direction:column;gap:8px}
 .zrow{display:flex;align-items:center;gap:10px;background:#fff;color:var(--zt-ink);border-radius:14px;padding:10px 14px;box-shadow:0 3px 10px rgba(0,0,70,.18);cursor:pointer}
 .zrow:active{background:#e4e9ff}
 .zr-n{flex:none;min-width:28px;font-size:12px;font-weight:700;color:#8a8eab}
-.zr-t{font-size:24px;font-weight:700;color:var(--zt-a)}
+.zr-t{font-size:24px;font-weight:700;color:var(--zt-link)}
 .zr-t.dnf{color:#d32f2f}
 .zr-p{font-size:11px;font-weight:700;background:var(--zt-amber);border-radius:8px;padding:2px 6px}
 .zr-a{margin-left:auto;text-align:right;font-size:12px;line-height:1.35;font-weight:700}
@@ -131,10 +131,10 @@ html:not(.m) #zbar .ztab:hover{background:rgba(255,255,255,.14)}
 /* timer digits in Lato Bold, like the app's chronometer (Quicksand until Lato loads or offline) */
 #lcd,#lcd *{font-family:'Lato','Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:700!important;opacity:.97}
 /* top bar: puzzle name and category in a blue card */
-#zactionbar{position:fixed;z-index:40;top:calc(8px + env(safe-area-inset-top,0px));left:8px;right:8px;height:56px;border-radius:14px;background:var(--zt-bar);box-shadow:0 3px 10px rgba(0,0,60,.35);display:flex;align-items:center;color:#fff}
+#zactionbar{position:fixed;z-index:40;top:calc(8px + env(safe-area-inset-top,0px));left:8px;right:8px;height:56px;border-radius:14px;background:var(--zt-bar);box-shadow:0 3px 10px rgba(0,0,60,.35);display:flex;align-items:center;color:var(--zt-fg)}
 html:not(.m) #zactionbar{left:214px}
-.za-btn{flex:none;width:44px;height:44px;margin:0 6px;border:0;border-radius:50%;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.za-btn:active{background:rgba(255,255,255,.2)}
+.za-btn{flex:none;width:44px;height:44px;margin:0 6px;border:0;border-radius:50%;background:transparent;color:var(--zt-fg);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.za-btn:active{background:color-mix(in srgb,var(--zt-fg) 20%,transparent)}
 .za-btn .zi{width:26px;height:26px}
 .za-title{flex:1;min-width:0;text-align:center;line-height:1.15;cursor:pointer;padding:4px 0}
 .za-name{display:block;font-size:18px;font-weight:700}
@@ -149,8 +149,8 @@ html.m #scrambleDiv{left:8px!important;right:8px!important;width:auto!important}
 #scrambleDiv input.icon{color:var(--zt-ink)!important;background:transparent!important;border:0!important}
 #scrambleTxt{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:600!important}
 /* stats in the bottom corners, like the app */
-.zcorner{position:fixed;z-index:30;bottom:66px;font-size:15px;line-height:1.5;color:rgba(255,255,255,.88);pointer-events:none;text-shadow:0 1px 6px rgba(0,0,40,.35)}
-.zcorner b{font-weight:700;color:#fff}
+.zcorner{position:fixed;z-index:30;bottom:66px;font-size:15px;line-height:1.5;color:color-mix(in srgb,var(--zt-fg) 88%,transparent);pointer-events:none;text-shadow:var(--zt-shadow2)}
+.zcorner b{font-weight:700;color:var(--zt-fg)}
 #zcorner-l{left:16px;text-align:left}
 #zcorner-r{right:16px;text-align:right}
 html:not(.m) #zcorner-l{left:222px}
@@ -165,14 +165,14 @@ html.m #leftbar,html.m #stats{display:none!important}
 #zdrawer.open{pointer-events:auto}
 #zdrawer.open .zd-dim{opacity:1}
 #zdrawer.open .zd-panel{transform:none}
-.zd-head{padding:calc(28px + env(safe-area-inset-top,0px)) 20px 20px;background:linear-gradient(160deg,var(--zt-a),var(--zt-b));color:#fff;border-radius:0 20px 0 0}
+.zd-head{padding:calc(28px + env(safe-area-inset-top,0px)) 20px 20px;background:linear-gradient(160deg,var(--zt-a),var(--zt-b));color:var(--zt-fg);border-radius:0 20px 0 0}
 .zd-head b{display:block;font-size:28px}
 .zd-head span{font-size:13px;opacity:.85}
 .zd-item{display:flex;align-items:center;gap:16px;padding:14px 20px;font-weight:700;color:var(--zt-ink);cursor:pointer}
-.zd-item .zi{color:var(--zt-a)}
+.zd-item .zi{color:var(--zt-link)}
 .zd-item:active{background:#e4e9ff}
 .zd-foot{margin-top:auto;padding:16px 20px;font-size:12px;color:#6b6f8f;line-height:1.5}
-.zd-foot a{color:var(--zt-a)}
+.zd-foot a{color:var(--zt-link)}
 .zp-h{margin:14px 4px 8px;font-size:14px;opacity:.9}
 /* solves list like the app: date top-left, penalty top-right, time centred */
 .zlist{gap:12px}
@@ -185,3 +185,45 @@ html.m #leftbar,html.m #stats{display:none!important}
 html.m #zquick{top:calc(50% + 150px)!important;bottom:auto!important}
 html:not(.m) #zquick{top:calc(50% + 200px)!important;bottom:auto!important}
 .mywindow .chide,#scrambleDiv .chide{display:none!important}
+
+/* light themes (dark text) */
+html.zt-light #zquick input.zq{background-image:var(--zk)!important}
+html.zt-light .mywindow{box-shadow:0 4px 16px rgba(0,0,60,.14)!important}
+html.zt-light #zactionbar,html.zt-light .zp-head,html.zt-light #zbar{box-shadow:0 2px 10px rgba(0,0,60,.18)!important}
+html.zt-light #lcd,html.zt-light #lcd *{text-shadow:none}
+/* theme page */
+.zthemes{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.ztheme{position:relative;min-height:96px;border:0;border-radius:14px;padding:12px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,70,.25);overflow:hidden}
+.ztheme i{display:block;width:100%;height:10px;border-radius:6px;margin-top:8px}
+.ztheme .zi{position:absolute;top:10px;right:10px;width:22px;height:22px}
+.ztheme.on{outline:3px solid var(--zt-amber);outline-offset:2px}
+/* toast and manual add dialog */
+#ztoast{position:fixed;z-index:70;left:50%;top:calc(76px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px);width:min(92vw,420px);box-sizing:border-box;padding:14px 18px;border-radius:14px;background:#fff;color:var(--zt-ink);font-weight:700;text-align:center;line-height:1.4;box-shadow:0 8px 28px rgba(0,0,70,.4);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
+#ztoast.show{opacity:1;transform:translate(-50%,0)}
+#ztoast b{color:var(--zt-link)}
+.zmodal{position:fixed;inset:0;z-index:80;background:rgba(8,6,60,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.zmodal .zm-card{width:min(360px,100%);background:#fff;color:var(--zt-ink);border-radius:20px;padding:20px;box-shadow:0 12px 40px rgba(0,0,80,.45)}
+.zm-card h3{margin:0 0 12px;color:var(--zt-link);font-size:18px}
+.zm-card input[type=text]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #d6dbee;border-radius:12px;background:#f2f4fb;color:var(--zt-ink);font-weight:700;font-size:22px;font-family:inherit;text-align:center}
+.zm-chips{display:flex;gap:8px;margin:12px 0}
+.zm-chip,.zchip{flex:1;padding:8px;border:1px solid #d6dbee;border-radius:999px;background:#fff;color:var(--zt-ink);font-family:inherit;font-weight:700;cursor:pointer}
+.zm-chip.on,.zchip.on{background:var(--zt-link);border-color:var(--zt-link);color:var(--zt-onlink)}
+.zm-btns{display:flex;gap:10px;margin-top:6px}
+.zm-btn{flex:1;padding:10px;border:0;border-radius:12px;background:#e4e9ff;color:var(--zt-link);font-family:inherit;font-weight:700;font-size:15px;cursor:pointer}
+.zm-btn.pri{background:var(--zt-link);color:var(--zt-onlink)}
+.zm-hint{font-size:12px;color:#6b6f8f;margin:8px 0 0}
+.zchips{display:flex;gap:8px;margin:0 4px 12px;flex-wrap:wrap}
+.zchips .zchip{flex:none;padding:6px 14px;font-size:13px;border-color:color-mix(in srgb,var(--zt-fg) 35%,transparent);background:transparent;color:var(--zt-fg)}
+.zchips .zchip.on{background:var(--zt-fg);color:var(--zt-a);border-color:var(--zt-fg)}
+.zadd{margin-left:auto;padding:6px 14px;border:0;border-radius:999px;background:var(--zt-amber);color:#1b1b2f;font-family:inherit;font-weight:700;cursor:pointer}
+
+/* desktop left bar: centre the icons in their tiles */
+#leftbar .mybutton>div{display:flex!important;align-items:center;justify-content:center;height:100%}
+#leftbar .mybutton>div>span:not(.icon){position:absolute}
+/* copy summary button */
+.zshare{display:flex;align-items:center;gap:8px;margin:14px auto 0;padding:10px 22px;border:0;border-radius:999px;background:var(--zt-amber);color:#1b1b2f;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,60,.25)}
+.zshare:active{transform:scale(.97)}
+/* csTimer's tools window (scramble picture etc.) */
+#toolsDiv{border-radius:16px!important}
+#toolsDiv select{max-width:100%}
+#leftbar .mybutton>div>span:not(.icon){font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:700;font-size:13px;letter-spacing:.04em;color:var(--zt-fg)}
