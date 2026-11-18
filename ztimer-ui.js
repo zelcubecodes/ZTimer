@@ -18,7 +18,13 @@
     ['LSLL', 'Last slot + last layer', 'lsll2'], ['VLS', 'Valk last slot', 'vls'], ['WVLS', 'Winter variation', 'wvls'],
     ['EOLS', 'EO last slot', 'eols'], ['TTLL', 'Twisty-Twisty LL', 'ttll'], ['2nd block', 'Roux second block', 'sbrx']
   ];
-  var current = 'timer', pages = {}, root, bar, timerId = null;
+  var PUZZLES = [
+    ['WCA puzzles', [['3x3x3', '333'], ['2x2x2', '222so'], ['4x4x4', '444wca'], ['5x5x5', '555wca'], ['6x6x6', '666wca'], ['7x7x7', '777wca'],
+      ['Clock', 'clkwca'], ['Megaminx', 'mgmp'], ['Pyraminx', 'pyrso'], ['Skewb', 'skbso'], ['Square-1', 'sqrs'], ['FTO', 'ftoso']]],
+    ['Blindfolded and others', [['3x3x3 BLD', '333ni'], ['3x3x3 FMC', '333fm'], ['3x3x3 one-handed', '333oh'], ['4x4x4 BLD', '444bld'],
+      ['5x5x5 BLD', '555bld'], ['3x3x3 multi-BLD', 'r3ni']]]
+  ];
+  var current = 'timer', pages = {}, root, bar, timerId = null, actionbar, drawer, cornerL, cornerR, lastSig = '';
 
   function icon(n) { return $('<span class="zi zi-' + n + '"></span>'); }
   function pretty(ms) { return ms === Infinity ? 'DNF' : (ms == null ? '-' : kernel.pretty(ms)); }
@@ -29,7 +35,7 @@
     try {
       while ((s = stats.timesAt(i)) && i < 100000) {
         var pen = s[0][0], ms = s[0][1];
-        out.push({ t: pen < 0 ? Infinity : ms + (pen > 0 ? pen : 0), pen: pen, scr: s[1], ts: s[3] });
+        out.push({ t: pen < 0 ? Infinity : ms + (pen > 0 ? pen : 0), pen: pen, scr: s[1], cmt: s[2], ts: s[3] });
         i++;
       }
     } catch (e) {}
@@ -93,13 +99,12 @@
     if (!a.length) { body.append($('<p class="zp-note"></p>').text('No solves in this session yet. Go to the Timer tab and do a solve.')); return; }
     var list = $('<div class="zlist"></div>').appendTo(body);
     for (var i = a.length - 1; i >= 0; i--) (function (i) {
-      var x = a[i], a5 = avgOf(a, i, 5), a12 = avgOf(a, i, 12), d = x.ts ? new Date(x.ts * 1000) : null;
+      var x = a[i], d = x.ts ? new Date(x.ts * 1000) : null;
       var row = $('<div class="zrow"></div>').append(
-        $('<span class="zr-n"></span>').text(i + 1),
-        $('<span class="zr-t"></span>').text(pretty(x.t)).toggleClass('dnf', x.t === Infinity),
-        x.pen > 0 ? $('<span class="zr-p">+2</span>') : '',
-        $('<span class="zr-a"></span>').html('<i>ao5</i> ' + (a5 == null ? '-' : pretty(a5)) + '<br><i>ao12</i> ' + (a12 == null ? '-' : pretty(a12))),
-        $('<span class="zr-d"></span>').text(d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''));
+        $('<span class="zr-d"></span>').text(d ? d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) : ''),
+        x.cmt ? $('<span class="zr-c zi zi-comment"></span>') : '',
+        $('<span class="zr-p"></span>').text(x.pen < 0 ? 'DNF' : (x.pen > 0 ? '+2' : '')),
+        $('<span class="zr-t"></span>').text(pretty(x.t)).toggleClass('dnf', x.t === Infinity));
       row.on('click', function () {
         $('#stats tr[data="' + i + '"]').children().eq(1).click();
       }).appendTo(list);
@@ -179,6 +184,66 @@
     if (window.zWcaRender) window.zWcaRender(box); else box.text('WCA data is not available.');
   }
 
+  /* ---- Puzzle chooser page (like the app's puzzle dialog) ---- */
+  function currentPuzzle() {
+    var t = kernel.getProp('scrType'), name = null;
+    PUZZLES.forEach(function (g) { g[1].forEach(function (q) { if (q[1] === t) name = q[0]; }); });
+    var sels = $('#scrambleDiv select');
+    if (!name) name = sels.eq(1).find('option:selected').text() || 'Puzzle';
+    return { name: name, cat: sels.eq(0).find('option:selected').text() || '' };
+  }
+  function renderPuzzles(p) {
+    var body = p.find('.zp-body').empty(), cur = kernel.getProp('scrType');
+    p.find('.zp-sub').text('Choose what you are solving');
+    PUZZLES.forEach(function (g) {
+      body.append($('<h3 class="zp-h"></h3>').text(g[0]));
+      var grid = $('<div class="ztiles"></div>').appendTo(body);
+      g[1].forEach(function (q) {
+        $('<button class="ztile"></button>').toggleClass('on', cur === q[1]).append($('<b></b>').text(q[0]))
+          .on('click', function () { kernel.setProp('scrType', q[1]); show('timer'); }).appendTo(grid);
+      });
+    });
+    body.append($('<p class="zp-note"></p>').text('More scramble types are in the selectors on the scramble card.'));
+  }
+
+  /* ---- App-style top bar ---- */
+  function barBtn(ic, title, fn) {
+    return $('<button class="za-btn"></button>').attr({ title: title, 'aria-label': title }).append(icon(ic)).on('click', fn);
+  }
+  function updateBar() {
+    var c = currentPuzzle();
+    actionbar.find('.za-name').text(c.name); actionbar.find('.za-cat').text(c.cat);
+  }
+  function closeDrawer() { drawer.removeClass('open'); }
+  function buildDrawer() {
+    var items = [['settings', 'Options', function () { $('#leftbar .c1').click(); }],
+      ['share', 'Export / import', function () { $('#leftbar .c2').click(); }],
+      ['category', 'Scramble options', function () { $('#leftbar .c3').click(); }],
+      ['build', 'Tools', function () { $('#leftbar .c6').click(); }],
+      ['help', 'About and support', function () { $('#leftbar .c5').click(); }]];
+    var panel = $('<div class="zd-panel"></div>').append(
+      $('<div class="zd-head"></div>').append($('<b></b>').text('ZTimer'), $('<span></span>').text('Web timer for speedcubers')));
+    items.forEach(function (it) {
+      $('<div class="zd-item" role="button" tabindex="0"></div>').append(icon(it[0]), $('<span></span>').text(it[1]))
+        .on('click', function () { closeDrawer(); setTimeout(it[2], 120); }).appendTo(panel);
+    });
+    panel.append($('<div class="zd-foot"></div>').html('Free software, GPL-3.0<br>Based on csTimer by Shuang Chen<br><a href="https://github.com/zelcubecodes/ZTimer" target="_blank" rel="noopener">github.com/zelcubecodes/ZTimer</a>'));
+    drawer = $('<div id="zdrawer"></div>').append($('<div class="zd-dim"></div>').on('click', closeDrawer), panel).appendTo('body');
+  }
+
+  /* ---- Corner stats on the timer screen, like the app ---- */
+  function updateCorners() {
+    if (current !== 'timer') return;
+    var a = solves(), sum = 0;
+    a.forEach(function (x) { sum += (x.t === Infinity ? 7 : x.t) + x.pen; });
+    var sig = a.length + ':' + sum + ':' + kernel.getProp('scrType');
+    if (sig === lastSig) return;
+    lastSig = sig;
+    var r = compute(a);
+    cornerL.html(a.length ? 'solves <b>' + r.n + '</b><br>best <b>' + pretty(r.best) + '</b><br>worst <b>' + pretty(r.worst) + '</b>' : '');
+    cornerR.html(a.length ? 'ao5 <b>' + (r.ao5 == null ? '-' : pretty(r.ao5)) + '</b><br>ao12 <b>' + (r.ao12 == null ? '-' : pretty(r.ao12)) + '</b><br>mean <b>' + pretty(r.mean) + '</b>' : '');
+  }
+
   /* ---- switching ---- */
   function keyBlock(e) {
     if (current === 'timer') return;
@@ -191,13 +256,15 @@
     bar.find('.ztab').each(function () { $(this).toggleClass('on', $(this).data('p') === id); });
     clearInterval(timerId); timerId = null;
     $('html').toggleClass('zpage-open', id !== 'timer');
-    if (id === 'timer') { root.hide(); return; }
+    closeDrawer();
+    if (id === 'timer') { root.hide(); lastSig = ''; updateBar(); updateCorners(); return; }
     kernel.hideDialog();
     root.show(); $.each(pages, function (k, p) { p.toggle(k === id); });
     var p = pages[id];
     if (id === 'solves') renderSolves(p);
     if (id === 'stats') { renderStats(p); timerId = setInterval(function () { renderStats(p); }, 4000); }
     if (id === 'trainer') renderTrainer(p);
+    if (id === 'puzzles') renderPuzzles(p);
     if (id === 'wca') renderWca(p);
     p.find('.zp-body').scrollTop(0);
   }
@@ -212,7 +279,16 @@
     });
     root = $('<div id="zpages"></div>').hide().appendTo('body');
     makePage('solves', 'Solves', 'list'); makePage('stats', 'Stats', 'graph');
-    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca');
+    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category');
+    actionbar = $('<div id="zactionbar"></div>').append(
+      barBtn('menu', 'Menu', function () { drawer.addClass('open'); }),
+      $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
+        .on('click', function () { show('puzzles'); }),
+      barBtn('settings', 'Options', function () { $('#leftbar .c1').click(); })).appendTo('body');
+    buildDrawer();
+    cornerL = $('<div id="zcorner-l" class="zcorner"></div>').appendTo('body');
+    cornerR = $('<div id="zcorner-r" class="zcorner"></div>').appendTo('body');
+    setInterval(function () { if (current === 'timer') { updateBar(); updateCorners(); } }, 700);
     [['Delete', 'remove'], ['Retry', 'retry'], ['DNF', 'dnf'], ['Add 2', 'plus2'], ['Comment', 'comment']].forEach(function (m) {
       $('#zquick input').filter(function () { return (this.title || '').indexOf(m[0]) === 0; }).addClass('zq zi-' + m[1]).val('');
     });
