@@ -247,3 +247,25 @@ html:not(.m) #zcorner-l{left:16px}
 .dialog span.icon.zi{font-size:0!important;display:inline-block;width:20px;height:20px;margin-right:6px;vertical-align:middle;background-color:currentColor;-webkit-mask:var(--zi) center/contain no-repeat;mask:var(--zi) center/contain no-repeat}
 #scrambleDiv input.icon.icon{font-size:0!important;width:26px;height:26px;padding:0;border-radius:0!important;background-color:var(--zt-ink)!important;-webkit-mask:var(--zi-settings) center/20px no-repeat;mask:var(--zi-settings) center/20px no-repeat}
 .dialog .tab span,.dialog .tab{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif!important;font-weight:700}
+
+/* options page: grouped cards like the app's settings */
+.zocard{background:#fff;color:var(--zt-ink);border-radius:16px;margin:0 0 14px;padding:4px 0 6px;box-shadow:0 4px 14px rgba(0,0,70,.2);overflow:hidden}
+.zocard h3{margin:0;padding:14px 16px 6px;font-size:13px;font-weight:700;color:var(--zt-link);text-transform:uppercase;letter-spacing:.05em}
+.zopt{display:flex;align-items:center;gap:12px;padding:11px 16px;min-height:48px;border-top:1px solid #eef0f8}
+.zocard h3+.zopt{border-top:0}
+.zopt.tap,.zopt.go{cursor:pointer}
+.zopt.tap:active,.zopt.go:active{background:#e4e9ff}
+.zo-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.zo-t b{font-size:15px;font-weight:700;color:var(--zt-ink)}
+.zo-t span{font-size:12px;color:#6b6f8f;line-height:1.3}
+.zsw{flex:none;position:relative;width:46px;height:26px;border:0;border-radius:13px;background:#c5c9de;cursor:pointer;padding:0;transition:background .15s}
+.zsw i{position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,40,.35);transition:transform .15s}
+.zsw.on{background:var(--zt-link)}
+.zsw.on i{transform:translateX(20px)}
+.zosel{flex:none;max-width:46%;background:#f2f4fb;color:var(--zt-ink);border:1px solid #d6dbee;border-radius:10px;padding:6px 8px;font-family:inherit;font-size:13px;font-weight:600}
+.zopt.num{flex-wrap:wrap}
+.zopt.num .zo-t{flex:1 1 60%}
+.zo-n{flex:none;min-width:34px;text-align:right;font-weight:700;color:var(--zt-link)}
+.zorange{flex:1 1 100%;order:3;width:100%;accent-color:var(--zt-link);margin:2px 0 0}
+.zchev{flex:none;width:9px;height:9px;border-top:2px solid #8a8fb0;border-right:2px solid #8a8fb0;transform:rotate(45deg);margin-right:4px}
+#zp-options .zp-gear{display:none}

@@ -112,7 +112,7 @@
     var p = $('<div class="zpage" id="zp-' + id + '"></div>');
     var head = $('<div class="zp-head"></div>').append(icon(ic), $('<b class="zp-title"></b>').text(title),
       $('<span class="zp-sub"></span>'),
-      $('<button class="zp-gear" title="Options" aria-label="Options"></button>').append(icon('settings')).on('click', function () { $('#leftbar .c1').click(); }));
+      $('<button class="zp-gear" title="Options" aria-label="Options"></button>').append(icon('settings')).on('click', function () { show('options'); }));
     p.append(head, $('<div class="zp-body"></div>'));
     p.hide().appendTo(root);
     pages[id] = p;
@@ -301,7 +301,7 @@
   }
   function closeDrawer() { drawer.removeClass('open'); }
   function buildDrawer() {
-    var items = [['settings', 'Options', function () { $('#leftbar .c1').click(); }],
+    var items = [['settings', 'Options', function () { show('options'); }],
       ['edit', 'Add time', function () { addTimeDialog(function () { if (current !== 'timer') show(current); }); }],
       ['palette', 'Theme', function () { show('themes'); }],
       ['share', 'Export / import', function () { $('#leftbar .c2').click(); }],
@@ -408,6 +408,99 @@
     });
   }
 
+
+  /* ---- Options page: the app's settings as grouped cards. Each row reads and writes csTimer's real settings. ----
+     Row types: ['sw', key, title, summary] switch, ['sel', key, title, summary, [[value,label],...]] choice,
+     ['num', key, title, summary, min, max] number, ['go', title, summary, fn] link to another screen. */
+  var OPTIONS = [
+    ['Inspection', [
+      ['sel', 'useIns', 'WCA inspection', 'Count down 15 seconds before the solve starts', [['a', 'Always (hold to start)'], ['ap', 'Always (release to start)'], ['b', 'Except blindfolded (hold)'], ['bp', 'Except blindfolded (release)'], ['n', 'Never']]],
+      ['sw', 'showIns', 'Inspection icon', 'Show an icon when inspection is switched on'],
+      ['sel', 'voiceIns', 'Spoken alerts', 'Says 8 seconds and 12 seconds during inspection', [['n', 'Off'], ['1', 'Male voice'], ['2', 'Female voice']]],
+      ['num', 'voiceVol', 'Alert volume', 'Volume of the spoken alerts', 1, 100]
+    ]],
+    ['Timer behaviour', [
+      ['sw', 'useMilli', 'Thousandths', 'Show the time to three decimals instead of two'],
+      ['sel', 'preTime', 'Hold to start', 'How long to hold before the timer is ready (seconds)', [[0, 'No wait'], [300, '0.3'], [550, '0.55'], [1000, '1']]],
+      ['sel', 'stopKey', 'Stop the timer with', 'Which keys stop a running solve', [['a', 'Any key'], ['l', 'Space or letters'], ['s', 'Space only']]],
+      ['sw', 'useMouse', 'Mouse or touch timer', 'Tap the timer to start and stop'],
+      ['sel', 'timeU', 'Timer update', 'How the time is shown while solving', [['u', 'Every frame'], ['c', 'Every 0.1 s'], ['s', 'Seconds only'], ['i', 'Inspection only'], ['n', 'Hidden']]],
+      ['sel', 'input', 'Input method', 'How times are entered', [['t', 'Timer'], ['i', 'Typing'], ['s', 'Stackmat'], ['m', 'MoYu timer'], ['v', 'Virtual cube'], ['g', 'Bluetooth cube'], ['q', 'qCube'], ['b', 'Bluetooth timer'], ['l', 'Last layer training']]],
+      ['num', 'phases', 'Multi-phase', 'Number of phases to record in one solve', 1, 10],
+      ['sw', 'phaseBeep', 'Phase beep', 'Beep when a phase time is recorded']
+    ]],
+    ['Scramble', [
+      ['num', 'scrSize', 'Scramble text size', 'Size of the scramble text', 5, 50],
+      ['sw', 'scrMono', 'Monospaced scramble', 'Use a fixed-width font for the scramble'],
+      ['sel', 'scrAlign', 'Scramble alignment', '', [['c', 'Centre'], ['l', 'Left'], ['r', 'Right']]],
+      ['sel', 'scrNeut', 'Colour neutral', 'Scrambles that suit your chosen cross faces', [['n', 'None'], ['1', 'Single face'], ['2', 'Two faces'], ['6', 'Six faces']]],
+      ['sel', 'scrClk', 'Tap the scramble', 'What happens when you tap the scramble text', [['n', 'Nothing'], ['c', 'Copy it'], ['+', 'Next scramble']]],
+      ['sw', 'scrFast', 'Fast 4x4x4 scrambles', 'Quicker, but not official random-state'],
+      ['sw', 'scrKeyM', 'Mark key moves', 'Label key moves in the scramble']
+    ]],
+    ['Timer appearance', [
+      ['sw', 'ahide', 'Hide while solving', 'Hide everything except the time during a solve'],
+      ['num', 'timerSize', 'Timer size', 'Size of the digits', 1, 100],
+      ['sw', 'smallADP', 'Small decimals', 'Show the digits after the point smaller'],
+      ['sel', 'font', 'Timer font', '', [['r', 'Random digital'], ['Arial', 'Normal'], ['lcd', 'Digital 1'], ['lcd2', 'Digital 2'], ['lcd3', 'Digital 3'], ['lcd4', 'Digital 4'], ['lcd5', 'Digital 5'], ['Roboto', 'Roboto']]],
+      ['num', 'imgSize', 'Scramble image size', 'Size of the scramble picture', 5, 50],
+      ['sw', 'zQuick', 'Quick buttons', 'Delete, Retry, DNF, +2 and Comment under the timer'],
+      ['sw', 'zBar', 'Bottom tabs', 'Show the Timer, Solves, Stats, Trainer and WCA tabs'],
+      ['go', 'Colour theme', 'Pick one of the app\u2019s themes', function () { show('themes'); }]
+    ]],
+    ['Statistics', [
+      ['sel', 'trim', 'Trim for averages', 'How many best and worst solves an average ignores', [['0', 'None'], ['1', 'One each side'], ['p1', '1%'], ['p5', '5%'], ['p10', '10%'], ['p20', '20%'], ['m', 'Median']]],
+      ['sw', 'statsum', 'Summary', 'Show a summary before the solve list'],
+      ['sw', 'statthres', 'Target time', 'Show the time needed to beat your session best'],
+      ['sw', 'statbpa', 'Best possible average', 'Show BPA in the statistics'],
+      ['sw', 'statwpa', 'Worst possible average', 'Show WPA in the statistics'],
+      ['sw', 'printScr', 'Scrambles in the list', 'Print scrambles when exporting or sharing'],
+      ['sw', 'printDate', 'Dates in the list', 'Print the date of each solve'],
+      ['sw', 'delmul', 'Delete several solves', 'Allow multi-select deletion']
+    ]],
+    ['Other', [
+      ['sw', 'useKSC', 'Keyboard shortcuts', 'Use keyboard shortcuts on a computer'],
+      ['sw', 'useGES', 'Gestures', 'Use swipe gestures on a touch screen'],
+      ['go', 'All csTimer settings', 'Open the full settings window for anything not listed here', function () { $('#leftbar .c1').click(); }]
+    ]]
+  ];
+  function optRow(o, p) {
+    var row = $('<div class="zopt"></div>'), text = $('<div class="zo-t"></div>').append($('<b></b>').text(o[0] === 'go' ? o[1] : o[2]));
+    var sum = o[0] === 'go' ? o[2] : o[3];
+    if (sum) text.append($('<span></span>').text(sum));
+    row.append(text);
+    if (o[0] === 'go') { row.addClass('go').on('click', o[3]).append('<i class="zchev"></i>'); return row; }
+    var key = o[1], cur = kernel.getProp(key);
+    if (o[0] === 'sw') {
+      var sw = $('<button class="zsw" role="switch"></button>').toggleClass('on', !!cur).attr('aria-checked', !!cur).append('<i></i>');
+      row.addClass('tap').on('click', function () { var v = !kernel.getProp(key); kernel.setProp(key, v); sw.toggleClass('on', v).attr('aria-checked', v); lastSig = ''; });
+      row.append(sw);
+    } else if (o[0] === 'sel') {
+      var s = $('<select class="zosel"></select>'), idx = 0;
+      o[4].forEach(function (c, i) { $('<option></option>').val(i).text(c[1]).appendTo(s); if (String(c[0]) === String(cur)) idx = i; });
+      s.val(idx).on('change', function () { kernel.setProp(key, o[4][+this.value][0]); lastSig = ''; });
+      row.append(s);
+    } else if (o[0] === 'num') {
+      var out = $('<span class="zo-n"></span>').text(cur), r = $('<input type="range" class="zorange">').attr({ min: o[4], max: o[5] }).val(cur);
+      r.on('input', function () { out.text(this.value); }).on('change', function () { kernel.setProp(key, +this.value); lastSig = ''; });
+      row.addClass('num').append(out, r);
+    }
+    return row;
+  }
+  function renderOptions(p) {
+    var body = p.find('.zp-body').empty();
+    p.find('.zp-sub').text('Changes save as you make them');
+    OPTIONS.forEach(function (g) {
+      var card = $('<div class="zocard"></div>').append($('<h3></h3>').text(g[0]));
+      g[1].forEach(function (o) {
+        var known = o[0] === 'go' || kernel.getProp(o[1]) !== undefined;
+        if (known) card.append(optRow(o, p));
+      });
+      body.append(card);
+    });
+    body.append($('<p class="zp-note"></p>').text('ZTimer Web is free software (GPL-3.0), based on csTimer.'));
+  }
+
   /* ---- switching ---- */
   function keyBlock(e) {
     if (current === 'timer') return;
@@ -430,6 +523,7 @@
     if (id === 'trainer') renderTrainer(p);
     if (id === 'puzzles') renderPuzzles(p);
     if (id === 'themes') renderThemes(p);
+    if (id === 'options') renderOptions(p);
     if (id === 'wca') renderWca(p);
     p.find('.zp-body').scrollTop(0);
   }
@@ -445,12 +539,12 @@
     });
     root = $('<div id="zpages"></div>').hide().appendTo('body');
     makePage('solves', 'Solves', 'list'); makePage('stats', 'Stats', 'graph');
-    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette');
+    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings');
     actionbar = $('<div id="zactionbar"></div>').append(
       barBtn('menu', 'Menu', function () { drawer.addClass('open'); }),
       $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
         .on('click', function () { show('puzzles'); }),
-      barBtn('settings', 'Options', function () { $('#leftbar .c1').click(); })).appendTo('body');
+      barBtn('settings', 'Options', function () { show('options'); })).appendTo('body');
     buildDrawer();
     cornerL = $('<div id="zcorner-l" class="zcorner"></div>').appendTo('body');
     cornerR = $('<div id="zcorner-r" class="zcorner"></div>').appendTo('body');
