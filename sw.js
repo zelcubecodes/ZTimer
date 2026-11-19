@@ -1,6 +1,6 @@
 /* ZTimer Web service worker: lets the timer open offline. Copyright (C) 2026 Zel (ZelCubes), GPL-3.0.
    Network first, so a new upload shows up straight away; the cache is only used when you are offline. */
-var CACHE = 'ztimer-web-zt12';
+var CACHE = 'ztimer-web-zt14';
 var FILES = ['./', 'index.html', 'cstimer.js', 'twisty.js', 'jquery.min.js', 'style.css', 'ztimer-theme.css', 'ztimer-icons.css', 'ztimer-ui.js', 'Quicksand_Medium.ttf', 'Quicksand_Bold.ttf', 'en-us.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function(e) {

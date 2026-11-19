@@ -269,3 +269,51 @@ html:not(.m) #zcorner-l{left:16px}
 .zorange{flex:1 1 100%;order:3;width:100%;accent-color:var(--zt-link);margin:2px 0 0}
 .zchev{flex:none;width:9px;height:9px;border-top:2px solid #8a8fb0;border-right:2px solid #8a8fb0;transform:rotate(45deg);margin-right:4px}
 #zp-options .zp-gear{display:none}
+
+/* solve details as a bottom sheet, like the app (csTimer's solve dialog, restyled) */
+@keyframes zsheetup{from{transform:translate(-50%,100%)}to{transform:translate(-50%,0)}}
+.dialog.dialogcfm{left:50%!important;right:auto!important;top:auto!important;bottom:0!important;width:min(560px,100%)!important;max-height:86vh;margin:0!important;overflow:auto;box-sizing:border-box;
+  border-radius:24px 24px 0 0!important;padding:26px 20px calc(18px + env(safe-area-inset-bottom,0px))!important;box-shadow:0 -8px 30px rgba(0,0,70,.35)!important;transform:translate(-50%,0);animation:zsheetup .22s ease-out}
+.dialog.dialogcfm::before{content:"";position:absolute;left:50%;top:9px;width:42px;height:5px;margin-left:-21px;border-radius:3px;background:#c5c9de}
+.dialog.dialogcfm .title{font-size:13px!important;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px!important}
+.dialog.dialogcfm .value,.dialog.dialogcfm textarea,.dialog.dialogcfm input[type=text]{width:100%!important;box-sizing:border-box;font-size:15px}
+.dialog.dialogcfm textarea,.dialog.dialogcfm input[type=text]{padding:10px 12px!important;min-height:44px}
+.dialog.dialogcfm table{width:100%;border-collapse:collapse}
+.dialog.dialogcfm td{padding:6px 4px!important}
+.dialog.dialogcfm input[type=button],.dialog.dialogcfm .buttonOK{min-height:44px;margin:6px 6px 0 0;border-radius:22px!important;padding:8px 20px!important}
+.dialog.dialogcfm .button{min-height:44px}
+
+/* slide animation between tabs */
+@keyframes zinr{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:none}}
+@keyframes zinl{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:none}}
+.zpage.zin-r{animation:zinr .2s ease-out}
+.zpage.zin-l{animation:zinl .2s ease-out}
+@media (prefers-reduced-motion:reduce){.zpage.zin-r,.zpage.zin-l{animation:none}}
+
+/* PB history rows, session rows */
+.zrow.zpb,.zrow.zsessrow2{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 16px;border-radius:14px}
+.zpb-k{flex:none;min-width:58px;font-weight:700;color:var(--zt-link)}
+.zpb-d{flex:1;font-size:12px;color:#6b6f8f}
+.zrow.zpb .zr-t{display:block;font-size:18px;font-weight:700}
+.zpbl{display:flex;flex-direction:column;gap:8px}
+.zrow.zsessrow2{margin:0 0 8px}
+.zrow.zsessrow2.cur{outline:2px solid var(--zt-link)}
+.zs-n{flex:1;font-size:16px;font-weight:700}
+.zs-c{flex:none;font-size:11px;font-weight:700;color:var(--zt-onlink);background:var(--zt-link);border-radius:999px;padding:3px 10px}
+
+/* goals */
+.zgbar{height:12px;border-radius:6px;background:color-mix(in srgb,var(--zt-fg) 22%,transparent);margin:0 4px 14px;overflow:hidden}
+.zgbar i{display:block;height:100%;background:#69f0ae;border-radius:6px;transition:width .3s}
+.zstep .zchip{flex:none;width:40px;padding:6px 0;text-align:center;font-size:18px}
+.zstep>b{min-width:36px;text-align:center;color:var(--zt-link)}
+.zcal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:0 4px 14px}
+.zcell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:12px;font-weight:700;background:color-mix(in srgb,var(--zt-fg) 14%,transparent);color:var(--zt-fg)}
+.zcell.l1{background:#b9f6ca;color:#1b1b2f}
+.zcell.l2{background:#69f0ae;color:#1b1b2f}
+.zcell.l3{background:#00c853;color:#fff}
+
+/* backup / import */
+.zimpcard{padding-bottom:12px}
+.zp-note.zdark{color:#6b6f8f;margin:4px 16px 8px}
+.zimp{display:block;width:calc(100% - 32px);margin:0 16px 8px;box-sizing:border-box;border:1px solid #d6dbee;border-radius:12px;background:#f2f4fb;color:var(--zt-ink);padding:10px 12px;font-family:inherit;font-size:14px;resize:vertical}
+.zimpcard .zm-btns{padding:0 16px}

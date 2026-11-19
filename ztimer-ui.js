@@ -231,6 +231,7 @@
     });
     body.append($('<div class="zlegend"></div>').html('<span style="--c:var(--zt-fg)">time</span><span style="--c:#ff5252">ao5</span><span style="--c:#69f0ae">ao12</span><span style="--c:#18ffff">ao100</span>'));
     body.append($('<button class="zshare"></button>').append(icon('share'), $('<span>Copy summary</span>')).on('click', function () { copySummary(a, r); }));
+    renderPbHistory(body, a);
     drawChart(cv, r, a); drawHistogram(hv, a);
   }
   function copySummary(a, r) {
@@ -303,7 +304,10 @@
   function buildDrawer() {
     var items = [['settings', 'Options', function () { show('options'); }],
       ['edit', 'Add time', function () { addTimeDialog(function () { if (current !== 'timer') show(current); }); }],
+      ['books', 'Sessions', function () { show('sessions'); }],
+      ['checklist', 'Goals and streaks', function () { show('goals'); }],
       ['palette', 'Theme', function () { show('themes'); }],
+      ['archive', 'Backup and import', function () { show('backup'); }],
       ['share', 'Export / import', function () { $('#leftbar .c2').click(); }],
       ['category', 'Scramble options', function () { $('#leftbar .c3').click(); }],
       ['build', 'Tools', function () { $('#leftbar .c6').click(); }],
@@ -501,6 +505,164 @@
     body.append($('<p class="zp-note"></p>').text('ZTimer Web is free software (GPL-3.0), based on csTimer.'));
   }
 
+
+  /* ---- small cookie store for goals ---- */
+  function getGoals() {
+    var g = { daily: 25, target: 0 };
+    try { var m = /(?:^|; )ztimerGoals=([^;]*)/.exec(document.cookie); if (m) { var o = JSON.parse(decodeURIComponent(m[1])); g.daily = +o.daily || 25; g.target = +o.target || 0; } } catch (e) {}
+    return g;
+  }
+  function setGoals(g) { try { document.cookie = 'ztimerGoals=' + encodeURIComponent(JSON.stringify(g)) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {} }
+  function dayKey(ts) { var d = new Date(ts * 1000); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+
+  /* ---- Stats: personal best history (single, ao5, ao12) with dates ---- */
+  function pbHistory(a) {
+    var out = [], bs = null, b5 = null, b12 = null;
+    a.forEach(function (x, i) {
+      if (x.t !== Infinity && (bs == null || x.t < bs)) { bs = x.t; out.push(['Single', x.t, x.ts]); }
+      var v5 = avgOf(a, i, 5), v12 = avgOf(a, i, 12);
+      if (v5 != null && v5 !== Infinity && (b5 == null || v5 < b5)) { b5 = v5; out.push(['ao5', v5, x.ts]); }
+      if (v12 != null && v12 !== Infinity && (b12 == null || v12 < b12)) { b12 = v12; out.push(['ao12', v12, x.ts]); }
+    });
+    return out.reverse().slice(0, 30);
+  }
+  function renderPbHistory(body, a) {
+    var h = pbHistory(a);
+    body.append($('<h3 class="zp-h">Personal best history</h3>'));
+    if (!h.length) { body.append($('<p class="zp-note"></p>').text('Your records will appear here as you improve.')); return; }
+    var list = $('<div class="zlist zpbl"></div>').appendTo(body);
+    h.forEach(function (x) {
+      $('<div class="zrow zpb"></div>').append($('<span class="zpb-k"></span>').text(x[0]),
+        $('<span class="zpb-d"></span>').text(x[2] ? new Date(x[2] * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : ''),
+        $('<span class="zr-t"></span>').text(pretty(x[1]))).appendTo(list);
+    });
+  }
+
+  /* ---- Sessions page: switch sessions with the app's cards ---- */
+  function renderSessions(p) {
+    var body = p.find('.zp-body').empty(), src = $('#stats select').first();
+    p.find('.zp-sub').text('Tap a session to switch to it');
+    var cur = src.val();
+    src.find('option').each(function () {
+      var v = $(this).val(), row = $('<div class="zrow zsessrow2"></div>').toggleClass('cur', v === cur)
+        .append($('<span class="zs-n"></span>').text($(this).text()), v === cur ? $('<span class="zs-c">current</span>') : '');
+      row.on('click', function () { src.val(v).trigger('change'); setTimeout(function () { renderSessions(p); }, 250); }).appendTo(body);
+    });
+    body.append($('<button class="zshare"></button>').append(icon('settings'), $('<span>New, rename, merge or delete</span>')).on('click', function () {
+      try { stats.getSessionManager().getButton().click(); } catch (e) { $('#stats input.icon').first().click(); }
+    }));
+  }
+
+  /* ---- Goals page: daily goal, streak, practice calendar ---- */
+  function renderGoals(p) {
+    var body = p.find('.zp-body').empty(), a = solves(), g = getGoals(), days = {}, today = dayKey(Date.now() / 1000);
+    p.find('.zp-sub').text('This session\u2019s solves');
+    a.forEach(function (x) { if (x.ts) days[dayKey(x.ts)] = (days[dayKey(x.ts)] || 0) + 1; });
+    var n = days[today] || 0, streak = 0, d = new Date();
+    if (!days[dayKey(d.getTime() / 1000)]) d.setDate(d.getDate() - 1);
+    while (days[dayKey(d.getTime() / 1000)]) { streak++; d.setDate(d.getDate() - 1); }
+    var under = g.target ? a.filter(function (x) { return x.ts && dayKey(x.ts) === today && x.t < g.target * 1000; }).length : 0;
+    var cards = $('<div class="zcards"></div>').appendTo(body);
+    cards.append(card('Today', n + ' / ' + g.daily, n >= g.daily ? 'Goal reached!' : (g.daily - n) + ' to go'),
+      card('Streak', streak + (streak === 1 ? ' day' : ' days'), 'in a row'),
+      card('Practice days', Object.keys(days).length, 'in this session'));
+    if (g.target) cards.append(card('Sub-' + g.target, under, 'solves under ' + g.target + ' s today'));
+    var bar = $('<div class="zgbar"></div>').append($('<i></i>').css('width', Math.min(100, 100 * n / g.daily) + '%'));
+    body.append($('<h3 class="zp-h">Daily goal</h3>'), bar);
+    function stepper(label, key, step, min, max) {
+      var out = $('<b></b>').text(g[key] || 'off');
+      return $('<div class="zopt zstep"></div>').append($('<div class="zo-t"></div>').append($('<b></b>').text(label)),
+        $('<button class="zchip">\u2212</button>').on('click', function () { g[key] = Math.max(min, (g[key] || 0) - step); setGoals(g); renderGoals(p); }), out,
+        $('<button class="zchip">+</button>').on('click', function () { g[key] = Math.min(max, (g[key] || 0) + step); setGoals(g); renderGoals(p); }));
+    }
+    body.append($('<div class="zocard"></div>').append(stepper('Solves per day', 'daily', 5, 5, 500), stepper('Sub-X target (seconds, 0 = off)', 'target', 1, 0, 600)));
+    body.append($('<h3 class="zp-h">Last 5 weeks</h3>'));
+    var cal = $('<div class="zcal"></div>').appendTo(body), c = new Date();
+    c.setDate(c.getDate() - 34);
+    for (var i = 0; i < 35; i++) {
+      var k = dayKey(c.getTime() / 1000), v = days[k] || 0, lvl = !v ? 0 : (v >= g.daily ? 3 : (v >= g.daily / 2 ? 2 : 1));
+      $('<div class="zcell"></div>').addClass('l' + lvl).attr('title', c.toLocaleDateString() + ': ' + v + ' solves').text(c.getDate()).appendTo(cal);
+      c.setDate(c.getDate() + 1);
+    }
+  }
+
+  /* ---- Backup page: CSV / JSON export and import ---- */
+  function csvQ(s) { return '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"'; }
+  function exportRows() {
+    var out = [], i = 0, s;
+    try { while ((s = stats.timesAt(i)) && i < 100000) { out.push(s); i++; } } catch (e) {}
+    return out;
+  }
+  function download(name, text, type) {
+    try {
+      var u = URL.createObjectURL(new Blob([text], { type: type })), a = $('<a></a>').attr({ href: u, download: name }).appendTo('body');
+      a[0].click(); setTimeout(function () { a.remove(); URL.revokeObjectURL(u); }, 500);
+      toast('Saved <b>' + name + '</b>');
+    } catch (e) { toast('Could not save the file here. Use Copy instead.'); }
+  }
+  function backupName(ext) { var c = currentPuzzle(); return 'ZTimer-' + (c.name || 'solves').replace(/[^A-Za-z0-9]+/g, '_') + '.' + ext; }
+  function csvText() {
+    var rows = ['Time,Penalty,Scramble,Comment,Date,Raw ms'];
+    exportRows().forEach(function (s) {
+      var pen = s[0][0], ms = s[0][1], t = pen < 0 ? Infinity : ms + (pen > 0 ? pen : 0);
+      rows.push([csvQ(pretty(t)), csvQ(pen < 0 ? 'DNF' : (pen > 0 ? '+2' : '')), csvQ(s[1]), csvQ(s[2]), csvQ(s[3] ? new Date(s[3] * 1000).toISOString() : ''), ms].join(','));
+    });
+    return rows.join('\n');
+  }
+  function splitCsv(line) {
+    var out = [], cur = '', q = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (q) { if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+      else if (ch === '"') q = true; else if (ch === ',' || ch === ';' || ch === '\t') { out.push(cur); cur = ''; } else cur += ch;
+    }
+    out.push(cur); return out;
+  }
+  function parseTime(s) {
+    s = (s || '').trim(); if (!s) return null;
+    if (/^dnf/i.test(s)) return { pen: -1, ms: 0 };
+    var plus = /\+$/.test(s); s = s.replace(/\+$/, '').replace(',', '.');
+    var m = /^(?:(\d+):)?(?:(\d+):)?(\d+(?:\.\d+)?)$/.exec(s); if (!m) return null;
+    var ms = Math.round(((+(m[1] && m[2] ? m[1] : 0)) * 3600 + (+(m[2] || m[1] || 0)) * 60 + parseFloat(m[3])) * 1000);
+    return plus ? { pen: 2000, ms: Math.max(0, ms - 2000) } : { pen: 0, ms: ms };
+  }
+  function importText(txt) {
+    var lines = txt.split(/\r?\n/).slice(0, 5000), n = 0;
+    lines.forEach(function (ln) {
+      var f = splitCsv(ln), t = parseTime(f[0]); if (!t) return;
+      var p2 = (f[1] || '').trim().toUpperCase(), raw = /^\d+$/.test((f[5] || '').trim()) ? +f[5] : null;
+      if (p2 === 'DNF') t = { pen: -1, ms: raw != null ? raw : t.ms };
+      else if (p2 === '+2') t = { pen: 2000, ms: raw != null ? raw : Math.max(0, t.ms - 2000) };
+      else if (raw != null) t = { pen: 0, ms: raw };
+      kernel.pushSignal('time', [t.pen, t.ms]); n++;
+    });
+    return n;
+  }
+  function renderBackup(p) {
+    var body = p.find('.zp-body').empty(), n = exportRows().length;
+    p.find('.zp-sub').text(n + (n === 1 ? ' solve' : ' solves') + ' in this session');
+    var ex = $('<div class="zocard"></div>').append($('<h3>Export this session</h3>'));
+    function go(title, sum, fn) { return $('<div class="zopt go"></div>').append($('<div class="zo-t"></div>').append($('<b></b>').text(title), $('<span></span>').text(sum))).on('click', fn).append('<i class="zchev"></i>'); }
+    ex.append(go('Save as CSV', 'Opens in Excel, Sheets and other timers', function () { download(backupName('csv'), csvText(), 'text/csv'); }),
+      go('Save as JSON', 'Every field, good for backups', function () {
+        download(backupName('json'), JSON.stringify(exportRows().map(function (s) { return { penalty: s[0][0], ms: s[0][1], scramble: s[1], comment: s[2], timestamp: s[3] }; }), null, 1), 'application/json');
+      }),
+      go('Copy CSV', 'Copy the table to the clipboard', function () { try { navigator.clipboard.writeText(csvText()); toast('CSV copied'); } catch (e) { toast('Copying is not allowed here'); } }));
+    body.append(ex);
+    var ta = $('<textarea class="zimp" rows="6" placeholder="12.34&#10;1:05.2&#10;DNF&#10;9.87+"></textarea>');
+    var file = $('<input type="file" accept=".csv,.txt,text/csv,text/plain" style="display:none">').on('change', function () {
+      var f = this.files[0]; if (!f) return; var r = new FileReader(); r.onload = function () { ta.val(r.result); }; r.readAsText(f);
+    });
+    var im = $('<div class="zocard zimpcard"></div>').append($('<h3>Import times</h3>'),
+      $('<p class="zp-note zdark"></p>').text('Add times to the current session. One time per line, or a CSV with the time in the first column. Times are added to the end of the session.'),
+      ta, $('<div class="zm-btns"></div>').append($('<button class="zm-btn">Choose file</button>').on('click', function () { file.click(); }),
+        $('<button class="zm-btn pri">Import</button>').on('click', function () {
+          var c = importText(ta.val()); ta.val(''); toast(c ? 'Added <b>' + c + '</b> times' : 'No times found'); setTimeout(function () { renderBackup(p); }, 300);
+        })), file);
+    body.append(im);
+    body.append($('<p class="zp-note"></p>').text('Need a full backup with every session? Use Export / import in the side menu.'));
+  }
+
   /* ---- switching ---- */
   function keyBlock(e) {
     if (current === 'timer') return;
@@ -508,24 +670,32 @@
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(t) || (e.target && e.target.isContentEditable)) return;
     e.stopPropagation();
   }
+  var prevId = 'timer', installEvt = null;
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installEvt = e; $(window).trigger('ztinstall'); });
   function show(id) {
-    current = id;
+    var old = current; current = id;
     bar.find('.ztab').each(function () { $(this).toggleClass('on', $(this).data('p') === id); });
     clearInterval(timerId); timerId = null;
     $('html').toggleClass('zpage-open', id !== 'timer');
     closeDrawer();
-    if (id === 'timer') { root.hide(); lastSig = ''; updateBar(); updateCorners(); return; }
+    if (id === 'timer') { root.hide(); lastSig = ''; updateBar(); updateCorners(); prevId = 'timer'; return; }
     kernel.hideDialog();
+    var order = TABS.map(function (t) { return t[0]; }), dir = order.indexOf(id) > order.indexOf(prevId) ? 'zin-r' : 'zin-l';
     root.show(); $.each(pages, function (k, p) { p.toggle(k === id); });
     var p = pages[id];
+    if (prevId !== id) p.removeClass('zin-r zin-l').width(), p.addClass(dir);
     if (id === 'solves') renderSolves(p);
     if (id === 'stats') { renderStats(p); timerId = setInterval(function () { renderStats(p); }, 4000); }
     if (id === 'trainer') renderTrainer(p);
     if (id === 'puzzles') renderPuzzles(p);
     if (id === 'themes') renderThemes(p);
     if (id === 'options') renderOptions(p);
+    if (id === 'sessions') renderSessions(p);
+    if (id === 'goals') renderGoals(p);
+    if (id === 'backup') renderBackup(p);
     if (id === 'wca') renderWca(p);
     p.find('.zp-body').scrollTop(0);
+    prevId = id;
   }
 
   function init() {
@@ -539,13 +709,35 @@
     });
     root = $('<div id="zpages"></div>').hide().appendTo('body');
     makePage('solves', 'Solves', 'list'); makePage('stats', 'Stats', 'graph');
-    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings');
+    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Sessions', 'books'); makePage('goals', 'Goals and streaks', 'checklist'); makePage('backup', 'Backup and import', 'archive');
     actionbar = $('<div id="zactionbar"></div>').append(
       barBtn('menu', 'Menu', function () { drawer.addClass('open'); }),
       $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
         .on('click', function () { show('puzzles'); }),
       barBtn('settings', 'Options', function () { show('options'); })).appendTo('body');
     buildDrawer();
+    /* swipe left or right to move between the tabs (not on the timer, charts or sliders) */
+    (function () {
+      var x0, y0, ok = false, order = TABS.map(function (t) { return t[0]; });
+      root.on('touchstart', function (e) {
+        var t = e.originalEvent.touches[0]; x0 = t.clientX; y0 = t.clientY;
+        ok = !$(e.target).closest('canvas,input,select,textarea,.zimp,.zcal').length && order.indexOf(current) > 0;
+      }).on('touchend', function (e) {
+        if (!ok) return; ok = false;
+        var t = e.originalEvent.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0, i = order.indexOf(current);
+        if (Math.abs(dx) < 80 || Math.abs(dy) > 60 || Math.abs(dx) < 1.8 * Math.abs(dy)) return;
+        var j = dx < 0 ? i + 1 : i - 1;
+        if (j >= 0 && j < order.length) show(order[j]);
+      });
+    })();
+    /* install button, shown only when the browser offers installing the site */
+    function addInstall() {
+      if (!installEvt || $('#zinstall').length) return;
+      var it = $('<div class="zd-item" id="zinstall" role="button" tabindex="0"></div>').append(icon('archive'), $('<span>Install app</span>'))
+        .on('click', function () { closeDrawer(); try { installEvt.prompt(); } catch (e) {} });
+      drawer.find('.zd-foot').before(it);
+    }
+    addInstall(); $(window).on('ztinstall', addInstall);
     cornerL = $('<div id="zcorner-l" class="zcorner"></div>').appendTo('body');
     cornerR = $('<div id="zcorner-r" class="zcorner"></div>').appendTo('body');
     setInterval(function () { if (current === 'timer') { updateBar(); updateCorners(); placeCorners(); scrambleButtons(); } }, 500);
