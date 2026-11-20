@@ -425,3 +425,28 @@ html.zt-quiet .dialog,html.zt-quiet #gray{display:none!important}
 #scrambleDiv input.icon:disabled{display:none!important}
 .za-cases{display:none}
 .za-cases.on{display:flex}
+
+/* ---- zt23: new-best burst, compact solves grid, app-style stats card ---- */
+#zburst{position:fixed;width:0;height:0;z-index:30;pointer-events:none;display:none}
+#zburst.go{display:block}
+#zburst i{position:absolute;left:-170px;top:-170px;width:340px;height:340px;border-radius:50%;border:3px solid var(--zt-amber);opacity:0;animation:zrip 2.9s ease-out infinite}
+#zburst i:nth-child(2){animation-delay:.9s}
+#zburst i:nth-child(3){animation-delay:1.8s}
+@keyframes zrip{0%{transform:scale(.25);opacity:.85}100%{transform:scale(1.7);opacity:0}}
+.zb-msg{position:absolute;left:0;transform:translate(-50%,-100%);width:max-content;max-width:86vw;text-align:center;font-size:15px;line-height:1.35;font-weight:700;color:var(--zt-fg);text-shadow:0 1px 6px rgba(0,0,50,.55);animation:zbin .35s ease-out}
+@keyframes zbin{from{opacity:0;transform:translate(-50%,-80%)}to{opacity:1;transform:translate(-50%,-100%)}}
+.zlist.zgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.zlist.zgrid .zrow{display:flex;flex-direction:column;align-items:center;gap:1px;padding:9px 6px 7px;border-radius:10px;text-align:center}
+.zlist.zgrid .zr-t{order:1;font-size:16px;font-weight:700}
+.zlist.zgrid .zr-p{order:2;font-size:10px;min-height:0;line-height:1}
+.zlist.zgrid .zr-d{order:3;font-size:10px;color:#6b6f8f}
+.zlist.zgrid .zr-c{position:absolute;right:5px;top:5px;width:12px;height:12px}
+.zstat{background:#fff;color:var(--zt-ink);border-radius:16px;margin:0 0 14px;box-shadow:0 4px 14px rgba(0,0,70,.2);overflow:hidden}
+.zst-tabs{display:flex;border-bottom:1px solid #eef0f8}
+.zst-tabs button{flex:1;padding:12px 4px;border:0;background:transparent;color:#8a8fb0;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent}
+.zst-tabs button.on{color:var(--zt-link);border-bottom-color:var(--zt-link)}
+.zst-grid{display:grid;gap:0;padding:6px 10px 12px}
+.zst-grid span{padding:8px 4px;text-align:center;font-size:14px;border-bottom:1px solid #f1f2f9}
+.zst-grid .zst-h{font-size:11px;font-weight:700;color:#8a8fb0;text-transform:uppercase;letter-spacing:.04em}
+.zst-grid .zst-l{text-align:left;font-weight:700;color:var(--zt-link)}
+.zst-grid .zst-v{font-weight:700}

@@ -169,7 +169,7 @@
     }).appendTo(tools);
     body.append($('<div class="zcount2"></div>').text(a.length + (a.length === 1 ? ' solve' : ' solves')));
     if (!a.length) { body.append($('<p class="zp-note"></p>').text('No solves in this session yet. Go to the Timer tab and do a solve.')); return; }
-    var list = $('<div class="zlist"></div>').appendTo(body);
+    var list = $('<div class="zlist zgrid"></div>').appendTo(body);
     var order = a.map(function (_, i) { return i; });
     var q = solveQuery.trim().toLowerCase();
     if (q) order = order.filter(function (i) { var x = a[i]; return (pretty(x.t) + ' ' + (x.cmt || '') + ' ' + (x.ts ? new Date(x.ts * 1000).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) : '') + ' ' + (x.pen < 0 ? 'dnf' : (x.pen > 0 ? '+2' : ''))).toLowerCase().indexOf(q) >= 0; });
@@ -249,22 +249,56 @@
       c.globalAlpha = .85; c.fillText(((start + j * bw) / 1000).toFixed(bw < 1000 ? 1 : 0), x + w / 2, H - 6); c.globalAlpha = 1;
     });
   }
+  /* the app's statistics card: Improvement, Average and Other tabs */
+  var statTab = 0;
+  function statCard(a, rerender) {
+    var todayK = dayKey(Date.now() / 1000), td = a.filter(function (x) { return x.ts && dayKey(x.ts) === todayK; });
+    function avg(arr, end, n) {
+      if (end + 1 < n) return null;
+      if (n === 3) { var w = arr.slice(end - 2, end + 1).map(function (x) { return x.t; }); return w.indexOf(Infinity) >= 0 ? Infinity : (w[0] + w[1] + w[2]) / 3; }
+      return avgOf(arr, end, n);
+    }
+    function bestAvg(arr, n) { var b = null; for (var i = n - 1; i < arr.length; i++) { var v = avg(arr, i, n); if (v != null && v !== Infinity && (b == null || v < b)) b = v; } return b; }
+    function cur(arr, n) { return arr.length >= n ? avg(arr, arr.length - 1, n) : null; }
+    function oks(arr) { return arr.filter(function (x) { return x.t !== Infinity; }).map(function (x) { return x.t; }); }
+    function dev(arr) { var o = oks(arr); if (o.length < 2) return null; var m = o.reduce(function (s, v) { return s + v; }, 0) / o.length; return Math.sqrt(o.reduce(function (s, v) { return s + (v - m) * (v - m); }, 0) / o.length); }
+    function mean(arr) { var o = oks(arr); return o.length ? o.reduce(function (s, v) { return s + v; }, 0) / o.length : null; }
+    function mn(arr) { var o = oks(arr); return o.length ? Math.min.apply(null, o) : null; }
+    function mx(arr) { var o = oks(arr); return o.length ? Math.max.apply(null, o) : null; }
+    function total(arr) { return arr.length ? arr.reduce(function (s, x) { return s + (x.t === Infinity ? 0 : x.t); }, 0) : null; }
+    function f(v) { return v == null ? '-' : pretty(v); }
+    var last = a.length ? a[a.length - 1] : null;
+    var T = [
+      ['Improvement', ['Session best', 'Today', 'Current'], [
+        ['Deviation', f(dev(a)), f(dev(td)), '-'], ['Ao12', f(bestAvg(a, 12)), f(bestAvg(td, 12)), f(cur(a, 12))], ['Ao50', f(bestAvg(a, 50)), f(bestAvg(td, 50)), f(cur(a, 50))],
+        ['Ao100', f(bestAvg(a, 100)), f(bestAvg(td, 100)), f(cur(a, 100))], ['Best', f(mn(a)), f(mn(td)), last ? f(last.t) : '-'], ['Count', a.length, td.length, '-']]],
+      ['Average', ['Session best', 'Today', 'Current'], [3, 5, 12, 50, 100, 1000].map(function (n) { return ['Ao' + n, f(bestAvg(a, n)), f(bestAvg(td, n)), f(cur(a, n))]; })],
+      ['Other', ['Session', 'Today'], [['Best', f(mn(a)), f(mn(td))], ['Worst', f(mx(a)), f(mx(td))], ['Deviation', f(dev(a)), f(dev(td))], ['Mean', f(mean(a)), f(mean(td))],
+        ['Total time', f(total(a)), f(total(td))], ['Count', a.length, td.length]]]
+    ];
+    var card = $('<div class="zstat"></div>'), tabs = $('<div class="zst-tabs"></div>').appendTo(card), grid = $('<div class="zst-grid"></div>').appendTo(card);
+    function fill(k) {
+      statTab = k; tabs.children().removeClass('on').eq(k).addClass('on'); grid.empty();
+      var t = T[k], cols = t[1].length + 1;
+      grid.css('grid-template-columns', 'minmax(70px,1fr) ' + new Array(cols).join('minmax(70px,1.2fr) '));
+      grid.append('<span></span>'); t[1].forEach(function (h) { grid.append($('<span class="zst-h"></span>').text(h)); });
+      t[2].forEach(function (row) { row.forEach(function (c, i) { grid.append($('<span></span>').addClass(i ? 'zst-v' : 'zst-l').text(c)); }); });
+    }
+    T.forEach(function (t, k) { $('<button></button>').text(t[0]).on('click', function () { fill(k); }).appendTo(tabs); });
+    fill(statTab);
+    return card;
+  }
   function renderStats(p) {
     var a = solves(), r = compute(a), body = p.find('.zp-body').empty();
     subtitle(p);
     var cv = document.createElement('canvas');
     body.append($('<div class="zgraph"></div>').append(cv));
+    body.append($('<div class="zlegend"></div>').html('<span style="--c:var(--zt-fg)">time</span><span style="--c:#ff5252">ao5</span><span style="--c:#69f0ae">ao12</span><span style="--c:#18ffff">ao100</span>'));
+    body.append(statCard(a));
     var hv = document.createElement('canvas');
     body.append($('<h3 class="zp-h">Time distribution</h3>'), $('<div class="zgraph"></div>').append(hv));
-    var cards = $('<div class="zcards"></div>').appendTo(body);
-    cards.append(card('Solves', r.n, r.dnf ? r.dnf + ' DNF' : ''), card('Best', pretty(r.best)), card('Mean', pretty(r.mean)), card('Worst', pretty(r.worst)));
-    [5, 12, 100].forEach(function (n) {
-      cards.append(card('ao' + n, r['ao' + n] == null ? '-' : pretty(r['ao' + n]), 'best ' + pretty(r['bao' + n])));
-    });
-    body.append($('<div class="zlegend"></div>').html('<span style="--c:var(--zt-fg)">time</span><span style="--c:#ff5252">ao5</span><span style="--c:#69f0ae">ao12</span><span style="--c:#18ffff">ao100</span>'));
-    body.append($('<button class="zshare"></button>').append(icon('share'), $('<span>Copy summary</span>')).on('click', function () { copySummary(a, r); }));
-    renderGoals(body, a, function () { renderStats(p); });
     renderPbHistory(body, a);
+    body.append($('<button class="zshare"></button>').append(icon('share'), $('<span>Copy summary</span>')).on('click', function () { copySummary(a, r); }));
     drawChart(cv, r, a); drawHistogram(hv, a);
   }
   function copySummary(a, r) {
@@ -491,7 +525,7 @@
 
   /* ---- Corner stats on the timer screen, like the app ---- */
   function updateCorners() {
-    if (current !== 'timer') return;
+    if (current !== 'timer' && current !== 'trainer') return;
     var a = solves(), sum = 0;
     a.forEach(function (x) { sum += (x.t === Infinity ? 7 : x.t) + x.pen; });
     var sig = a.length + ':' + sum + ':' + kernel.getProp('scrType');
@@ -499,9 +533,9 @@
     lastSig = sig;
     var r = compute(a), st = kernel.getProp('scrType');
     if (prev && prev.st === st && a.length === prev.n + 1 && prev.best != null && r.best != null && r.best < prev.best && a[a.length - 1].t === r.best)
-      toast('Congratulations!<br>You just beat your personal best by <b>' + pretty(prev.best - r.best) + '</b>');
+      pbBurst('Congratulations!<br>You\u2019ve just beaten your previous personal best by <b>' + pretty(prev.best - r.best) + '</b>');
     else if (prev && prev.st === st && a.length === prev.n + 1 && prev.ao5 != null && r.ao5 != null && r.ao5 !== Infinity && r.ao5 === r.bao5 && r.ao5 < prev.bao5)
-      toast('<b>New average best!</b><br>ao5 ' + pretty(r.ao5));
+      pbBurst('<b>New average best!</b><br>ao5 ' + pretty(r.ao5));
     prev = { st: st, n: a.length, best: r.best, ao5: r.ao5, bao5: r.bao5 };
     cornerL.html(a.length ? 'solves <b>' + r.n + '</b><br>best <b>' + pretty(r.best) + '</b><br>worst <b>' + pretty(r.worst) + '</b>' : '');
     cornerR.html(a.length ? 'ao5 <b>' + (r.ao5 == null ? '-' : pretty(r.ao5)) + '</b><br>ao12 <b>' + (r.ao12 == null ? '-' : pretty(r.ao12)) + '</b><br>mean <b>' + pretty(r.mean) + '</b>' : '');
@@ -537,6 +571,16 @@
     inp.on('keydown', function (e) { if (e.which === 13) add(); if (e.which === 27) close(); });
     ov.on('click', function (e) { if (e.target === ov[0]) close(); }).appendTo('body');
     setTimeout(function () { inp.focus(); }, 50);
+  }
+  var burstT = null;
+  function pbBurst(html) {
+    var lcd = $('#lcd'), r = lcd.length ? lcd[0].getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+    if (!r.width) r = { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+    var box = $('#zburst');
+    if (!box.length) box = $('<div id="zburst"><i></i><i></i><i></i><div class="zb-msg"></div></div>').appendTo('body');
+    box.css({ left: r.left + r.width / 2, top: r.top + r.height / 2 }); box.find('.zb-msg').html(html).css('top', (-r.height * 0.3) + 'px');
+    box.removeClass('go'); void box[0].offsetWidth; box.addClass('go');
+    clearTimeout(burstT); burstT = setTimeout(function () { box.removeClass('go'); }, 3000);
   }
   function toast(html) {
     var t = $('#ztoast');
@@ -837,7 +881,7 @@
 
   /* ---- switching ---- */
   function keyBlock(e) {
-    if (current === 'timer') return;
+    if (current === 'timer' || current === 'trainer') return;
     var t = e.target && e.target.tagName;
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(t) || (e.target && e.target.isContentEditable)) return;
     e.stopPropagation();
@@ -937,7 +981,7 @@
     addInstall(); $(window).on('ztinstall', addInstall);
     cornerL = $('<div id="zcorner-l" class="zcorner"></div>').appendTo('body');
     cornerR = $('<div id="zcorner-r" class="zcorner"></div>').appendTo('body');
-    setInterval(function () { if (current === 'timer') { updateBar(); updateCorners(); placeCorners(); scrambleButtons(); } }, 500);
+    setInterval(function () { if (current === 'timer' || current === 'trainer') { updateBar(); updateCorners(); placeCorners(); scrambleButtons(); } }, 500);
     $(window).on('resize', placeCorners);
     [['Delete', 'remove'], ['Retry', 'retry'], ['DNF', 'dnf'], ['Add 2', 'plus2'], ['Comment', 'comment']].forEach(function (m) {
       $('#zquick input').filter(function () { return (this.title || '').indexOf(m[0]) === 0; }).addClass('zq zi-' + m[1]).val('');
