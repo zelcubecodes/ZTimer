@@ -18,12 +18,20 @@
     ['LSLL', 'Last slot + last layer', 'lsll2'], ['VLS', 'Valk last slot', 'vls'], ['WVLS', 'Winter variation', 'wvls'],
     ['EOLS', 'EO last slot', 'eols'], ['TTLL', 'Twisty-Twisty LL', 'ttll'], ['2nd block', 'Roux second block', 'sbrx']
   ];
+  /* Puzzles as in the app's picker: WCA events, then the others. Entry: [name, csTimer id, icon, label, colour group] */
   var PUZZLES = [
-    ['WCA puzzles', [['3x3x3', '333'], ['2x2x2', '222so'], ['4x4x4', '444wca'], ['5x5x5', '555wca'], ['6x6x6', '666wca'], ['7x7x7', '777wca'],
-      ['Clock', 'clkwca'], ['Megaminx', 'mgmp'], ['Pyraminx', 'pyrso'], ['Skewb', 'skbso'], ['Square-1', 'sqrs'], ['FTO', 'ftoso']]],
-    ['Blindfolded and others', [['3x3x3 BLD', '333ni'], ['3x3x3 FMC', '333fm'], ['3x3x3 one-handed', '333oh'], ['4x4x4 BLD', '444bld'],
-      ['5x5x5 BLD', '555bld'], ['3x3x3 multi-BLD', 'r3ni']]]
+    ['WCA', [['3x3x3', '333', '3x3'], ['2x2x2', '222so', '2x2'], ['4x4x4', '444wca', '4x4'], ['5x5x5', '555wca', '5x5'], ['6x6x6', '666wca', '6x6'], ['7x7x7', '777wca', '7x7'],
+      ['Skewb', 'skbso', 'skewb'], ['Megaminx', 'mgmp', 'mega'], ['Pyraminx', 'pyrso', 'pyra'], ['Square-1', 'sqrs', 'sq1'], ['Clock', 'clkwca', 'clock'],
+      ['3x3x3 one-handed', '333oh', '3x3-oh'], ['3x3x3 blindfolded', '333ni', '3x3-bld'], ['4x4x4 blindfolded', '444bld', '4x4-bld'], ['5x5x5 blindfolded', '555bld', '5x5-bld'],
+      ['3x3x3 multi-blind', 'r3ni', '3x3-mbld'], ['3x3x3 fewest moves', '333fm', '3x3-fmc'], ['FTO', 'ftoso', 'fto']]],
+    ['Non-WCA', [['3x3 Feet', '333ft', 'feet'], ['Mirror Blocks', 'mrbl', 'mirror'], ['2x2x3 Tower', '223', 'tower'], ['2x3x3 Domino', '233', 'domino'], ['Floppy Cube', '133', 'floppy'],
+      ['3x3x4', '334', '334'], ['8x8 Cube', '888', null, '8', 0], ['9x9 Cube', '999', null, '9', 0], ['10x10 Cube', '101010', null, '10', 0], ['11x11 Cube', '111111', null, '11', 0],
+      ['Gigaminx', 'giga', 'giga'], ['Kilominx', 'klmp', 'kilo'], ['Master Pyraminx', 'mpyr', 'master'], ['Square-2', 'sq2', 'sq2'], ['15 Puzzle', '15prp', '15'], ['8 Puzzle', '8prp', '8'],
+      ['Gear Cube', 'gear', 'gear'], ['Helicopter Cube', 'heli', 'heli'], ['Redi Cube', 'redi', 'redi'], ['Dino Cube', 'dinoo', 'dino'], ['Crazy 3x3', 'crz3a', 'crazy'], ['Ivy Cube', 'ivy', 'ivy'],
+      ['Curvy Copter', 'helicv', 'curvy'], ['Lots of 3x3s', 'r3', 'r3'], ['234 relay', 'r234', 'r234'], ['2345 relay', 'r2345', 'r2345'], ['23456 relay', 'r23456', 'r23456'],
+      ['234567 relay', 'r234567', 'r234567'], ['Mini Guildford', 'rmngf', 'miniguild']]]
   ];
+  var GROUP_FILL = ['#AACCFF', '#C9B8F2', '#FFE680', '#B8E8B8', '#FFCFA3', '#F2B8D8'], GROUP_TEXT = ['#5599FF', '#7A52C7', '#B38F00', '#3C9A3C', '#D9731A', '#C2509A'];
   /* The app's colour themes: name, gradient start, gradient end, action bar, tab bar, accent, dark text? */
   var THEMES = [
     ['ZTimer', '1959ff', '3b12ff', '0045f6', '2900ef', 'ffd740', 0], ['Pink', 'ff577e', 'fd61c0', 'ff678a', 'fd50b9', 'c1fd61', 0],
@@ -251,18 +259,75 @@
   }
 
   /* ---- Trainer page: pick a training set ---- */
+  /* ---- Trainer: sets in families with stars, then single cases with pictures, like the app ---- */
+  var T_FAM = [
+    ['CFOP', [['PLL', 'pll'], ['OLL', 'oll'], ['LSLL', 'lsll2'], ['LL', 'll'], ['ZBLL', 'zbll'], ['COLL', 'coll'], ['ZBLS', 'zbls'], ['WVLS', 'wvls'], ['VLS', 'vls'], ['F2L', 'f2l'],
+      ['Easy cross', 'easyc'], ['Easy XCross', 'easyxc'], ['2-gen R,U', '2gen'], ['2-gen L,U', '2genl'], ['3-gen F', '3gen_F'], ['3-gen L', '3gen_L'], ['RrU', 'RrU']]],
+    ['Roux', [['2nd block', 'sbrx'], ['CMLL', 'cmll'], ['LSE', 'lse'], ['LSE M,U', 'lsemu']]],
+    ['Other', [['ZZLL', 'zzll'], ['2GLL', '2gll'], ['EOLine', 'eoline'], ['EOLS', 'eols'], ['TTLL', 'ttll'], ['CLL', 'cll']]]
+  ];
+  var trFam = 0, trSet = null, trSel = null;
+  function getStars() { try { var m = /(?:^|; )ztimerStars=([^;]*)/.exec(document.cookie); return m ? JSON.parse(decodeURIComponent(m[1])) : []; } catch (e) { return []; } }
+  function setStars(a) { try { document.cookie = 'ztimerStars=' + encodeURIComponent(JSON.stringify(a)) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {} }
+  function caseData(id) { return window.ZT_CASES && window.ZT_CASES[id]; }
   function renderTrainer(p) {
     var body = p.find('.zp-body').empty(), cur = kernel.getProp('scrType');
-    subtitle(p);
-    body.append($('<p class="zp-note"></p>').text('Pick a set. You will get scrambles for that set on the timer. Choose single cases with the filter in the scramble window, as in csTimer.'));
-    var gear = $('#scrambleDiv input.icon');
-    $('<button class="zshare"></button>').append(icon('settings'), $('<span>Choose cases for the current set</span>')).prop('disabled', gear.prop('disabled'))
-      .on('click', function () { show('timer'); setTimeout(function () { $('#scrambleDiv input.icon').click(); }, 250); }).css('margin', '0 4px 14px').appendTo(body);
-    var grid = $('<div class="ztiles"></div>').appendTo(body);
-    SETS.forEach(function (s) {
-      $('<button class="ztile"></button>').toggleClass('on', cur === s[2]).append($('<b></b>').text(s[0]), $('<span></span>').text(s[1]))
-        .on('click', function () { kernel.setProp('scrType', s[2]); show('timer'); if (s[2] !== '333') toast('<b>' + s[0] + '</b> scrambles are on.<br>Use the scramble card to choose cases.'); }).appendTo(grid);
+    if (trSet) return renderCases(p, body);
+    p.find('.zp-sub').text('Practice sets');
+    var stars = getStars(), fams = T_FAM.slice();
+    if (stars.length) {
+      var st = []; T_FAM.forEach(function (f) { f[1].forEach(function (s) { if (stars.indexOf(s[1]) >= 0) st.push(s); }); });
+      fams.unshift(['Starred', st]); if (trFam >= fams.length) trFam = 0;
+    } else if (trFam >= fams.length) trFam = 0;
+    var tabs = $('<div class="ztabs2 zscroll"></div>').appendTo(body), grid = $('<div class="ztiles zpuz"></div>').appendTo(body);
+    function fill(i) {
+      trFam = i; tabs.children().removeClass('on').eq(i).addClass('on'); grid.empty();
+      fams[i][1].forEach(function (s) {
+        var d = caseData(s[1]), star = stars.indexOf(s[1]) >= 0;
+        var t = $('<div class="ztile zpt zset" role="button" tabindex="0"></div>').toggleClass('on', cur === s[1])
+          .append($('<span class="zpl"></span>').text(s[0].length > 5 ? s[0].slice(0, 4) : s[0]).css({ background: '#AACCFF', color: '#5599FF' }), $('<b></b>').text(s[0]),
+            d ? $('<span class="zsub"></span>').text(d.n.length + ' cases') : '',
+            $('<button class="zstar" aria-label="Star"></button>').toggleClass('on', star).text(star ? '\u2605' : '\u2606').on('click', function (e) {
+              e.stopPropagation(); var a = getStars(), k = a.indexOf(s[1]); if (k >= 0) a.splice(k, 1); else a.push(s[1]); setStars(a); renderTrainer(p);
+            }))
+          .on('click', function () {
+            kernel.setProp('scrType', s[1]);
+            if (kernel.getProp('scrType') !== s[1]) { toast('That set is not available.'); return; }
+            if (d) { trSet = s; trSel = null; renderTrainer(p); } else { show('timer'); }
+          });
+        grid.append(t);
+      });
+      if (!fams[i][1].length) grid.append($('<p class="zp-note"></p>').text('Star a set to keep it here.'));
+    }
+    fams.forEach(function (f, i) { $('<button class="zt2"></button>').text(f[0]).on('click', function () { fill(i); }).appendTo(tabs); });
+    fill(trFam);
+  }
+  function renderCases(p, body) {
+    var id = trSet[1], d = caseData(id), n = d.n.length;
+    p.find('.zp-sub').text(trSet[0]);
+    if (!trSel) {
+      trSel = [];
+      var cur = null; try { cur = JSON.parse(kernel.getProp('scrFlt')); } catch (e) {}
+      for (var i = 0; i < n; i++) trSel[i] = (cur && cur[0] === id && cur[1] && cur[1].length === n) ? cur[1][i] > 0 : true;
+    }
+    var bar = $('<div class="zcbar"></div>').appendTo(body), cnt = $('<span class="zcc"></span>');
+    function upd() { cnt.text(trSel.filter(Boolean).length + ' of ' + n + ' selected'); }
+    bar.append($('<button class="zm-btn">\u2039 Sets</button>').on('click', function () { trSet = null; renderTrainer(p); }), cnt,
+      $('<button class="zm-btn">All</button>').on('click', function () { trSel = trSel.map(function () { return true; }); renderCases(p, body.empty()); }),
+      $('<button class="zm-btn">None</button>').on('click', function () { trSel = trSel.map(function () { return false; }); renderCases(p, body.empty()); }));
+    var grid = $('<div class="ztiles zcases"></div>').appendTo(body);
+    d.n.forEach(function (nm, i) {
+      var t = $('<button class="zcase"></button>').toggleClass('on', !!trSel[i]);
+      if (d.p[i]) { var img = $('<img class="zci" alt="">'); try { image.llImage.drawImage(d.p[i], [], img); } catch (e) {} t.append(img); }
+      t.append($('<b></b>').text(nm)).on('click', function () { trSel[i] = !trSel[i]; t.toggleClass('on', trSel[i]); upd(); }).appendTo(grid);
     });
+    upd();
+    $('<button class="zshare zstart"></button>').append($('<span>Start practising</span>')).on('click', function () {
+      if (!trSel.some(Boolean)) { toast('Select at least one case.'); return; }
+      kernel.setProp('scrType', id);
+      kernel.setProp('scrFlt', JSON.stringify([id, trSel.map(function (v) { return v ? 1 : 0; })]));
+      show('timer');
+    }).appendTo(body);
   }
 
   /* ---- WCA page ---- */
@@ -270,6 +335,16 @@
     var body = p.find('.zp-body').empty(), box = $('<div class="zwca"></div>').appendTo(body);
     p.find('.zp-sub').text('World Cube Association data');
     if (window.zWcaRender) window.zWcaRender(box); else box.text('WCA data is not available.');
+    var EV = { '3x3': '333', '2x2': '222', '4x4': '444', '5x5': '555', '6x6': '666', '7x7': '777', '3x3 Blindfolded': '333bf', '3x3 Fewest Moves': '333fm', '3x3 One-Handed': '333oh', 'Clock': 'clock',
+      'Megaminx': 'minx', 'Pyraminx': 'pyram', 'Skewb': 'skewb', 'Square-1': 'sq1', '4x4 Blindfolded': '444bf', '5x5 Blindfolded': '555bf', '3x3 Multi-Blind': '333mbf' };
+    function decorate() {
+      box.find('table td:first-child:not([data-ev])').each(function () {
+        var k = EV[$(this).text().trim()]; $(this).attr('data-ev', 1);
+        if (k) $(this).prepend($('<span class="zpi zpi-ev-' + k + ' zev"></span>'));
+      });
+    }
+    try { new MutationObserver(decorate).observe(box[0], { childList: true, subtree: true }); } catch (e) {}
+    decorate();
   }
 
   /* ---- Puzzle chooser page (like the app's puzzle dialog) ---- */
@@ -280,18 +355,27 @@
     if (!name) name = sels.eq(1).find('option:selected').text() || 'Puzzle';
     return { name: name, cat: sels.eq(0).find('option:selected').text() || '' };
   }
+  var puzTab = null;
+  function puzIcon(q) {
+    return q[2] ? $('<span class="zpi zpi-' + q[2] + '"></span>') : $('<span class="zpl"></span>').text(q[3]).css({ background: GROUP_FILL[q[4]], color: GROUP_TEXT[q[4]] });
+  }
   function renderPuzzles(p) {
-    var body = p.find('.zp-body').empty(), cur = kernel.getProp('scrType');
-    p.find('.zp-sub').text('Choose what you are solving');
-    PUZZLES.forEach(function (g) {
-      body.append($('<h3 class="zp-h"></h3>').text(g[0]));
-      var grid = $('<div class="ztiles"></div>').appendTo(body);
-      g[1].forEach(function (q) {
-        $('<button class="ztile"></button>').toggleClass('on', cur === q[1]).append($('<b></b>').text(q[0]))
-          .on('click', function () { kernel.setProp('scrType', q[1]); show('timer'); }).appendTo(grid);
+    var body = p.find('.zp-body').empty(), cur = kernel.getProp('scrType'), idx = puzTab;
+    p.find('.zp-sub').text('Choose a puzzle');
+    if (idx == null) { idx = 0; PUZZLES.forEach(function (g, gi) { g[1].forEach(function (q) { if (q[1] === cur) idx = gi; }); }); }
+    var tabs = $('<div class="ztabs2"></div>').appendTo(body), grid = $('<div class="ztiles zpuz"></div>');
+    function fill(gi) {
+      puzTab = gi; tabs.children().removeClass('on').eq(gi).addClass('on'); grid.empty();
+      PUZZLES[gi][1].forEach(function (q) {
+        $('<button class="ztile zpt"></button>').toggleClass('on', cur === q[1]).append(puzIcon(q), $('<b></b>').text(q[0])).on('click', function () {
+          kernel.setProp('scrType', q[1]);
+          if (kernel.getProp('scrType') !== q[1]) toast('That scramble type is not available.');
+          show('timer');
+        }).appendTo(grid);
       });
-    });
-    body.append($('<p class="zp-note"></p>').text('More scramble types are in the selectors on the scramble card.'));
+    }
+    PUZZLES.forEach(function (g, gi) { $('<button class="zt2"></button>').text(g[0]).on('click', function () { fill(gi); }).appendTo(tabs); });
+    body.append(grid); fill(idx);
   }
 
   /* ---- App-style top bar ---- */
@@ -753,6 +837,26 @@
     [['Delete', 'remove'], ['Retry', 'retry'], ['DNF', 'dnf'], ['Add 2', 'plus2'], ['Comment', 'comment']].forEach(function (m) {
       $('#zquick input').filter(function () { return (this.title || '').indexOf(m[0]) === 0; }).addClass('zq zi-' + m[1]).val('');
     });
+    /* quick buttons like the app: DNF and +2 update the time on screen, then an Undo button takes their place */
+    (function () {
+      var qb = $('#zquick');
+      function qbtn(t) { return qb.find('input').filter(function () { return (this.title || '').indexOf(t) === 0; }); }
+      function lastSolve() { var i = 0, s, l = null; try { while ((s = stats.timesAt(i)) && i < 200000) { l = s; i++; } } catch (e) {} return l; }
+      function showLast() {
+        var s = lastSolve(); if (!s) return;
+        try {
+          if (s[0][0] < 0) { $('#lcd').text('DNF'); }
+          else { timer.lcd.val(s[0][1] + (s[0][0] > 0 ? s[0][0] : 0)); if (s[0][0] > 0) $('#lcd .insplabel').before('+'); }
+        } catch (e) {}
+      }
+      function setUndo(on) { qb.toggleClass('zundo', !!on); }
+      var undo = $('<input type="button" id="zq-undo" class="zq zi-undo" title="Undo" aria-label="Undo">').css({ margin: '0 6px', padding: 0, width: '48px', height: '42px', minWidth: 0, cursor: 'pointer' }).appendTo(qb);
+      function setPen(sig) { return function () { kernel.pushSignal('ctrl', ['stats', sig]); setTimeout(function () { showLast(); setUndo(true); }, 80); this.blur(); }; }
+      qbtn('DNF').off('click').on('click', setPen('DNF'));
+      qbtn('Add 2').off('click').on('click', setPen('+2'));
+      undo.on('click', function () { kernel.pushSignal('ctrl', ['stats', 'OK']); setTimeout(function () { showLast(); setUndo(false); }, 80); this.blur(); });
+      kernel.regListener('ztquick2', 'time', function () { setUndo(false); });
+    })();
     var GLYPH = { e8ce: 'settings', e60d: 'imgpref', eae9: 'palette', e6b6: 'timer', e900: 'category', e9bb: 'help', e993: 'build', e69d: 'edit' };
     function iconify() {
       $('.dialog span.icon:not([data-zi])').each(function () {

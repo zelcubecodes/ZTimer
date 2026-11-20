@@ -337,3 +337,52 @@ html.zt-toolsfull #ztools-done{display:block;position:fixed;left:50%;transform:t
 
 /* no hold-to-open circle menu on touch screens */
 #astouch,.astouch{display:none!important}
+
+/* ---- zt17: quick buttons above the picture, undo state ---- */
+#zquick{top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 148px)!important}
+#zquick.zundo input:not(#zq-undo){display:none!important}
+#zquick:not(.zundo) #zq-undo{display:none!important}
+#zq-undo{font-size:0!important;background-image:var(--zw)!important;background-repeat:no-repeat!important;background-position:center!important;background-size:22px!important}
+html.zt-light #zq-undo{background-image:var(--zk)!important}
+/* scramble picture stays small, like the app's 84 x 68 */
+html:not(.zt-toolsfull) #toolsDiv{bottom:calc(env(safe-area-inset-bottom,0px) + 62px)!important}
+html:not(.zt-toolsfull) #toolsDiv canvas,html:not(.zt-toolsfull) #toolsDiv svg,html:not(.zt-toolsfull) #toolsDiv img{max-height:78px!important;max-width:min(150px,40vw)!important;width:auto!important;height:auto!important}
+/* csTimer's puzzle selectors are replaced by the puzzle chooser */
+#scrambleDiv select{display:none!important}
+
+/* ---- puzzle and trainer tiles ---- */
+.ztabs2{display:flex;gap:0;margin:0 0 14px;border-bottom:2px solid color-mix(in srgb,var(--zt-fg) 25%,transparent)}
+.ztabs2.zscroll{overflow-x:auto;scrollbar-width:none}
+.zt2{flex:1 0 auto;padding:11px 18px;border:0;background:transparent;color:var(--zt-fg);font-family:inherit;font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.75;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.zt2.on{opacity:1;border-bottom-color:var(--zt-amber)}
+.ztiles.zpuz{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+.ztile.zpt{position:relative;min-height:104px;gap:6px;padding:12px 6px 10px}
+.ztile.zpt b{font-size:13px;line-height:1.2;color:var(--zt-ink);text-align:center}
+.zpi{width:44px;height:44px;flex:none}
+.zpi.zev{width:26px;height:26px;vertical-align:middle;margin-right:8px}
+.zpl{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;font-weight:800;font-size:15px}
+.zsub{font-size:11px;color:#6b6f8f}
+.zstar{position:absolute;right:4px;top:2px;border:0;background:transparent;font-size:20px;line-height:1;color:#b8bcd6;cursor:pointer;padding:4px}
+.zstar.on{color:#ffc107}
+.zcbar{display:flex;align-items:center;gap:8px;margin:0 0 12px}
+.zcbar .zm-btn{flex:none;padding:8px 14px}
+.zcc{flex:1;text-align:center;font-weight:700;color:var(--zt-fg);font-size:13px}
+.ztiles.zcases{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.zcase{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:84px;padding:8px 4px;border:2px solid transparent;border-radius:14px;background:#fff;color:var(--zt-ink);font-family:inherit;cursor:pointer;opacity:.55}
+.zcase.on{opacity:1;border-color:var(--zt-amber);background:#fff}
+.zcase b{font-size:12px}
+.zci{width:56px;height:56px;object-fit:contain}
+.zstart{position:sticky;bottom:10px;margin:14px 4px 0;justify-content:center;font-weight:700}
+
+/* ---- WCA page like the app: cards on the background ---- */
+.zwca{background:transparent!important;color:var(--zt-fg)!important;padding:0!important}
+.zwca,.zwca *{color:inherit}
+.zwca .click{display:inline-block;margin:0 6px 12px 0;padding:8px 16px;border-radius:999px;background:color-mix(in srgb,var(--zt-fg) 16%,transparent);color:var(--zt-fg)!important;font-weight:700;font-size:14px;text-decoration:none!important;cursor:pointer}
+.zwca .click.enable,.zwca .click.selected{background:var(--zt-amber);color:#1b1b2f!important}
+.zwca table{width:100%;border:0!important;border-collapse:separate!important;border-spacing:0 8px!important;background:transparent!important}
+.zwca td,.zwca th{border:0!important;background:#fff;color:var(--zt-ink)!important;padding:12px 10px!important;text-align:right}
+.zwca td:first-child,.zwca th:first-child{text-align:left;border-radius:14px 0 0 14px;font-weight:700}
+.zwca td:last-child,.zwca th:last-child{border-radius:0 14px 14px 0}
+.zwca tr:first-child th,.zwca tr:first-child td{background:transparent;color:var(--zt-fg)!important;font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding:2px 10px!important}
+.zwca a{color:var(--zt-amber)!important}
+.zwca input,.zwca select{background:#fff;color:var(--zt-ink)!important;border:0;border-radius:12px;padding:9px 12px;font-family:inherit}
