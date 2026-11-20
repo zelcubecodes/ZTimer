@@ -132,24 +132,47 @@
     p.find('.zp-sub').text(t);
   }
 
+  var solveQuery = '';
+  function popMenu(anchor, items) {
+    $('.zpop').remove();
+    var m = $('<div class="zpop"></div>').appendTo('body'), r = anchor[0].getBoundingClientRect();
+    items.forEach(function (it) { $('<button></button>').text(it[0]).on('click', function () { m.remove(); it[1](); }).appendTo(m); });
+    m.css({ top: Math.min(r.bottom + 6, window.innerHeight - m.outerHeight() - 8) + 'px', right: Math.max(8, window.innerWidth - r.right) + 'px' });
+    setTimeout(function () { $(document).one('click', function () { m.remove(); }); }, 0);
+  }
+
   /* ---- Solves page: a list like the app's, tapping a solve opens csTimer's solve dialog ---- */
   function renderSolves(p) {
     var body = p.find('.zp-body').empty(), a = solves(), src = $('#stats select').first();
     subtitle(p);
-    var sel = $('<select class="zsess"></select>').html(src.html()).val(src.val()).on('change', function () {
-      src.val($(this).val()).trigger('change'); setTimeout(function () { renderSolves(p); }, 250);
-    });
-    body.append($('<div class="zsessrow"></div>').append($('<span>Session</span>'), sel,
-      $('<span class="zcount"></span>').text(a.length + (a.length === 1 ? ' solve' : ' solves')),
-      $('<button class="zadd">+ Add time</button>').on('click', function () { addTimeDialog(function () { renderSolves(p); }); })));
-    var chips = $('<div class="zchips"></div>').appendTo(body);
-    $('<button class="zchip"></button>').text('Sessions').on('click', function () { show('sessions'); }).appendTo(chips);
-    [['new', 'Newest'], ['old', 'Oldest'], ['best', 'Fastest'], ['worst', 'Slowest']].forEach(function (m) {
-      $('<button class="zchip"></button>').text(m[1]).toggleClass('on', sortMode === m[0]).on('click', function () { sortMode = m[0]; renderSolves(p); }).appendTo(chips);
-    });
+    var cur = src.find('option:selected').text() || 'Session';
+    var tools = $('<div class="ztools"></div>').appendTo(body);
+    $('<button class="zbtn zbtn-s" title="Sessions"></button>').text(cur).on('click', function () { show('sessions'); }).appendTo(tools);
+    $('<button class="zbtn" title="Add time" aria-label="Add time"></button>').append(icon('alarm')).on('click', function () { addTimeDialog(function () { renderSolves(p); }); }).appendTo(tools);
+    $('<input type="search" class="zsearch" placeholder="Search" aria-label="Search solves">').val(solveQuery).on('input', function () {
+      solveQuery = this.value; var pos = this.selectionStart; renderSolves(p); var n = p.find('.zsearch')[0]; n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {}
+    }).appendTo(tools);
+    $('<button class="zbtn" title="Delete all solves in this session" aria-label="Delete all solves"></button>').append(icon('sweep')).on('click', function () {
+      if (!a.length) return;
+      if (confirm('Delete all ' + a.length + ' solves in this session?')) { for (var k = 0; k < a.length; k++) kernel.pushSignal('ctrl', ['stats', 'undo']); setTimeout(function () { renderSolves(p); }, 300); }
+    }).appendTo(tools);
+    $('<button class="zbtn" title="More" aria-label="More"></button>').append(icon('more')).on('click', function (e) {
+      e.stopPropagation();
+      function shareAvg(n) {
+        if (a.length < n) { toast('You need at least ' + n + ' solves.'); return; }
+        var last = a.slice(-n), txt = 'ao' + n + ': ' + pretty(avgOf(a, a.length - 1, n)) + '\n' + last.map(function (x, k) { return (k + 1) + '. ' + pretty(x.t); }).join('\n');
+        try { if (navigator.share) { navigator.share({ text: txt }); return; } navigator.clipboard.writeText(txt); toast('Copied ao' + n); } catch (er) { toast('Could not share here.'); }
+      }
+      popMenu($(this), [['Sort by time, fastest first', function () { sortMode = 'best'; renderSolves(p); }], ['Sort by time, slowest first', function () { sortMode = 'worst'; renderSolves(p); }],
+        ['Sort by date, newest first', function () { sortMode = 'new'; renderSolves(p); }], ['Sort by date, oldest first', function () { sortMode = 'old'; renderSolves(p); }],
+        ['Share ao5', function () { shareAvg(5); }], ['Share ao12', function () { shareAvg(12); }], ['Sessions', function () { show('sessions'); }], ['Export or import', function () { show('backup'); }]]);
+    }).appendTo(tools);
+    body.append($('<div class="zcount2"></div>').text(a.length + (a.length === 1 ? ' solve' : ' solves')));
     if (!a.length) { body.append($('<p class="zp-note"></p>').text('No solves in this session yet. Go to the Timer tab and do a solve.')); return; }
     var list = $('<div class="zlist"></div>').appendTo(body);
     var order = a.map(function (_, i) { return i; });
+    var q = solveQuery.trim().toLowerCase();
+    if (q) order = order.filter(function (i) { var x = a[i]; return (pretty(x.t) + ' ' + (x.cmt || '') + ' ' + (x.ts ? new Date(x.ts * 1000).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) : '') + ' ' + (x.pen < 0 ? 'dnf' : (x.pen > 0 ? '+2' : ''))).toLowerCase().indexOf(q) >= 0; });
     if (sortMode === 'new') order.reverse();
     else if (sortMode === 'best') order.sort(function (u, v) { return a[u].t - a[v].t || u - v; });
     else if (sortMode === 'worst') order.sort(function (u, v) { return (a[v].t === a[u].t ? 0 : a[v].t - a[u].t) || v - u; });
@@ -416,7 +439,7 @@
       $('<button class="zsb zsb-last" title="Previous scramble" aria-label="Previous scramble"></button>').append(icon('undo')).on('click', function () {
         card.find('.title > nobr').eq(1).children('span').eq(0).click();
       }).appendTo(box);
-      $('<button class="zsb" title="New scramble" aria-label="New scramble"></button>').append(icon('retry')).on('click', function () {
+      $('<button class="zsb" title="New scramble" aria-label="New scramble"></button>').append(icon('cached')).on('click', function () {
         card.find('.title > nobr').eq(1).children('span').eq(1).click();
       }).appendTo(box);
     }

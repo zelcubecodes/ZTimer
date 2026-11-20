@@ -386,3 +386,26 @@ html:not(.zt-toolsfull) #toolsDiv canvas,html:not(.zt-toolsfull) #toolsDiv svg,h
 .zwca tr:first-child th,.zwca tr:first-child td{background:transparent;color:var(--zt-fg)!important;font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding:2px 10px!important}
 .zwca a{color:var(--zt-amber)!important}
 .zwca input,.zwca select{background:#fff;color:var(--zt-ink)!important;border:0;border-radius:12px;padding:9px 12px;font-family:inherit}
+
+/* ---- zt18 ---- */
+:root{--zi-cached:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M19,8l-4,4h3c0,3.31%20-2.69,6%20-6,6%20-1.01,0%20-1.97,-0.25%20-2.8,-0.7l-1.46,1.46C8.97,19.54%2010.43,20%2012,20c4.42,0%208,-3.58%208,-8h3l-4,-4zM6,12c0,-3.31%202.69,-6%206,-6%201.01,0%201.97,0.25%202.8,0.7l1.46,-1.46C15.03,4.46%2013.57,4%2012,4c-4.42,0%20-8,3.58%20-8,8H1l4,4%204,-4H6z%22/%3E%3C/svg%3E")}
+.zi-cached{--zi:var(--zi-cached)}
+/* bigger scramble picture: bottom middle on phones, at the side on wide screens */
+html:not(.zt-toolsfull) #toolsDiv canvas,html:not(.zt-toolsfull) #toolsDiv svg,html:not(.zt-toolsfull) #toolsDiv img{max-height:112px!important;max-width:min(230px,62vw)!important}
+#zquick{bottom:calc(env(safe-area-inset-bottom,0px) + 190px)!important}
+@media (min-width:900px){
+  html:not(.zt-toolsfull) #toolsDiv{left:auto!important;right:18px!important;transform:none!important;bottom:calc(env(safe-area-inset-bottom,0px) + 118px)!important}
+  html:not(.zt-toolsfull) #toolsDiv canvas,html:not(.zt-toolsfull) #toolsDiv svg,html:not(.zt-toolsfull) #toolsDiv img{max-height:190px!important;max-width:300px!important}
+  #zquick{bottom:calc(env(safe-area-inset-bottom,0px) + 90px)!important}
+}
+/* solves toolbar like the app */
+.ztools{display:flex;align-items:center;gap:6px;margin:0 0 10px}
+.zbtn{flex:none;display:flex;align-items:center;justify-content:center;min-width:40px;height:40px;padding:0 8px;border:0;border-radius:12px;background:#fff;color:var(--zt-link);font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,70,.18)}
+.zbtn .zi{width:22px;height:22px}
+.zbtn-s{max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;line-height:40px}
+.zsearch{flex:1;min-width:0;height:40px;box-sizing:border-box;border:0;border-radius:12px;padding:0 12px;background:#fff;color:var(--zt-ink);font-family:inherit;font-size:14px}
+.zcount2{margin:0 4px 8px;font-size:12px;font-weight:700;color:var(--zt-fg);opacity:.8}
+.zrow .zr-p{color:#e53935;font-weight:700}
+.zpop{position:fixed;z-index:100;min-width:210px;background:#fff;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,60,.4);padding:6px 0;overflow:hidden}
+.zpop button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:12px 18px;color:var(--zt-ink);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.zpop button:active{background:#e4e9ff}
