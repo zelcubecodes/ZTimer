@@ -135,6 +135,7 @@
       $('<span class="zcount"></span>').text(a.length + (a.length === 1 ? ' solve' : ' solves')),
       $('<button class="zadd">+ Add time</button>').on('click', function () { addTimeDialog(function () { renderSolves(p); }); })));
     var chips = $('<div class="zchips"></div>').appendTo(body);
+    $('<button class="zchip"></button>').text('Sessions').on('click', function () { show('sessions'); }).appendTo(chips);
     [['new', 'Newest'], ['old', 'Oldest'], ['best', 'Fastest'], ['worst', 'Slowest']].forEach(function (m) {
       $('<button class="zchip"></button>').text(m[1]).toggleClass('on', sortMode === m[0]).on('click', function () { sortMode = m[0]; renderSolves(p); }).appendTo(chips);
     });
@@ -231,6 +232,7 @@
     });
     body.append($('<div class="zlegend"></div>').html('<span style="--c:var(--zt-fg)">time</span><span style="--c:#ff5252">ao5</span><span style="--c:#69f0ae">ao12</span><span style="--c:#18ffff">ao100</span>'));
     body.append($('<button class="zshare"></button>').append(icon('share'), $('<span>Copy summary</span>')).on('click', function () { copySummary(a, r); }));
+    renderGoals(body, a, function () { renderStats(p); });
     renderPbHistory(body, a);
     drawChart(cv, r, a); drawHistogram(hv, a);
   }
@@ -302,19 +304,18 @@
   }
   function closeDrawer() { drawer.removeClass('open'); }
   function buildDrawer() {
-    var items = [['settings', 'Options', function () { show('options'); }],
-      ['edit', 'Add time', function () { addTimeDialog(function () { if (current !== 'timer') show(current); }); }],
-      ['books', 'Sessions', function () { show('sessions'); }],
-      ['checklist', 'Goals and streaks', function () { show('goals'); }],
-      ['palette', 'Theme', function () { show('themes'); }],
-      ['archive', 'Backup and import', function () { show('backup'); }],
-      ['share', 'Export / import', function () { $('#leftbar .c2').click(); }],
-      ['category', 'Scramble options', function () { $('#leftbar .c3').click(); }],
-      ['build', 'Tools', function () { $('#leftbar .c6').click(); }],
-      ['help', 'About and support', function () { $('#leftbar .c5').click(); }]];
+    var items = [['timer', 'Timer', function () { show('timer'); }],
+      ['sec', 'Other'],
+      ['share', 'Export/Import', function () { show('backup'); }],
+      ['palette', 'App theme', function () { show('themes'); }],
+      ['div'],
+      ['settings', 'Settings', function () { show('options'); }],
+      ['help', 'About and feedback', function () { $('#leftbar .c5').click(); }]];
     var panel = $('<div class="zd-panel"></div>').append(
       $('<div class="zd-head"></div>').append($('<b></b>').text('ZTimer'), $('<span></span>').text('Web timer for speedcubers')));
     items.forEach(function (it) {
+      if (it[0] === 'sec') { $('<div class="zd-sec"></div>').text(it[1]).appendTo(panel); return; }
+      if (it[0] === 'div') { $('<div class="zd-div"></div>').appendTo(panel); return; }
       $('<div class="zd-item" role="button" tabindex="0"></div>').append(icon(it[0]), $('<span></span>').text(it[1]))
         .on('click', function () { closeDrawer(); setTimeout(it[2], 120); }).appendTo(panel);
     });
@@ -337,11 +338,7 @@
     }
     card.find('.zsb-last').toggleClass('off', !spans.eq(0).hasClass('click'));
   }
-  function placeCorners() {
-    if (!cornerR) return;
-    var tw = $('#toolsDiv'), r = tw.length && tw.is(':visible') ? tw[0].getBoundingClientRect() : null;
-    cornerR.css('right', r && r.width ? Math.max(16, window.innerWidth - r.left + 12) + 'px' : '');
-  }
+  function placeCorners() { if (cornerR) cornerR.css('right', ''); }
 
   /* ---- Corner stats on the timer screen, like the app ---- */
   function updateCorners() {
@@ -440,7 +437,8 @@
       ['sel', 'scrNeut', 'Colour neutral', 'Scrambles that suit your chosen cross faces', [['n', 'None'], ['1', 'Single face'], ['2', 'Two faces'], ['6', 'Six faces']]],
       ['sel', 'scrClk', 'Tap the scramble', 'What happens when you tap the scramble text', [['n', 'Nothing'], ['c', 'Copy it'], ['+', 'Next scramble']]],
       ['sw', 'scrFast', 'Fast 4x4x4 scrambles', 'Quicker, but not official random-state'],
-      ['sw', 'scrKeyM', 'Mark key moves', 'Label key moves in the scramble']
+      ['sw', 'scrKeyM', 'Mark key moves', 'Label key moves in the scramble'],
+      ['go', 'Scramble types and filters', 'Choose scramble types, lengths and cases', function () { $('#leftbar .c3').click(); }]
     ]],
     ['Timer appearance', [
       ['sw', 'ahide', 'Hide while solving', 'Hide everything except the time during a solve'],
@@ -464,7 +462,9 @@
     ]],
     ['Other', [
       ['sw', 'useKSC', 'Keyboard shortcuts', 'Use keyboard shortcuts on a computer'],
-      ['sw', 'useGES', 'Gestures', 'Use swipe gestures on a touch screen'],
+      ['num', 'NTools', 'Number of tools', 'How many tools the Tools window shows', 1, 4],
+      ['go', 'Tools', 'Scramble tools, cross solver, distribution and more', function () { openTools(); }],
+      ['go', 'Export or import every session', 'csTimer\u2019s full backup', function () { $('#leftbar .c2').click(); }],
       ['go', 'All csTimer settings', 'Open the full settings window for anything not listed here', function () { $('#leftbar .c1').click(); }]
     ]]
   ];
@@ -490,6 +490,12 @@
       row.addClass('num').append(out, r);
     }
     return row;
+  }
+  /* the scramble picture lives at the bottom middle, like the app; the full Tools window opens from Settings */
+  function openTools() {
+    show('timer'); $('html').addClass('zt-toolsfull');
+    if (!$('#toolsDiv').is(':visible')) $('#leftbar .c6').click();
+    if (!$('#ztools-done').length) $('<button id="ztools-done">Done</button>').on('click', function () { $('html').removeClass('zt-toolsfull'); }).appendTo('body');
   }
   function renderOptions(p) {
     var body = p.find('.zp-body').empty();
@@ -554,26 +560,26 @@
   }
 
   /* ---- Goals page: daily goal, streak, practice calendar ---- */
-  function renderGoals(p) {
-    var body = p.find('.zp-body').empty(), a = solves(), g = getGoals(), days = {}, today = dayKey(Date.now() / 1000);
-    p.find('.zp-sub').text('This session\u2019s solves');
+  function renderGoals(body, a, again) {
+    var g = getGoals(), days = {}, today = dayKey(Date.now() / 1000);
     a.forEach(function (x) { if (x.ts) days[dayKey(x.ts)] = (days[dayKey(x.ts)] || 0) + 1; });
     var n = days[today] || 0, streak = 0, d = new Date();
     if (!days[dayKey(d.getTime() / 1000)]) d.setDate(d.getDate() - 1);
     while (days[dayKey(d.getTime() / 1000)]) { streak++; d.setDate(d.getDate() - 1); }
     var under = g.target ? a.filter(function (x) { return x.ts && dayKey(x.ts) === today && x.t < g.target * 1000; }).length : 0;
+    body.append($('<h3 class="zp-h">Goals and streaks</h3>'));
     var cards = $('<div class="zcards"></div>').appendTo(body);
     cards.append(card('Today', n + ' / ' + g.daily, n >= g.daily ? 'Goal reached!' : (g.daily - n) + ' to go'),
       card('Streak', streak + (streak === 1 ? ' day' : ' days'), 'in a row'),
       card('Practice days', Object.keys(days).length, 'in this session'));
     if (g.target) cards.append(card('Sub-' + g.target, under, 'solves under ' + g.target + ' s today'));
     var bar = $('<div class="zgbar"></div>').append($('<i></i>').css('width', Math.min(100, 100 * n / g.daily) + '%'));
-    body.append($('<h3 class="zp-h">Daily goal</h3>'), bar);
+    body.append(bar);
     function stepper(label, key, step, min, max) {
       var out = $('<b></b>').text(g[key] || 'off');
       return $('<div class="zopt zstep"></div>').append($('<div class="zo-t"></div>').append($('<b></b>').text(label)),
-        $('<button class="zchip">\u2212</button>').on('click', function () { g[key] = Math.max(min, (g[key] || 0) - step); setGoals(g); renderGoals(p); }), out,
-        $('<button class="zchip">+</button>').on('click', function () { g[key] = Math.min(max, (g[key] || 0) + step); setGoals(g); renderGoals(p); }));
+        $('<button class="zchip">\u2212</button>').on('click', function () { g[key] = Math.max(min, (g[key] || 0) - step); setGoals(g); again(); }), out,
+        $('<button class="zchip">+</button>').on('click', function () { g[key] = Math.min(max, (g[key] || 0) + step); setGoals(g); again(); }));
     }
     body.append($('<div class="zocard"></div>').append(stepper('Solves per day', 'daily', 5, 5, 500), stepper('Sub-X target (seconds, 0 = off)', 'target', 1, 0, 600)));
     body.append($('<h3 class="zp-h">Last 5 weeks</h3>'));
@@ -660,7 +666,7 @@
           var c = importText(ta.val()); ta.val(''); toast(c ? 'Added <b>' + c + '</b> times' : 'No times found'); setTimeout(function () { renderBackup(p); }, 300);
         })), file);
     body.append(im);
-    body.append($('<p class="zp-note"></p>').text('Need a full backup with every session? Use Export / import in the side menu.'));
+    body.append($('<div class="zocard"></div>').append(go('Every session', 'csTimer\u2019s full export and import window', function () { $('#leftbar .c2').click(); })));
   }
 
   /* ---- switching ---- */
@@ -691,7 +697,6 @@
     if (id === 'themes') renderThemes(p);
     if (id === 'options') renderOptions(p);
     if (id === 'sessions') renderSessions(p);
-    if (id === 'goals') renderGoals(p);
     if (id === 'backup') renderBackup(p);
     if (id === 'wca') renderWca(p);
     p.find('.zp-body').scrollTop(0);
@@ -709,13 +714,16 @@
     });
     root = $('<div id="zpages"></div>').hide().appendTo('body');
     makePage('solves', 'Solves', 'list'); makePage('stats', 'Stats', 'graph');
-    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Sessions', 'books'); makePage('goals', 'Goals and streaks', 'checklist'); makePage('backup', 'Backup and import', 'archive');
+    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Sessions', 'books'); makePage('backup', 'Export/Import', 'share');
     actionbar = $('<div id="zactionbar"></div>').append(
       barBtn('menu', 'Menu', function () { drawer.addClass('open'); }),
       $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
         .on('click', function () { show('puzzles'); }),
       barBtn('settings', 'Options', function () { show('options'); })).appendTo('body');
     buildDrawer();
+    /* csTimer's hold-to-open circle menu is switched off */
+    try { if (kernel.getProp('useGES')) kernel.setProp('useGES', false); } catch (e) {}
+    setTimeout(function () { if (!$('#leftbar .c6').hasClass('enable')) $('#leftbar .c6').click(); }, 700);
     /* swipe left or right to move between the tabs (not on the timer, charts or sliders) */
     (function () {
       var x0, y0, ok = false, order = TABS.map(function (t) { return t[0]; });

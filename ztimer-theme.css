@@ -317,3 +317,23 @@ html:not(.m) #zcorner-l{left:16px}
 .zp-note.zdark{color:#6b6f8f;margin:4px 16px 8px}
 .zimp{display:block;width:calc(100% - 32px);margin:0 16px 8px;box-sizing:border-box;border:1px solid #d6dbee;border-radius:12px;background:#f2f4fb;color:var(--zt-ink);padding:10px 12px;font-family:inherit;font-size:14px;resize:vertical}
 .zimpcard .zm-btns{padding:0 16px}
+
+/* scramble picture: always bottom middle above the tabs, like the app (full Tools window opens from Settings) */
+html:not(.zt-toolsfull) #toolsDiv{position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 76px)!important;
+  transform:translateX(-50%);width:auto!important;height:auto!important;max-width:92vw;padding:0!important;margin:0!important;background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important;z-index:5;pointer-events:none}
+html:not(.zt-toolsfull) #toolsDiv>div:not(:first-of-type),html:not(.zt-toolsfull) #toolsDiv>br,html:not(.zt-toolsfull) #toolsDiv span{display:none!important}
+html:not(.zt-toolsfull) #toolsDiv>div:first-of-type{display:block!important}
+html:not(.zt-toolsfull) #toolsDiv canvas,html:not(.zt-toolsfull) #toolsDiv svg{display:block;margin:0 auto}
+html.zpage-open #toolsDiv{display:none!important}
+html.zt-toolsfull #toolsDiv{position:fixed!important;left:50%!important;right:auto!important;top:50%!important;bottom:auto!important;transform:translate(-50%,-50%);
+  width:min(560px,92vw)!important;max-height:78vh;overflow:auto!important;padding:14px!important;z-index:40;display:block!important}
+#ztools-done{display:none}
+html.zt-toolsfull #ztools-done{display:block;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 24px);z-index:41;
+  border:0;border-radius:999px;padding:12px 34px;background:var(--zt-link);color:var(--zt-onlink);font-family:inherit;font-size:16px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,60,.35);cursor:pointer}
+
+/* side menu sections, like the app's drawer */
+.zd-sec{padding:16px 20px 6px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b6f8f}
+.zd-div{height:1px;margin:8px 0;background:#e3e6f2}
+
+/* no hold-to-open circle menu on touch screens */
+#astouch,.astouch{display:none!important}
