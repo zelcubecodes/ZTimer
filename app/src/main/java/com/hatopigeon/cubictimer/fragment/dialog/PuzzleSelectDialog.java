@@ -123,7 +123,7 @@ public class PuzzleSelectDialog extends DialogFragment {
                         + com.hatopigeon.cubictimer.database.DatabaseHandler.SUBTYPE_ALL).starred(starred);
     }
 
-    /** Builds the tabs: a Starred tab (only when something is starred), then one per family. */
+    /** Builds the tabs: a Starred tab (always shown), then one per family. */
     private void buildTrainerTabs(String selectTabName) {
         final java.util.Set<String> starred = readStarred();
         trainerTabNames.clear();
@@ -136,10 +136,9 @@ public class PuzzleSelectDialog extends DialogFragment {
                 if (starred.contains(t.name())) starredItems.add(trainerItem(t, f, true));
             }
         }
-        if (!starredItems.isEmpty()) {
-            trainerTabNames.add(getString(R.string.trainer_starred_header));
-            trainerTabItems.add(starredItems);
-        }
+        // The Starred tab is always there, even before anything is starred.
+        trainerTabNames.add(getString(R.string.trainer_starred_header));
+        trainerTabItems.add(starredItems);
         for (int f = 0; f < com.hatopigeon.cubictimer.puzzle.TrainerSets.FAMILIES.length; f++) {
             java.util.List<Item> items = new java.util.ArrayList<>();
             for (com.hatopigeon.cubictimer.puzzle.TrainerScrambler.TrainerSubset t
@@ -150,7 +149,8 @@ public class PuzzleSelectDialog extends DialogFragment {
             trainerTabItems.add(items);
         }
 
-        int selected = Math.max(0, trainerTabNames.indexOf(selectTabName));
+        int selected = trainerTabNames.indexOf(selectTabName);
+        if (selected < 0) selected = starredItems.isEmpty() ? Math.min(1, trainerTabNames.size() - 1) : 0;
         selectedTrainerTab = selected;
         drawTrainerTabs();
         puzzleAdapter.setItems(trainerTabItems.get(selected));
