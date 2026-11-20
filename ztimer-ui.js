@@ -145,9 +145,9 @@
   function renderSolves(p) {
     var body = p.find('.zp-body').empty(), a = solves(), src = $('#stats select').first();
     subtitle(p);
-    var cur = src.find('option:selected').text() || 'Session';
+    var cur = currentPuzzle().cat;
     var tools = $('<div class="ztools"></div>').appendTo(body);
-    $('<button class="zbtn zbtn-s" title="Sessions"></button>').text(cur).on('click', function () { show('sessions'); }).appendTo(tools);
+    $('<button class="zbtn zbtn-s" title="Category"></button>').text(cur).on('click', function () { show('sessions'); }).appendTo(tools);
     $('<button class="zbtn" title="Add time" aria-label="Add time"></button>').append(icon('alarm')).on('click', function () { addTimeDialog(function () { renderSolves(p); }); }).appendTo(tools);
     $('<input type="search" class="zsearch" placeholder="Search" aria-label="Search solves">').val(solveQuery).on('input', function () {
       solveQuery = this.value; var pos = this.selectionStart; renderSolves(p); var n = p.find('.zsearch')[0]; n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {}
@@ -165,7 +165,7 @@
       }
       popMenu($(this), [['Sort by time, fastest first', function () { sortMode = 'best'; renderSolves(p); }], ['Sort by time, slowest first', function () { sortMode = 'worst'; renderSolves(p); }],
         ['Sort by date, newest first', function () { sortMode = 'new'; renderSolves(p); }], ['Sort by date, oldest first', function () { sortMode = 'old'; renderSolves(p); }],
-        ['Share ao5', function () { shareAvg(5); }], ['Share ao12', function () { shareAvg(12); }], ['Sessions', function () { show('sessions'); }], ['Export or import', function () { show('backup'); }]]);
+        ['Share ao5', function () { shareAvg(5); }], ['Share ao12', function () { shareAvg(12); }], ['Category', function () { show('sessions'); }], ['Export or import', function () { show('backup'); }]]);
     }).appendTo(tools);
     body.append($('<div class="zcount2"></div>').text(a.length + (a.length === 1 ? ' solve' : ' solves')));
     if (!a.length) { body.append($('<p class="zp-note"></p>').text('No solves in this session yet. Go to the Timer tab and do a solve.')); return; }
@@ -314,9 +314,10 @@
               e.stopPropagation(); var a = getStars(), k = a.indexOf(s[1]); if (k >= 0) a.splice(k, 1); else a.push(s[1]); setStars(a); renderTrainer(p);
             }))
           .on('click', function () {
-            kernel.setProp('scrType', s[1]);
-            if (kernel.getProp('scrType') !== s[1]) { toast('That set is not available.'); return; }
-            if (d) { trSet = s; trSel = null; renderTrainer(p); } else { show('timer'); }
+            usePuzzle(s[1], s[0], null, function (ok) {
+              if (!ok || kernel.getProp('scrType') !== s[1]) { toast('That set is not available.'); return; }
+              if (d) { trSet = s; trSel = null; renderTrainer(p); } else { show('timer'); }
+            });
           });
         grid.append(t);
       });
@@ -371,12 +372,40 @@
   }
 
   /* ---- Puzzle chooser page (like the app's puzzle dialog) ---- */
+
+  /* ---- Puzzles and categories, like the app: each puzzle and category is its own csTimer session, named "Puzzle / Category" ---- */
+  function sessSel() { return $('#stats select').first(); }
+  function parseSess(n) { var i = n.indexOf(' / '); return i < 0 ? [n, ''] : [n.slice(0, i), n.slice(i + 3)]; }
+  function sessionsList() { var out = []; sessSel().find('option').each(function () { out.push({ v: $(this).val(), name: $(this).text() }); }); return out; }
+  function getLast() { try { var m = /(?:^|; )ztimerLast=([^;]*)/.exec(document.cookie); return m ? JSON.parse(decodeURIComponent(m[1])) : {}; } catch (e) { return {}; } }
+  function setLast(id, cat) { var l = getLast(); l[id] = cat; try { document.cookie = 'ztimerLast=' + encodeURIComponent(JSON.stringify(l)) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {} }
+  function findSess(name) { var r = null; sessionsList().forEach(function (s) { if (s.name === name) r = s; }); return r; }
+  function goSession(v) { sessSel().val(v).trigger('change'); }
+  /* switch to the session of this puzzle and category, creating it the first time; done(ok) runs afterwards */
+  function usePuzzle(id, pname, cat, done) {
+    var cp = currentPuzzle(), curName = sessSel().find('option:selected').text(), pp = parseSess(curName);
+    if (!cat && kernel.getProp('scrType') === id && (!pp[1] || pp[0] === pname)) { if (done) done(true); return; }
+    cat = cat || getLast()[id] || 'Normal';
+    var name = pname + ' / ' + cat, s = findSess(name);
+    function finish() {
+      var t = findSess(name);
+      if (!t) { toast('Could not open that category.'); if (done) done(false); return; }
+      goSession(t.v); setLast(id, cat);
+      setTimeout(function () { if (kernel.getProp('scrType') !== id) kernel.setProp('scrType', id); if (done) done(true); }, 80);
+    }
+    if (s) { finish(); return; }
+    try { stats.getSessionManager().importSessions([{ name: name, opt: { scrType: id }, times: [] }]); } catch (e) {}
+    setTimeout(finish, 120);
+  }
   function currentPuzzle() {
     var t = kernel.getProp('scrType'), name = null;
     PUZZLES.forEach(function (g) { g[1].forEach(function (q) { if (q[1] === t) name = q[0]; }); });
+    T_FAM.forEach(function (f) { f[1].forEach(function (q) { if (q[1] === t) name = q[0]; }); });
     var sels = $('#scrambleDiv select');
     if (!name) name = sels.eq(1).find('option:selected').text() || 'Puzzle';
-    return { name: name, cat: sels.eq(0).find('option:selected').text() || '' };
+    var sn = sessSel().find('option:selected').text() || '', cat = parseSess(sn)[1] || sn;
+    if (!cat || /^\d+$/.test(cat)) cat = 'Normal';
+    return { name: name, cat: cat };
   }
   var puzTab = null;
   function puzIcon(q) {
@@ -391,9 +420,7 @@
       puzTab = gi; tabs.children().removeClass('on').eq(gi).addClass('on'); grid.empty();
       PUZZLES[gi][1].forEach(function (q) {
         $('<button class="ztile zpt"></button>').toggleClass('on', cur === q[1]).append(puzIcon(q), $('<b></b>').text(q[0])).on('click', function () {
-          kernel.setProp('scrType', q[1]);
-          if (kernel.getProp('scrType') !== q[1]) toast('That scramble type is not available.');
-          show('timer');
+          usePuzzle(q[1], q[0], null, function (ok) { if (ok && kernel.getProp('scrType') !== q[1]) toast('That scramble type is not available.'); show('timer'); });
         }).appendTo(grid);
       });
     }
@@ -653,17 +680,27 @@
 
   /* ---- Sessions page: switch sessions with the app's cards ---- */
   function renderSessions(p) {
-    var body = p.find('.zp-body').empty(), src = $('#stats select').first();
-    p.find('.zp-sub').text('Tap a session to switch to it');
-    var cur = src.val();
-    src.find('option').each(function () {
-      var v = $(this).val(), row = $('<div class="zrow zsessrow2"></div>').toggleClass('cur', v === cur)
-        .append($('<span class="zs-n"></span>').text($(this).text()), v === cur ? $('<span class="zs-c">current</span>') : '');
-      row.on('click', function () { src.val(v).trigger('change'); setTimeout(function () { renderSessions(p); }, 250); }).appendTo(body);
+    var body = p.find('.zp-body').empty(), c = currentPuzzle(), curV = sessSel().val(), id = kernel.getProp('scrType');
+    p.find('.zp-sub').text(c.name);
+    body.append($('<h3 class="zp-h">Categories</h3>'));
+    var any = false;
+    sessionsList().forEach(function (s) {
+      var pp = parseSess(s.name), mine = pp[1] ? pp[0] === c.name : s.v === curV;
+      if (!mine) return; any = true;
+      var label = pp[1] || (/^\d+$/.test(s.name) ? 'Normal' : s.name);
+      $('<div class="zrow zsessrow2"></div>').toggleClass('cur', s.v === curV).append($('<span class="zs-n"></span>').text(label), s.v === curV ? $('<span class="zs-c">current</span>') : '')
+        .on('click', function () { goSession(s.v); setLast(id, label); setTimeout(function () { show('timer'); }, 120); }).appendTo(body);
     });
-    body.append($('<button class="zshare"></button>').append(icon('settings'), $('<span>New, rename, merge or delete</span>')).on('click', function () {
-      try { stats.getSessionManager().getButton().click(); } catch (e) { $('#stats input.icon').first().click(); }
+    if (!any) body.append($('<p class="zp-note"></p>').text('No categories yet.'));
+    body.append($('<button class="zshare"></button>').append(icon('edit'), $('<span>New category</span>')).on('click', function () {
+      var n = (prompt('Category name (for example Normal, One-handed, Practice)') || '').trim().replace(/\s*\/\s*/g, '-');
+      if (!n) return;
+      usePuzzle(id, c.name, n, function () { show('timer'); });
     }));
+    body.append($('<button class="zshare"></button>').append(icon('settings'), $('<span>Rename, merge or delete</span>')).css('margin-top', '10px').on('click', function () {
+      try { stats.getSessionManager().getButton().click(); } catch (e) { sessSel().siblings('input.icon').first().click(); }
+    }));
+    body.append($('<p class="zp-note"></p>').text('Every puzzle and category keeps its own solves, like in the app.'));
   }
 
   /* ---- Goals page: daily goal, streak, practice calendar ---- */
@@ -821,11 +858,11 @@
     });
     root = $('<div id="zpages"></div>').hide().appendTo('body');
     makePage('solves', 'Solves', 'list'); makePage('stats', 'Stats', 'graph');
-    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Sessions', 'books'); makePage('backup', 'Export/Import', 'share');
+    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Category', 'books'); makePage('backup', 'Export/Import', 'share');
     actionbar = $('<div id="zactionbar"></div>').append(
       barBtn('menu', 'Menu', function () { drawer.addClass('open'); }),
       $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
-        .on('click', function () { show('puzzles'); }),
+        .on('click', function (e) { show($(e.target).hasClass('za-cat') ? 'sessions' : 'puzzles'); }),
       barBtn('settings', 'Options', function () { show('options'); })).appendTo('body');
     buildDrawer();
     /* csTimer's hold-to-open circle menu is switched off */

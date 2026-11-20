@@ -409,3 +409,8 @@ html:not(.zt-toolsfull) #toolsDiv canvas,html:not(.zt-toolsfull) #toolsDiv svg,h
 .zpop{position:fixed;z-index:100;min-width:210px;background:#fff;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,60,.4);padding:6px 0;overflow:hidden}
 .zpop button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:12px 18px;color:var(--zt-ink);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
 .zpop button:active{background:#e4e9ff}
+
+/* ---- zt19: solve details as a centred popup ---- */
+.dialog.dialogcfm{left:50%!important;top:50%!important;bottom:auto!important;transform:translate(-50%,-50%)!important;animation:zpop .18s ease-out!important;width:min(520px,92vw)!important;max-height:86vh;border-radius:24px!important;padding:24px 20px 20px!important;box-shadow:0 12px 40px rgba(0,0,60,.45)!important}
+.dialog.dialogcfm::before{display:none!important}
+@keyframes zpop{from{opacity:0;transform:translate(-50%,-46%) scale(.96)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
