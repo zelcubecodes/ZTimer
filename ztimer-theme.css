@@ -419,3 +419,9 @@ html:not(.zt-toolsfull) #toolsDiv canvas,html:not(.zt-toolsfull) #toolsDiv svg,h
 html.zt-quiet .dialog,html.zt-quiet #gray{display:none!important}
 .za-top{display:flex;align-items:center;justify-content:center;gap:2px}
 .za-top .zi{width:22px;height:22px}
+
+/* ---- zt21 ---- */
+.zt-stale{display:none!important}
+#scrambleDiv input.icon:disabled{display:none!important}
+.za-cases{display:none}
+.za-cases.on{display:flex}

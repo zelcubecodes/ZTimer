@@ -287,15 +287,17 @@
     ['CFOP', [['PLL', 'pll'], ['OLL', 'oll'], ['LSLL', 'lsll2'], ['LL', 'll'], ['ZBLL', 'zbll'], ['COLL', 'coll'], ['ZBLS', 'zbls'], ['WVLS', 'wvls'], ['VLS', 'vls'], ['F2L', 'f2l'],
       ['Easy cross', 'easyc'], ['Easy XCross', 'easyxc'], ['2-gen R,U', '2gen'], ['2-gen L,U', '2genl'], ['3-gen F', '3gen_F'], ['3-gen L', '3gen_L'], ['RrU', 'RrU']]],
     ['Roux', [['2nd block', 'sbrx'], ['CMLL', 'cmll'], ['LSE', 'lse'], ['LSE M,U', 'lsemu']]],
-    ['App', [
-      ['go', 'Export and import', 'Save or load your solves', function () { show('backup'); }],
-      ['go', 'App theme', 'Pick one of the app\u2019s colour themes', function () { show('themes'); }],
-      ['go', 'About and feedback', 'Credits, licence and links', function () { $('#leftbar .c5').click(); }],
-      ['go', 'Side menu', 'Or swipe in from the left edge', function () { show('timer'); drawer.addClass('open'); }]
-    ]],
-    ['Other', [['ZZLL', 'zzll'], ['2GLL', '2gll'], ['EOLine', 'eoline'], ['EOLS', 'eols'], ['TTLL', 'ttll'], ['CLL', 'cll']]]
+    ['Big cubes', [['4x4 edges', '4edge'], ['4x4 UD centres', '444ctud'], ['4x4 UD 3 centres', '444ud3c'], ['4x4 last 8 edges', '444l8e'], ['4x4 OLL parity', '444poll'], ['4x4 PLL parity', '444ppll'],
+      ['4x4 CTO', '444cto'], ['5x5 edges', '5edge'], ['6x6 edges', '6edge'], ['7x7 edges', '7edge']]],
+    ['Megaminx', [['2-gen', 'minx2g', 'Megaminx 2-gen'], ['Last slot + LL', 'mlsll', 'Megaminx LSLL'], ['PLL', 'mgmpll', 'Megaminx PLL'], ['LL', 'mgmll', 'Megaminx LL'], ['Second layer', 'mgms2l', 'Megaminx S2L']]],
+    ['Pyraminx', [['L4E', 'pyrl4e', 'Pyraminx L4E'], ['4 corners', 'pyr4c', 'Pyraminx 4 corners'], ['No bar', 'pyrnb', 'Pyraminx no bar']]],
+    ['Skewb', [['No bar', 'skbnb', 'Skewb no bar'], ['Last layer', 'skbll', 'Skewb LL']]],
+    ['2x2x2', [['EG', '222eg', '2x2 EG'], ['CLL', '222eg0', '2x2 CLL'], ['EG1', '222eg1', '2x2 EG1'], ['EG2', '222eg2', '2x2 EG2'], ['Last slot', '222lsall', '2x2 last slot'], ['No bar', '222nb', '2x2 no bar']]],
+    ['Square-1', [['CSP', 'sqrcsp', 'Square-1 CSP'], ['PLL', 'sq1pll', 'Square-1 PLL']]],
+    ['FTO', [['TCP', 'ftotcp', 'FTO TCP'], ['L3T', 'ftol3t', 'FTO L3T'], ['L4T', 'ftol4t', 'FTO L4T']]]
   ];
-  var trFam = 0, trSet = null, trSel = null;
+  function findSet(id) { var r = null; T_FAM.forEach(function (f) { f[1].forEach(function (s) { if (s[1] === id) r = s; }); }); return r; }
+  var trFam = -1, trSet = null, trSel = null;
   function getStars() { try { var m = /(?:^|; )ztimerStars=([^;]*)/.exec(document.cookie); return m ? JSON.parse(decodeURIComponent(m[1])) : []; } catch (e) { return []; } }
   function setStars(a) { try { document.cookie = 'ztimerStars=' + encodeURIComponent(JSON.stringify(a)) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {} }
   function caseData(id) { return window.ZT_CASES && window.ZT_CASES[id]; }
@@ -303,11 +305,10 @@
     var body = p.find('.zp-body').empty(), cur = kernel.getProp('scrType');
     if (trSet) return renderCases(p, body);
     p.find('.zp-sub').text('Practice sets');
-    var stars = getStars(), fams = T_FAM.slice();
-    if (stars.length) {
-      var st = []; T_FAM.forEach(function (f) { f[1].forEach(function (s) { if (stars.indexOf(s[1]) >= 0) st.push(s); }); });
-      fams.unshift(['Starred', st]); if (trFam >= fams.length) trFam = 0;
-    } else if (trFam >= fams.length) trFam = 0;
+    var stars = getStars(), fams = T_FAM.slice(), st = [];
+    T_FAM.forEach(function (f) { f[1].forEach(function (s) { if (stars.indexOf(s[1]) >= 0) st.push(s); }); });
+    fams.unshift(['Starred', st]);
+    if (trFam < 0 || trFam >= fams.length) trFam = st.length ? 0 : 1;
     var tabs = $('<div class="ztabs2 zscroll"></div>').appendTo(body), grid = $('<div class="ztiles zpuz"></div>').appendTo(body);
     function fill(i) {
       trFam = i; tabs.children().removeClass('on').eq(i).addClass('on'); grid.empty();
@@ -320,14 +321,14 @@
               e.stopPropagation(); var a = getStars(), k = a.indexOf(s[1]); if (k >= 0) a.splice(k, 1); else a.push(s[1]); setStars(a); renderTrainer(p);
             }))
           .on('click', function () {
-            usePuzzle(s[1], s[0], null, function (ok) {
+            usePuzzle(s[1], s[2] || s[0], null, function (ok) {
               if (!ok || kernel.getProp('scrType') !== s[1]) { toast('That set is not available.'); return; }
               if (d) { trSet = s; trSel = null; renderTrainer(p); } else { show('timer'); }
             });
           });
         grid.append(t);
       });
-      if (!fams[i][1].length) grid.append($('<p class="zp-note"></p>').text('Star a set to keep it here.'));
+      if (!fams[i][1].length) grid.append($('<p class="zp-note"></p>').text('Tap the star on a set to keep it here.'));
     }
     fams.forEach(function (f, i) { $('<button class="zt2"></button>').text(f[0]).on('click', function () { fill(i); }).appendTo(tabs); });
     fill(trFam);
@@ -388,6 +389,11 @@
   function findSess(name) { var r = null; sessionsList().forEach(function (s) { if (s.name === name) r = s; }); return r; }
   function goSession(v) { sessSel().val(v).trigger('change'); }
   /* switch to the session of this puzzle and category, creating it the first time; done(ok) runs afterwards */
+  function hideStaleMgr() {
+    $('div,span,input,button').filter(function () { return $(this).children().length === 0 && ($(this).text() === STATS_SSMGR_ORDER || $(this).val() === STATS_SSMGR_ORDER); }).each(function () {
+      var top = $(this).parents().filter(function () { return this.parentNode === document.body; }).first(); if (top.length) top.addClass('zt-stale');
+    });
+  }
   function usePuzzle(id, pname, cat, done) {
     var cp = currentPuzzle(), curName = sessSel().find('option:selected').text(), pp = parseSess(curName);
     if (!cat && kernel.getProp('scrType') === id && (!pp[1] || pp[0] === pname)) { if (done) done(true); return; }
@@ -403,12 +409,12 @@
     $('html').addClass('zt-quiet');
     try { stats.getSessionManager().importSessions([{ name: name, opt: { scrType: id }, times: [] }]); } catch (e) {}
     try { kernel.hideDialog(); } catch (e) {}
-    setTimeout(function () { finish(); try { kernel.hideDialog(); } catch (e) {} setTimeout(function () { $('html').removeClass('zt-quiet'); }, 200); }, 120);
+    setTimeout(function () { finish(); try { kernel.hideDialog(); } catch (e) {} hideStaleMgr(); setTimeout(function () { hideStaleMgr(); $('html').removeClass('zt-quiet'); }, 250); }, 120);
   }
   function currentPuzzle() {
     var t = kernel.getProp('scrType'), name = null;
     PUZZLES.forEach(function (g) { g[1].forEach(function (q) { if (q[1] === t) name = q[0]; }); });
-    T_FAM.forEach(function (f) { f[1].forEach(function (q) { if (q[1] === t) name = q[0]; }); });
+    var fs = findSet(t); if (fs) name = fs[2] || fs[0];
     var sels = $('#scrambleDiv select');
     if (!name) name = sels.eq(1).find('option:selected').text() || 'Puzzle';
     var sn = sessSel().find('option:selected').text() || '', cat = parseSess(sn)[1] || sn;
@@ -443,6 +449,7 @@
   function updateBar() {
     var c = currentPuzzle();
     actionbar.find('.za-name').text(c.name); actionbar.find('.za-cat').text(c.cat);
+    var cs = findSet(kernel.getProp('scrType')); actionbar.find('.za-cases').toggleClass('on', !!(cs && caseData(cs[1])));
   }
   function closeDrawer() { drawer.removeClass('open'); }
   function buildDrawer() {
@@ -602,6 +609,12 @@
       ['sw', 'printDate', 'Dates in the list', 'Print the date of each solve'],
       ['sw', 'delmul', 'Delete several solves', 'Allow multi-select deletion']
     ]],
+    ['App', [
+      ['go', 'Export and import', 'Save or load your solves', function () { show('backup'); }],
+      ['go', 'App theme', 'Pick one of the app\u2019s colour themes', function () { show('themes'); }],
+      ['go', 'About and feedback', 'Credits, licence and links', function () { $('#leftbar .c5').click(); }],
+      ['go', 'Side menu', 'Or swipe in from the left edge', function () { show('timer'); drawer.addClass('open'); }]
+    ]],
     ['Other', [
       ['sw', 'useKSC', 'Keyboard shortcuts', 'Use keyboard shortcuts on a computer'],
       ['num', 'NTools', 'Number of tools', 'How many tools the Tools window shows', 1, 4],
@@ -706,7 +719,8 @@
       usePuzzle(id, c.name, n, function () { show('timer'); });
     }));
     body.append($('<button class="zshare"></button>').append(icon('settings'), $('<span>Rename, merge or delete</span>')).css('margin-top', '10px').on('click', function () {
-      try { stats.getSessionManager().getButton().click(); } catch (e) { sessSel().siblings('input.icon').first().click(); }
+      $('.zt-stale').removeClass('zt-stale');
+      try { stats.getSessionManager().showMgrTable(); } catch (e) { toast('Could not open the session manager.'); }
     }));
     body.append($('<p class="zp-note"></p>').text('Every puzzle and category keeps its own solves, like in the app.'));
   }
@@ -871,6 +885,7 @@
       barBtn('settings', 'Settings', function () { show('options'); }),
       $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
         .on('click', function () { show('puzzles'); }),
+      barBtn('checklist', 'Choose cases', function () { var s = findSet(kernel.getProp('scrType')); if (s && caseData(s[1])) { trSet = s; trSel = null; show('trainer'); } }).addClass('za-cases'),
       barBtn('category', 'Category', function () { show('sessions'); })).appendTo('body');
     /* the app opens its side menu with a swipe from the left edge */
     (function () {
