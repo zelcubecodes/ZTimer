@@ -414,3 +414,8 @@ html:not(.zt-toolsfull) #toolsDiv canvas,html:not(.zt-toolsfull) #toolsDiv svg,h
 .dialog.dialogcfm{left:50%!important;top:50%!important;bottom:auto!important;transform:translate(-50%,-50%)!important;animation:zpop .18s ease-out!important;width:min(520px,92vw)!important;max-height:86vh;border-radius:24px!important;padding:24px 20px 20px!important;box-shadow:0 12px 40px rgba(0,0,60,.45)!important}
 .dialog.dialogcfm::before{display:none!important}
 @keyframes zpop{from{opacity:0;transform:translate(-50%,-46%) scale(.96)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+/* ---- zt20: top bar like the app (settings left, puzzle in the middle, category right) ---- */
+html.zt-quiet .dialog,html.zt-quiet #gray{display:none!important}
+.za-top{display:flex;align-items:center;justify-content:center;gap:2px}
+.za-top .zi{width:22px;height:22px}

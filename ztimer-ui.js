@@ -287,6 +287,12 @@
     ['CFOP', [['PLL', 'pll'], ['OLL', 'oll'], ['LSLL', 'lsll2'], ['LL', 'll'], ['ZBLL', 'zbll'], ['COLL', 'coll'], ['ZBLS', 'zbls'], ['WVLS', 'wvls'], ['VLS', 'vls'], ['F2L', 'f2l'],
       ['Easy cross', 'easyc'], ['Easy XCross', 'easyxc'], ['2-gen R,U', '2gen'], ['2-gen L,U', '2genl'], ['3-gen F', '3gen_F'], ['3-gen L', '3gen_L'], ['RrU', 'RrU']]],
     ['Roux', [['2nd block', 'sbrx'], ['CMLL', 'cmll'], ['LSE', 'lse'], ['LSE M,U', 'lsemu']]],
+    ['App', [
+      ['go', 'Export and import', 'Save or load your solves', function () { show('backup'); }],
+      ['go', 'App theme', 'Pick one of the app\u2019s colour themes', function () { show('themes'); }],
+      ['go', 'About and feedback', 'Credits, licence and links', function () { $('#leftbar .c5').click(); }],
+      ['go', 'Side menu', 'Or swipe in from the left edge', function () { show('timer'); drawer.addClass('open'); }]
+    ]],
     ['Other', [['ZZLL', 'zzll'], ['2GLL', '2gll'], ['EOLine', 'eoline'], ['EOLS', 'eols'], ['TTLL', 'ttll'], ['CLL', 'cll']]]
   ];
   var trFam = 0, trSet = null, trSel = null;
@@ -394,8 +400,10 @@
       setTimeout(function () { if (kernel.getProp('scrType') !== id) kernel.setProp('scrType', id); if (done) done(true); }, 80);
     }
     if (s) { finish(); return; }
+    $('html').addClass('zt-quiet');
     try { stats.getSessionManager().importSessions([{ name: name, opt: { scrType: id }, times: [] }]); } catch (e) {}
-    setTimeout(finish, 120);
+    try { kernel.hideDialog(); } catch (e) {}
+    setTimeout(function () { finish(); try { kernel.hideDialog(); } catch (e) {} setTimeout(function () { $('html').removeClass('zt-quiet'); }, 200); }, 120);
   }
   function currentPuzzle() {
     var t = kernel.getProp('scrType'), name = null;
@@ -860,10 +868,16 @@
     makePage('solves', 'Solves', 'list'); makePage('stats', 'Stats', 'graph');
     makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Category', 'books'); makePage('backup', 'Export/Import', 'share');
     actionbar = $('<div id="zactionbar"></div>').append(
-      barBtn('menu', 'Menu', function () { drawer.addClass('open'); }),
+      barBtn('settings', 'Settings', function () { show('options'); }),
       $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
-        .on('click', function (e) { show($(e.target).hasClass('za-cat') ? 'sessions' : 'puzzles'); }),
-      barBtn('settings', 'Options', function () { show('options'); })).appendTo('body');
+        .on('click', function () { show('puzzles'); }),
+      barBtn('category', 'Category', function () { show('sessions'); })).appendTo('body');
+    /* the app opens its side menu with a swipe from the left edge */
+    (function () {
+      var x0, y0, edge = false;
+      $(document).on('touchstart', function (e) { var t = e.originalEvent.touches[0]; x0 = t.clientX; y0 = t.clientY; edge = x0 < 24; })
+        .on('touchend', function (e) { if (!edge) return; edge = false; var t = e.originalEvent.changedTouches[0]; if (t.clientX - x0 > 70 && Math.abs(t.clientY - y0) < 60) drawer.addClass('open'); });
+    })();
     buildDrawer();
     /* csTimer's hold-to-open circle menu is switched off */
     try { if (kernel.getProp('useGES')) kernel.setProp('useGES', false); } catch (e) {}
