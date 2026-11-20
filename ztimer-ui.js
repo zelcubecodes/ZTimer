@@ -323,7 +323,7 @@
           .on('click', function () {
             usePuzzle(s[1], s[2] || s[0], null, function (ok) {
               if (!ok || kernel.getProp('scrType') !== s[1]) { toast('That set is not available.'); return; }
-              if (d) { trSet = s; trSel = null; renderTrainer(p); } else { show('timer'); }
+              if (d) { trSet = s; trSel = null; renderTrainer(p); } else { show('trainer'); }
             });
           });
         grid.append(t);
@@ -357,7 +357,7 @@
       if (!trSel.some(Boolean)) { toast('Select at least one case.'); return; }
       kernel.setProp('scrType', id);
       kernel.setProp('scrFlt', JSON.stringify([id, trSel.map(function (v) { return v ? 1 : 0; })]));
-      show('timer');
+      show('trainer');
     }).appendTo(body);
   }
 
@@ -434,7 +434,7 @@
       puzTab = gi; tabs.children().removeClass('on').eq(gi).addClass('on'); grid.empty();
       PUZZLES[gi][1].forEach(function (q) {
         $('<button class="ztile zpt"></button>').toggleClass('on', cur === q[1]).append(puzIcon(q), $('<b></b>').text(q[0])).on('click', function () {
-          usePuzzle(q[1], q[0], null, function (ok) { if (ok && kernel.getProp('scrType') !== q[1]) toast('That scramble type is not available.'); show('timer'); });
+          usePuzzle(q[1], q[0], null, function (ok) { if (ok && kernel.getProp('scrType') !== q[1]) toast('That scramble type is not available.'); show(mode); });
         }).appendTo(grid);
       });
     }
@@ -448,7 +448,7 @@
   }
   function updateBar() {
     var c = currentPuzzle();
-    actionbar.find('.za-name').text(c.name); actionbar.find('.za-cat').text(c.cat);
+    actionbar.find('.za-name').text(c.name + (mode === 'trainer' ? ' trainer' : '')); actionbar.find('.za-cat').text(c.cat);
     var cs = findSet(kernel.getProp('scrType')); actionbar.find('.za-cases').toggleClass('on', !!(cs && caseData(cs[1])));
   }
   function closeDrawer() { drawer.removeClass('open'); }
@@ -613,7 +613,7 @@
       ['go', 'Export and import', 'Save or load your solves', function () { show('backup'); }],
       ['go', 'App theme', 'Pick one of the app\u2019s colour themes', function () { show('themes'); }],
       ['go', 'About and feedback', 'Credits, licence and links', function () { $('#leftbar .c5').click(); }],
-      ['go', 'Side menu', 'Or swipe in from the left edge', function () { show('timer'); drawer.addClass('open'); }]
+      ['go', 'Side menu', 'Or swipe in from the left edge', function () { show(mode); drawer.addClass('open'); }]
     ]],
     ['Other', [
       ['sw', 'useKSC', 'Keyboard shortcuts', 'Use keyboard shortcuts on a computer'],
@@ -648,7 +648,7 @@
   }
   /* the scramble picture lives at the bottom middle, like the app; the full Tools window opens from Settings */
   function openTools() {
-    show('timer'); $('html').addClass('zt-toolsfull');
+    show(mode); $('html').addClass('zt-toolsfull');
     if (!$('#toolsDiv').is(':visible')) $('#leftbar .c6').click();
     if (!$('#ztools-done').length) $('<button id="ztools-done">Done</button>').on('click', function () { $('html').removeClass('zt-toolsfull'); }).appendTo('body');
   }
@@ -710,13 +710,13 @@
       if (!mine) return; any = true;
       var label = pp[1] || (/^\d+$/.test(s.name) ? 'Normal' : s.name);
       $('<div class="zrow zsessrow2"></div>').toggleClass('cur', s.v === curV).append($('<span class="zs-n"></span>').text(label), s.v === curV ? $('<span class="zs-c">current</span>') : '')
-        .on('click', function () { goSession(s.v); setLast(id, label); setTimeout(function () { show('timer'); }, 120); }).appendTo(body);
+        .on('click', function () { goSession(s.v); setLast(id, label); setTimeout(function () { show(mode); }, 120); }).appendTo(body);
     });
     if (!any) body.append($('<p class="zp-note"></p>').text('No categories yet.'));
     body.append($('<button class="zshare"></button>').append(icon('edit'), $('<span>New category</span>')).on('click', function () {
       var n = (prompt('Category name (for example Normal, One-handed, Practice)') || '').trim().replace(/\s*\/\s*/g, '-');
       if (!n) return;
-      usePuzzle(id, c.name, n, function () { show('timer'); });
+      usePuzzle(id, c.name, n, function () { show(mode); });
     }));
     body.append($('<button class="zshare"></button>').append(icon('settings'), $('<span>Rename, merge or delete</span>')).css('margin-top', '10px').on('click', function () {
       $('.zt-stale').removeClass('zt-stale');
@@ -844,13 +844,28 @@
   }
   var prevId = 'timer', installEvt = null;
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installEvt = e; $(window).trigger('ztinstall'); });
+  /* The Timer tab and the Trainer tab are two separate timers, as in the app: each keeps its own puzzle or set (and so its own solves) */
+  var mode = 'timer', modeState = {};
+  function isTrainerId(id) { return !!findSet(id); }
+  function loadModes() { try { var m = /(?:^|; )ztimerModes=([^;]*)/.exec(document.cookie); if (m) modeState = JSON.parse(decodeURIComponent(m[1])) || {}; } catch (e) {} }
+  function saveModes() { try { document.cookie = 'ztimerModes=' + encodeURIComponent(JSON.stringify(modeState)) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {} }
+  function enterMode(m) {
+    var id = kernel.getProp('scrType'), c = currentPuzzle(), cm = isTrainerId(id) ? 'trainer' : 'timer';
+    modeState[cm] = { id: id, name: c.name }; saveModes();
+    mode = m;
+    if (cm === m) return;
+    var st = modeState[m] || (m === 'trainer' ? { id: 'oll', name: 'OLL' } : { id: '333', name: '3x3x3' });
+    usePuzzle(st.id, st.name, null, function () { lastSig = ''; updateBar(); updateCorners(); });
+  }
   function show(id) {
     var old = current; current = id;
-    bar.find('.ztab').each(function () { $(this).toggleClass('on', $(this).data('p') === id); });
+    var screen = id === 'timer' || id === 'trainer';
+    if (screen) enterMode(id);
+    bar.find('.ztab').each(function () { $(this).toggleClass('on', $(this).data('p') === (id === 'trainerpick' ? 'trainer' : id)); });
     clearInterval(timerId); timerId = null;
-    $('html').toggleClass('zpage-open', id !== 'timer');
+    $('html').toggleClass('zpage-open', !screen);
     closeDrawer();
-    if (id === 'timer') { root.hide(); lastSig = ''; updateBar(); updateCorners(); prevId = 'timer'; return; }
+    if (screen) { root.hide(); lastSig = ''; updateBar(); updateCorners(); prevId = id; return; }
     kernel.hideDialog();
     var order = TABS.map(function (t) { return t[0]; }), dir = order.indexOf(id) > order.indexOf(prevId) ? 'zin-r' : 'zin-l';
     root.show(); $.each(pages, function (k, p) { p.toggle(k === id); });
@@ -858,7 +873,7 @@
     if (prevId !== id) p.removeClass('zin-r zin-l').width(), p.addClass(dir);
     if (id === 'solves') renderSolves(p);
     if (id === 'stats') { renderStats(p); timerId = setInterval(function () { renderStats(p); }, 4000); }
-    if (id === 'trainer') renderTrainer(p);
+    if (id === 'trainerpick') renderTrainer(p);
     if (id === 'puzzles') renderPuzzles(p);
     if (id === 'themes') renderThemes(p);
     if (id === 'options') renderOptions(p);
@@ -880,12 +895,12 @@
     });
     root = $('<div id="zpages"></div>').hide().appendTo('body');
     makePage('solves', 'Solves', 'list'); makePage('stats', 'Stats', 'graph');
-    makePage('trainer', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Category', 'books'); makePage('backup', 'Export/Import', 'share');
+    makePage('trainerpick', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Category', 'books'); makePage('backup', 'Export/Import', 'share');
     actionbar = $('<div id="zactionbar"></div>').append(
       barBtn('settings', 'Settings', function () { show('options'); }),
       $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
-        .on('click', function () { show('puzzles'); }),
-      barBtn('checklist', 'Choose cases', function () { var s = findSet(kernel.getProp('scrType')); if (s && caseData(s[1])) { trSet = s; trSel = null; show('trainer'); } }).addClass('za-cases'),
+        .on('click', function () { show(mode === 'trainer' ? 'trainerpick' : 'puzzles'); }),
+      barBtn('checklist', 'Choose cases', function () { var s = findSet(kernel.getProp('scrType')); if (s && caseData(s[1])) { trSet = s; trSel = null; show('trainerpick'); } }).addClass('za-cases'),
       barBtn('category', 'Category', function () { show('sessions'); })).appendTo('body');
     /* the app opens its side menu with a swipe from the left edge */
     (function () {
@@ -894,6 +909,7 @@
         .on('touchend', function (e) { if (!edge) return; edge = false; var t = e.originalEvent.changedTouches[0]; if (t.clientX - x0 > 70 && Math.abs(t.clientY - y0) < 60) drawer.addClass('open'); });
     })();
     buildDrawer();
+    loadModes(); mode = isTrainerId(kernel.getProp('scrType')) ? 'trainer' : 'timer';
     /* csTimer's hold-to-open circle menu is switched off */
     try { if (kernel.getProp('useGES')) kernel.setProp('useGES', false); } catch (e) {}
     setTimeout(function () { if (!$('#leftbar .c6').hasClass('enable')) $('#leftbar .c6').click(); }, 700);
@@ -960,7 +976,7 @@
     }).observe(document.body, { childList: true, subtree: true });
     document.addEventListener('keydown', keyBlock, true);
     document.addEventListener('keyup', keyBlock, true);
-    show('timer');
+    show(mode);
     $(window).on('resize', function () { if (current === 'stats') renderStats(pages.stats); });
   }
   $(function () { setTimeout(init, 0); });
