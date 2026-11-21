@@ -34,23 +34,25 @@
   var GROUP_FILL = ['#AACCFF', '#C9B8F2', '#FFE680', '#B8E8B8', '#FFCFA3', '#F2B8D8'], GROUP_TEXT = ['#5599FF', '#7A52C7', '#B38F00', '#3C9A3C', '#D9731A', '#C2509A'];
   /* The app's colour themes: name, gradient start, gradient end, action bar, tab bar, accent, dark text? */
   var THEMES = [
-    ['ZTimer', '1959ff', '3b12ff', '0045f6', '2900ef', 'ffd740', 0], ['Pink', 'ff577e', 'fd61c0', 'ff678a', 'fd50b9', 'c1fd61', 0],
-    ['Purple', '673ab7', '512da8', '6e40c2', '4b299b', 'ffc400', 0], ['Violet', '920ee6', '6304e9', '9b14f1', '5503c8', 'ffc107', 0],
-    ['Deep purple', 'ed1e79', '662d8c', 'd81169', '5d297f', 'ffc400', 0], ['Orange', 'ed1c24', 'ff6219', 'd61119', 'e54900', '19c2ff', 0],
-    ['Brown', '5c3c30', '422a24', '724b3c', '37231e', 'ffd740', 0], ['Black', '000000', '000000', '000000', '000000', 'ffd740', 0],
-    ['Light blue', '3afafa', '42f7cd', '5bfbfb', '31f7c9', 'f76642', 1], ['Light green', 'a8ff78', '78ffd6', 'bbff96', '93ffb9', 'ff8f78', 1],
-    ['Cyan', '00ffa1', '00ffff', '55ffc0', '66ffff', 'ff4000', 1], ['Teal', '18ff97', '24f594', '29ff9f', '0bec84', 'f53f24', 1],
-    ['Green', '6cf63e', '15ff8e', '78f74e', '00f27d', 'ff3415', 1], ['Red', 'fbb74c', 'ff5656', 'fcc46d', 'ff5656', '56ff56', 1],
-    ['Yellow', 'ffeb7e', 'fffd69', 'ffee8f', 'fffd7a', 'ff80ab', 1], ['Dawn', 'fccb90', 'd57eeb', 'fddab1', 'd06fe9', 'ebe07e', 1],
-    ['Mint', 'c6ffbd', 'ffffff', 'd5ffce', 'f2fff0', 'ff5252', 1], ['Ice', 'fffeff', 'd7fffe', 'fffeff', 'e8fffe', 'ff5252', 1],
-    ['White', 'ffffff', 'ffffff', 'fffeff', 'ffffff', 'ff5252', 1]
+    ['Hazy Blues', '1959ff', '3b12ff', '0045f6', '2900ef', 'ffd740', 0], ['What... Green?', '6cf63e', '15ff8e', '78f74e', '00f27d', 'ff3415', 1],
+    ['Spotty Guy', '0d0d0d', '0d0d0d', '171717', '171717', '1db954', 0], ['Simply Black', '000000', '000000', '000000', '000000', 'ffd740', 0],
+    ['Simply White', 'ffffff', 'ffffff', 'fffeff', 'ffffff', 'ff5252', 1], ['Notably Yellow', 'ffeb7e', 'fffd69', 'ffee8f', 'fffd7a', 'ff80ab', 1],
+    ['Bluy Gray', '607d8b', '455a64', '678695', '3e515a', 'ffd740', 0], ['Turtly Sea', 'b2f9ff', 'efebbe', 'd4fcff', 'e8e3a3', 'ff5252', 1],
+    ['Pixie Falls', 'fcd6e3', 'aaf0ed', 'fde6ee', '8debe7', 'ff5252', 1], ['Oof Hot', 'fbb74c', 'ff5656', 'fcc46d', 'ff5656', '56ff56', 1],
+    ['Wandy Dusk', '8e78ff', 'fc7d7b', '8067ff', 'fb5c5a', '7bfc83', 0], ['Relaxing Dawn', 'fccb90', 'd57eeb', 'fddab1', 'd06fe9', 'ebe07e', 1],
+    ['Quite Purply', 'ed1e79', '662d8c', 'd81169', '5d297f', 'ffc400', 0], ['Even Purplier', '920ee6', '6304e9', '9b14f1', '5503c8', 'ffc107', 0],
+    ['Definitely Purple', '673ab7', '512da8', '6e40c2', '4b299b', 'ffc400', 0], ['Tantalizing Torange', 'ed1c24', 'ff6219', 'd61119', 'e54900', '19c2ff', 0],
+    ['Pinky Promises', 'ff577e', 'fd61c0', 'ff678a', 'fd50b9', 'c1fd61', 0], ['Delicious Brownie', '5c3c30', '422a24', '724b3c', '37231e', 'ffd740', 0],
+    ['Earthy Teal', '18ff97', '24f594', '29ff9f', '0bec84', 'f53f24', 1], ['Greeny Gorilla', 'a8ff78', '78ffd6', 'bbff96', '93ffb9', 'ff8f78', 1],
+    ['Lightly Skyish', '3afafa', '42f7cd', '5bfbfb', '31f7c9', 'f76642', 1], ['Cyanic Teal', '00ffa1', '00ffff', '55ffc0', '66ffff', 'ff4000', 1],
+    ['Icy Hills', 'fffeff', 'd7fffe', 'fffeff', 'e8fffe', 'ff5252', 1], ['Greeny Everest', 'c6ffbd', 'ffffff', 'd5ffce', 'f2fff0', 'ff5252', 1]
   ];
   function themeVars(t) {
     var light = !!t[6];
     return { light: light, bar: '#' + t[3], vars: {
       '--zt-a': '#' + t[1], '--zt-b': '#' + t[2], '--zt-bar': '#' + t[3], '--zt-tab': '#' + t[4], '--zt-amber': '#' + t[5],
       '--zt-fg': light ? '#161616' : '#ffffff', '--zt-onlink': '#ffffff', '--zt-link': '#2962ff',
-      '--zt-glass': light ? 'rgba(0,0,0,.07)' : (t[0] === 'Black' ? 'rgba(255,255,255,.08)' : 'rgba(10,12,90,.30)'),
+      '--zt-glass': light ? 'rgba(0,0,0,.07)' : (t[0] === 'Simply Black' || t[0] === 'Spotty Guy' ? 'rgba(255,255,255,.08)' : 'rgba(10,12,90,.30)'),
       '--zt-shadow': light ? 'none' : '0 4px 24px rgba(0,0,40,.35)', '--zt-shadow2': light ? 'none' : '0 1px 6px rgba(0,0,40,.35)' } };
   }
   function applyTheme(i, save) {
@@ -58,13 +60,16 @@
     for (var k in v.vars) root.style.setProperty(k, v.vars[k]);
     $('html').toggleClass('zt-light', v.light);
     $('meta[name=theme-color]').attr('content', v.bar);
-    if (save) { try { document.cookie = 'ztimerTheme=' + encodeURIComponent(JSON.stringify({ i: i, light: v.light, vars: v.vars })) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {} }
+    if (save) { try { document.cookie = 'ztimerTheme=' + encodeURIComponent(JSON.stringify({ i: i, n: t[0], light: v.light, vars: v.vars })) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {} }
     lastSig = '';
   }
+  /* themes used to be saved by position with the old short names; this maps them to the app's names */
+  var OLD_THEME_NAMES = ['Hazy Blues', 'Pinky Promises', 'Definitely Purple', 'Even Purplier', 'Quite Purply', 'Tantalizing Torange', 'Delicious Brownie', 'Simply Black', 'Lightly Skyish', 'Greeny Gorilla', 'Cyanic Teal', 'Earthy Teal', 'What... Green?', 'Oof Hot', 'Notably Yellow', 'Relaxing Dawn', 'Greeny Everest', 'Icy Hills', 'Simply White'];
   function savedTheme() {
     try {
-      var m = /(?:^|; )ztimerTheme=([^;]*)/.exec(document.cookie), n = m ? JSON.parse(decodeURIComponent(m[1])).i : 0;
-      return n >= 0 && n < THEMES.length ? n : 0;
+      var m = /(?:^|; )ztimerTheme=([^;]*)/.exec(document.cookie), c = m ? JSON.parse(decodeURIComponent(m[1])) : null, nm = c ? (c.n || OLD_THEME_NAMES[c.i]) : null;
+      for (var k = 0; k < THEMES.length; k++) if (THEMES[k][0] === nm) return k;
+      return 0;
     } catch (e) { return 0; }
   }
   function fg() { return (getComputedStyle(document.documentElement).getPropertyValue('--zt-fg') || '#fff').trim(); }
@@ -725,6 +730,26 @@
     if (!$('#toolsDiv').is(':visible')) $('#leftbar .c6').click();
     if (!$('#ztools-done').length) $('<button id="ztools-done">Done</button>').on('click', function () { $('html').removeClass('zt-toolsfull'); }).appendTo('body');
   }
+  /* Bluetooth button (next to settings, like the app): shows csTimer's Bluetooth cube tool and starts the connection */
+  function openBluetooth() {
+    openTools();
+    var label = (typeof TOOLS_GIIKER !== 'undefined' ? TOOLS_GIIKER : 'Bluetooth cube');
+    try {
+      var sels = $('#toolsDiv select').filter(function () { return $(this).find('option').length; });
+      var has = function (sel) { return sel.find('option').filter(function () { return $(this).text() === label; }).first(); };
+      var done = false;
+      sels.each(function () { var o = has($(this)); if (!done && o.length) { $(this).val(o.val()).trigger('change'); done = true; } });
+      if (!done) sels.each(function () {
+        var s1 = $(this);
+        s1.find('option').each(function () {
+          if (done) return;
+          s1.val($(this).val()).trigger('change');
+          $('#toolsDiv select').each(function () { var o = has($(this)); if (!done && o.length) { $(this).val(o.val()).trigger('change'); done = true; } });
+        });
+      });
+    } catch (e) {}
+    setTimeout(function () { $('#toolsDiv .click').filter(function () { return /connect/i.test($(this).text()) && !/disconnect/i.test($(this).text()); }).first().click(); }, 150);
+  }
   function renderOptions(p) {
     var body = p.find('.zp-body').empty();
     p.find('.zp-sub').text('Changes save as you make them');
@@ -971,6 +996,7 @@
     makePage('trainerpick', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Category', 'books'); makePage('backup', 'Export/Import', 'share');
     actionbar = $('<div id="zactionbar"></div>').append(
       barBtn('settings', 'Settings', function () { show('options'); }),
+      barBtn('bluetooth', 'Bluetooth cube', openBluetooth),
       $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
         .on('click', function () { show(mode === 'trainer' ? 'trainerpick' : 'puzzles'); }),
       barBtn('checklist', 'Choose cases', function () { var s = findSet(kernel.getProp('scrType')); if (s && caseData(s[1])) { trSet = s; trSel = null; show('trainerpick'); } }).addClass('za-cases'),

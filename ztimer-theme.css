@@ -467,3 +467,20 @@ html.zt-quiet .dialog,html.zt-quiet #gray{display:none!important}
   /* quick buttons sit right under the timer so they stay clear of the stats and the scramble picture */
   #zquick{top:calc(50% + 112px)!important;bottom:auto!important}
 }
+
+/* ---- zt26 ---- */
+/* Bluetooth icon in the top bar */
+:root{--zi-bluetooth:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.29-4.29 4.29-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z'/%3E%3C/svg%3E")}
+.zi-bluetooth{--zi:var(--zi-bluetooth)}
+/* dialogs use the app font everywhere */
+html .dialog,html .dialog *,html .popup,html .popup *{font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif}
+html .dialog input.icon,html .dialog .icon{font-family:iconfont,Arial!important}
+/* solve dialog: csTimer sizes its rows for a fixed-height box, so with an auto-height box the contents were squashed. Let it grow with its contents. */
+.dialog.dialogcfm{height:auto!important}
+.dialog.dialogcfm>table{height:auto!important;table-layout:auto!important}
+.dialog.dialogcfm .value,.dialog.dialogcfm .value>*{position:static!important;height:auto!important;width:100%!important;overflow:visible!important}
+.dialog.dialogcfm .value{max-height:none}
+.dialog.dialogcfm .value>div{line-height:1.5;padding:4px 0 8px}
+.dialog.dialogcfm .value .click{display:inline-block;padding:4px 10px;margin:2px;border-radius:12px;background:#e4e9ff;cursor:pointer}
+.dialog.dialogcfm .value span[style*="font-size:2.5em"]{display:inline-block;margin:6px 0 2px;font-weight:700;line-height:1.15;color:var(--zt-ink)}
+.dialog.dialogcfm .button{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px}
