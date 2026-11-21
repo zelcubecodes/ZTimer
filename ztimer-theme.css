@@ -433,14 +433,14 @@ html.zt-quiet .dialog,html.zt-quiet #gray{display:none!important}
 #zburst i:nth-child(2){animation-delay:.9s}
 #zburst i:nth-child(3){animation-delay:1.8s}
 @keyframes zrip{0%{transform:scale(.25);opacity:.85}100%{transform:scale(1.7);opacity:0}}
-.zb-msg{position:absolute;left:0;transform:translate(-50%,-100%);width:max-content;max-width:86vw;text-align:center;font-size:15px;line-height:1.35;font-weight:700;color:var(--zt-fg);text-shadow:0 1px 6px rgba(0,0,50,.55);animation:zbin .35s ease-out}
-@keyframes zbin{from{opacity:0;transform:translate(-50%,-80%)}to{opacity:1;transform:translate(-50%,-100%)}}
-.zlist.zgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
-.zlist.zgrid .zrow{display:flex;flex-direction:column;align-items:center;gap:1px;padding:9px 6px 7px;border-radius:10px;text-align:center}
-.zlist.zgrid .zr-t{order:1;font-size:16px;font-weight:700}
-.zlist.zgrid .zr-p{order:2;font-size:10px;min-height:0;line-height:1}
-.zlist.zgrid .zr-d{order:3;font-size:10px;color:#6b6f8f}
-.zlist.zgrid .zr-c{position:absolute;right:5px;top:5px;width:12px;height:12px}
+#zcongrats{position:fixed;left:50%;transform:translateX(-50%);z-index:30;width:max-content;max-width:calc(100vw - 32px);text-align:center;font-size:16px;line-height:1.4;font-weight:700;color:var(--zt-fg);pointer-events:none;display:none}
+#zcongrats.show{display:block}
+.zlist.zgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.zlist.zgrid .zrow{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:92px;padding:16px 10px 14px;border-radius:16px;text-align:center}
+.zlist.zgrid .zr-t{order:2;font-size:28px;line-height:1.1;font-weight:700}
+.zlist.zgrid .zr-p{order:3;font-size:12px;min-height:0;line-height:1}
+.zlist.zgrid .zr-d{order:1;position:static;width:auto;text-align:center;font-size:12px;color:#6b6f8f;opacity:1}
+.zlist.zgrid .zr-c{position:absolute;right:8px;top:8px;width:16px;height:16px}
 .zstat{background:#fff;color:var(--zt-ink);border-radius:16px;margin:0 0 14px;box-shadow:0 4px 14px rgba(0,0,70,.2);overflow:hidden}
 .zst-tabs{display:flex;border-bottom:1px solid #eef0f8}
 .zst-tabs button{flex:1;padding:12px 4px;border:0;background:transparent;color:#8a8fb0;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent}

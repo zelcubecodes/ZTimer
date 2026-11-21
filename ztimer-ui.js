@@ -423,11 +423,26 @@
   function findSess(name) { var r = null; sessionsList().forEach(function (s) { if (s.name === name) r = s; }); return r; }
   function goSession(v) { sessSel().val(v).trigger('change'); }
   /* switch to the session of this puzzle and category, creating it the first time; done(ok) runs afterwards */
+  var mgrWanted = false, mgrWantedAt = 0;
   function hideStaleMgr() {
-    $('div,span,input,button').filter(function () { return $(this).children().length === 0 && ($(this).text() === STATS_SSMGR_ORDER || $(this).val() === STATS_SSMGR_ORDER); }).each(function () {
-      var top = $(this).parents().filter(function () { return this.parentNode === document.body; }).first(); if (top.length) top.addClass('zt-stale');
+    if (mgrWanted) {
+      if (Date.now() - mgrWantedAt > 1500 && !$('.dialogssmgr:visible').length) mgrWanted = false; else return;
+    }
+    $('div,span,input,button,td,th,b').filter(function () {
+      if ($(this).children().length) return false;
+      var t = $(this).text(), v = $(this).val();
+      return t === STATS_SSMGR_ORDER || v === STATS_SSMGR_ORDER || t === STATS_SSMGR_TITLE;
+    }).each(function () {
+      var el = $(this), top = el.parents().filter(function () { return this.parentNode === document.body; }).first();
+      if (top.length && !top.find('#lcd, #scrambleDiv').length) { top.addClass('zt-stale'); return; }
+      var dlg = el.closest('.dialog'); (dlg.length ? dlg : el).addClass('zt-stale');
     });
   }
+  /* the Session Manager sometimes leaves its text behind in the top-left corner; clean it up whenever something is added to the page */
+  $(function () {
+    try { new MutationObserver(function () { clearTimeout(hideStaleMgr.t); hideStaleMgr.t = setTimeout(hideStaleMgr, 60); }).observe(document.body, { childList: true }); } catch (e) {}
+    setTimeout(hideStaleMgr, 800);
+  });
   function usePuzzle(id, pname, cat, done) {
     var cp = currentPuzzle(), curName = sessSel().find('option:selected').text(), pp = parseSess(curName);
     if (!cat && kernel.getProp('scrType') === id && (!pp[1] || pp[0] === pname)) { if (done) done(true); return; }
@@ -532,8 +547,8 @@
     if (sig === lastSig) return;
     lastSig = sig;
     var r = compute(a), st = kernel.getProp('scrType');
-    if (prev && prev.st === st && a.length === prev.n + 1 && prev.best != null && r.best != null && r.best < prev.best && a[a.length - 1].t === r.best)
-      pbBurst('Congratulations!<br>You\u2019ve just beaten your previous personal best by <b>' + pretty(prev.best - r.best) + '</b>');
+    if (prev && prev.st === st && a.length === prev.n + 1 && prev.n >= 4 && prev.best != null && r.best != null && r.best < prev.best && a[a.length - 1].t === r.best)
+      pbBurst('Congratulations!<br>You\u2019ve just beaten your previous personal best by ' + pretty(prev.best - r.best));
     else if (prev && prev.st === st && a.length === prev.n + 1 && prev.ao5 != null && r.ao5 != null && r.ao5 !== Infinity && r.ao5 === r.bao5 && r.ao5 < prev.bao5)
       pbBurst('<b>New average best!</b><br>ao5 ' + pretty(r.ao5));
     prev = { st: st, n: a.length, best: r.best, ao5: r.ao5, bao5: r.bao5 };
@@ -573,15 +588,22 @@
     setTimeout(function () { inp.focus(); }, 50);
   }
   var burstT = null;
+  /* PB message like the app: ripple behind the timer, then a bold centred message under the scramble box until the next solve starts */
+  function hideCongrats() { $('#zcongrats').removeClass('show'); }
   function pbBurst(html) {
     var lcd = $('#lcd'), r = lcd.length ? lcd[0].getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
     if (!r.width) r = { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
     var box = $('#zburst');
-    if (!box.length) box = $('<div id="zburst"><i></i><i></i><i></i><div class="zb-msg"></div></div>').appendTo('body');
-    box.css({ left: r.left + r.width / 2, top: r.top + r.height / 2 }); box.find('.zb-msg').html(html).css('top', (-r.height * 0.3) + 'px');
+    if (!box.length) box = $('<div id="zburst"><i></i><i></i><i></i></div>').appendTo('body');
+    box.css({ left: r.left + r.width / 2, top: r.top + r.height / 2 });
     box.removeClass('go'); void box[0].offsetWidth; box.addClass('go');
-    clearTimeout(burstT); burstT = setTimeout(function () { box.removeClass('go'); }, 3000);
+    clearTimeout(burstT); burstT = setTimeout(function () { box.removeClass('go'); }, 2900);
+    var msg = $('#zcongrats');
+    if (!msg.length) msg = $('<div id="zcongrats"></div>').appendTo('body');
+    var sc = $('#scrambleDiv'), sb = sc.length ? sc[0].getBoundingClientRect().bottom : 150;
+    msg.html(html).css('top', (sb + 16) + 'px').addClass('show');
   }
+  $(document).on('keydown touchstart mousedown', function (e) { if ($('#zcongrats').hasClass('show') && !$(e.target).closest('#zcongrats').length) hideCongrats(); });
   function toast(html) {
     var t = $('#ztoast');
     if (!t.length) t = $('<div id="ztoast"></div>').appendTo('body');
@@ -763,7 +785,7 @@
       usePuzzle(id, c.name, n, function () { show(mode); });
     }));
     body.append($('<button class="zshare"></button>').append(icon('settings'), $('<span>Rename, merge or delete</span>')).css('margin-top', '10px').on('click', function () {
-      $('.zt-stale').removeClass('zt-stale');
+      mgrWanted = true; mgrWantedAt = Date.now(); $('.zt-stale').removeClass('zt-stale');
       try { stats.getSessionManager().showMgrTable(); } catch (e) { toast('Could not open the session manager.'); }
     }));
     body.append($('<p class="zp-note"></p>').text('Every puzzle and category keeps its own solves, like in the app.'));
