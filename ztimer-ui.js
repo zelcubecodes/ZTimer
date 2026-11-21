@@ -552,8 +552,15 @@
     else if (prev && prev.st === st && a.length === prev.n + 1 && prev.ao5 != null && r.ao5 != null && r.ao5 !== Infinity && r.ao5 === r.bao5 && r.ao5 < prev.bao5)
       pbBurst('<b>New average best!</b><br>ao5 ' + pretty(r.ao5));
     prev = { st: st, n: a.length, best: r.best, ao5: r.ao5, bao5: r.bao5 };
-    cornerL.html(a.length ? 'solves <b>' + r.n + '</b><br>best <b>' + pretty(r.best) + '</b><br>worst <b>' + pretty(r.worst) + '</b>' : '');
-    cornerR.html(a.length ? 'ao5 <b>' + (r.ao5 == null ? '-' : pretty(r.ao5)) + '</b><br>ao12 <b>' + (r.ao12 == null ? '-' : pretty(r.ao12)) + '</b><br>mean <b>' + pretty(r.mean) + '</b>' : '');
+    var ok = a.filter(function (x) { return x.t !== Infinity; }).map(function (x) { return x.t; }), sd = null;
+    if (ok.length > 1) { var mu = r.mean; sd = Math.sqrt(ok.reduce(function (q, x) { return q + (x - mu) * (x - mu); }, 0) / ok.length); }
+    var mo3 = null;
+    if (a.length >= 3) { var l3 = a.slice(-3).map(function (x) { return x.t; }); mo3 = l3.indexOf(Infinity) >= 0 ? Infinity : (l3[0] + l3[1] + l3[2]) / 3; }
+    var ao50 = avgOf(a, a.length - 1, 50), ao1000 = avgOf(a, a.length - 1, 1000);
+    function line(k, v) { return k + ': <b>' + (v == null ? '-' : pretty(v)) + '</b>'; }
+    cornerL.html(a.length ? [line('Deviation', sd), line('Mean', r.mean), line('Best', r.best), 'Count: <b>' + r.n + '</b>'].join('<br>') : '');
+    cornerR.html(a.length ? '<span class="zc-recent">Recent results:<br>' + a.slice(-5).reverse().map(function (x) { return '<b>' + pretty(x.t) + '</b>'; }).join('<br>') + '</span><br>' +
+      [line('Mo3', mo3), line('Ao5', r.ao5), line('Ao12', r.ao12), line('Ao50', ao50), line('Ao100', r.ao100), line('Ao1000', ao1000)].join('<br>') : '');
   }
 
   /* ---- Add a time by hand (like the app's Add time dialog) ---- */
@@ -1001,6 +1008,15 @@
       drawer.find('.zd-foot').before(it);
     }
     addInstall(); $(window).on('ztinstall', addInstall);
+    /* timer digits change colour while holding / ready, like the app (csTimer sets an inline colour, the theme turns it into --zt-lcd) */
+    function lcdHold() {
+      var el = document.getElementById('lcd'); if (!el) return;
+      var c = el.style.color || '', col = '', m = /(\d+)\D+(\d+)\D+(\d+)/.exec(c);
+      if (m) { var r = +m[1], g = +m[2]; col = (r > 180 && g < 90) ? '#ff5c5c' : (g > 150 && r < 120) ? '#52ff85' : (r > 180 && g > 180) ? '#ffe34d' : c; }
+      if (el.style.getPropertyValue('--zt-lcd') === col) return;
+      if (col) el.style.setProperty('--zt-lcd', col); else el.style.removeProperty('--zt-lcd');
+    }
+    try { var lcdEl = document.getElementById('lcd'); if (lcdEl) new MutationObserver(lcdHold).observe(lcdEl, { attributes: true, attributeFilter: ['style'] }); } catch (e) {}
     cornerL = $('<div id="zcorner-l" class="zcorner"></div>').appendTo('body');
     cornerR = $('<div id="zcorner-r" class="zcorner"></div>').appendTo('body');
     setInterval(function () { if (current === 'timer' || current === 'trainer') { updateBar(); updateCorners(); placeCorners(); scrambleButtons(); } }, 500);

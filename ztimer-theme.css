@@ -450,3 +450,20 @@ html.zt-quiet .dialog,html.zt-quiet #gray{display:none!important}
 .zst-grid .zst-h{font-size:11px;font-weight:700;color:#8a8fb0;text-transform:uppercase;letter-spacing:.04em}
 .zst-grid .zst-l{text-align:left;font-weight:700;color:var(--zt-link)}
 .zst-grid .zst-v{font-weight:700}
+
+/* ---- zt25: closer to the app ---- */
+/* timer digits take csTimer's hold / ready colour (red, green, yellow) instead of always staying white */
+#lcd,#lcd *{color:var(--zt-lcd,var(--zt-fg))!important}
+#lcd{transition:color .12s ease}
+/* scramble card: the buttons get their own row at the bottom right, like the app, so they never cover the scramble */
+#scrambleDiv{padding-bottom:48px!important}
+.zscrb{top:auto;bottom:6px;right:10px;gap:8px}
+/* corner stats: same list as the app, compact lines */
+.zcorner{font-size:14px;line-height:1.12}
+.zcorner .zc-recent{display:block;margin-bottom:12px}
+@media (max-width:899px){
+  html:not(.zt-toolsfull) #toolsDiv canvas,html:not(.zt-toolsfull) #toolsDiv svg,html:not(.zt-toolsfull) #toolsDiv img{max-height:92px!important;max-width:min(130px,31vw)!important}
+  html:not(.zt-toolsfull) #toolsDiv{bottom:calc(env(safe-area-inset-bottom,0px) + 62px)!important}
+  /* quick buttons sit right under the timer so they stay clear of the stats and the scramble picture */
+  #zquick{top:calc(50% + 112px)!important;bottom:auto!important}
+}
