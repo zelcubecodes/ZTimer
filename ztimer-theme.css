@@ -561,3 +561,73 @@ html.zp-bar .za-scope,html.zp-bar .za-hist{display:flex}
 .zst-grid{padding:0}
 .zst-grid .zst-h{font-size:16px;text-transform:none;letter-spacing:0;color:var(--zt-fg)!important}
 .zst-grid span{font-size:16px}
+
+/* ---- zt29: timer and trainer pages like the app ---- */
+/* smaller timer digits (the app's are about 70% of the old web size) */
+@media (max-width:899px){#lcd{transform:scale(.72);transform-origin:50% 50%}}
+#lcd{position:relative;z-index:31}
+/* quick buttons sit right under the timer, clear of the corner stats */
+html.m #zquick,html:not(.m) #zquick{top:calc(50% + 28px)!important;bottom:auto!important}
+#zquick>*{min-width:48px}
+/* scramble card text like the app */
+#scrambleTxt,#scrambleDiv #scramble{font-size:22px!important;line-height:1.3!important}
+#scrambleDiv{padding-bottom:50px!important}
+/* trainer: settings gear goes bottom-left like the app's hint button */
+#scrambleDiv input.icon.icon{position:absolute!important;left:12px;bottom:9px;margin:0}
+/* PB: a solid disk in the theme accent colour grows behind the digits and fades, message under the scramble box */
+#zburst i{left:-64px!important;top:-64px!important;width:128px!important;height:128px!important;border:0!important;background:var(--zt-amber)!important;opacity:0;animation:zdisk 3s ease-out forwards!important}
+#zburst i:nth-child(n+2){display:none}
+@keyframes zdisk{0%{transform:scale(1);opacity:1}100%{transform:scale(10);opacity:0}}
+#zburst{z-index:30}
+#zcongrats{font-size:19px;font-weight:500;line-height:1.3;text-shadow:0 1px 8px rgba(0,0,0,.25)}
+
+/* dark themes (Simply Black, Spotty Guy): dark cards like the app */
+html.zt-dark{--zt-ink:rgba(255,255,255,.9)}
+html.zt-dark .mywindow select option{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .dialog input[type=text],html.zt-dark .dialog select,html.zt-dark .dialog textarea,html.zt-dark .popup input,html.zt-dark .popup select{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .dialog .mybutton.enable,html.zt-dark .dialog .tab.enable,html.zt-dark .dialog .selected,html.zt-dark .dialog table.opttable tr th:first-child{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .dialog table.opttable tr:nth-child(odd) td:first-child,html.zt-dark .dialog input:disabled{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark textarea{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zcard{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .ztile{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zwca input,html.zt-dark .zwca select{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsessrow select option{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zrow{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zrow:active{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark #scrambleDiv select,html.zt-dark #scrambleDiv input[type=text]{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark #zdrawer .zd-panel{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zd-item:active{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zmodal .zm-card{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zm-card input[type=text]{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zm-chip,html.zt-dark .zchip{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zm-btn{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsb{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsb:active{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zopt.tap:active,html.zt-dark .zopt.go:active{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsw{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsw i{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zosel{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .dialog.dialogcfm::before{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zimp{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zd-div{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zcase{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zcase.on{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zwca td,html.zt-dark .zwca th{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zwca input,html.zt-dark .zwca select{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zbtn{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsearch{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zpop{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zpop button:active{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zstat{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .dialog.dialogcfm .value .click{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsd{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsd-ib:active{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsd-ta{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsd-menu{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark .zsd-mi:active{background:#2b2b2b!important;color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark #scrambleDiv,html.zt-dark #scrambleDiv *{color:rgba(255,255,255,.9)!important;border-color:#0d0d0d!important}
+html.zt-dark #scrambleDiv select,html.zt-dark #scrambleDiv input[type=text]{background:#2b2b2b!important}
+html.zt-dark .zrow .zr-d{color:rgba(255,255,255,.6)!important}
+html.zt-dark .zsd,html.zt-dark .zsd *,html.zt-dark .zsd-menu,html.zt-dark .zsd-menu *{color:rgba(255,255,255,.92)!important}
+html.zt-dark .zsd-row,html.zt-dark .zsd-foot,html.zt-dark .zsd-pen{border-color:#0d0d0d!important}
+html.zt-dark .zlist .zr-t{color:rgba(255,255,255,.95)!important}

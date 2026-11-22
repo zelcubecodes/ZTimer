@@ -58,7 +58,7 @@
   function applyTheme(i, save) {
     var t = THEMES[i] || THEMES[0], v = themeVars(t), root = document.documentElement;
     for (var k in v.vars) root.style.setProperty(k, v.vars[k]);
-    $('html').toggleClass('zt-light', v.light);
+    $('html').toggleClass('zt-light', v.light).toggleClass('zt-dark', t[0] === 'Simply Black' || t[0] === 'Spotty Guy');
     $('meta[name=theme-color]').attr('content', v.bar);
     if (save) { try { document.cookie = 'ztimerTheme=' + encodeURIComponent(JSON.stringify({ i: i, n: t[0], light: v.light, vars: v.vars })) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {} }
     lastSig = '';
@@ -297,11 +297,11 @@
     ov.append(menu);
     ov.on('click', function (e) { if (e.target === ov[0]) close(); }).appendTo('body');
   }
-  function commentDialog(val, done) {
+  function commentDialog(val, done, title) {
     var ov = $('<div class="zmodal" style="z-index:90"></div>'), card = $('<div class="zm-card"></div>').appendTo(ov);
     var ta = $('<textarea rows="3" class="zsd-ta" placeholder="Comment"></textarea>').val(val);
     function close() { ov.remove(); }
-    card.append($('<h3>Comment</h3>'), ta, $('<div class="zm-btns"></div>').append($('<button class="zm-btn">Cancel</button>').on('click', close),
+    card.append($('<h3></h3>').text(title || 'Comment'), ta, $('<div class="zm-btns"></div>').append($('<button class="zm-btn">Cancel</button>').on('click', close),
       $('<button class="zm-btn pri">Save</button>').on('click', function () { var v = ta.val(); close(); done(v); })));
     ov.on('click', function (e) { if (e.target === ov[0]) close(); }).appendTo('body');
     setTimeout(function () { ta.focus(); }, 50);
@@ -635,7 +635,7 @@
   }
   function updateBar() {
     var c = currentPuzzle();
-    actionbar.find('.za-name').text(c.name + (mode === 'trainer' ? ' trainer' : '')); actionbar.find('.za-cat').text(c.cat);
+    actionbar.find('.za-name').text(mode === 'trainer' ? 'Training ' + c.name : c.name); actionbar.find('.za-cat').text(c.cat);
     var cs = findSet(kernel.getProp('scrType')); actionbar.find('.za-cases').toggleClass('on', !!(cs && caseData(cs[1])));
   }
   function closeDrawer() { drawer.removeClass('open'); }
@@ -668,6 +668,10 @@
       $('<button class="zsb zsb-last" title="Previous scramble" aria-label="Previous scramble"></button>').append(icon('undo')).on('click', function () {
         card.find('.title > nobr').eq(1).children('span').eq(0).click();
       }).appendTo(box);
+      $('<button class="zsb" title="Add time" aria-label="Add time"></button>').append(icon('alarm')).on('click', function () { addTimeDialog(function () { updateCorners(); }); }).appendTo(box);
+      $('<button class="zsb" title="Edit scramble" aria-label="Edit scramble"></button>').append(icon('edit')).on('click', function () {
+        commentDialog($('#scrambleTxt').text().trim(), function (txt) { txt = txt.trim(); if (txt) { try { kernel.pushSignal('scrfix', txt); } catch (e) {} } }, 'Edit scramble');
+      }).appendTo(box);
       $('<button class="zsb" title="New scramble" aria-label="New scramble"></button>').append(icon('cached')).on('click', function () {
         card.find('.title > nobr').eq(1).children('span').eq(1).click();
       }).appendTo(box);
@@ -696,7 +700,13 @@
     if (a.length >= 3) { var l3 = a.slice(-3).map(function (x) { return x.t; }); mo3 = l3.indexOf(Infinity) >= 0 ? Infinity : (l3[0] + l3[1] + l3[2]) / 3; }
     var ao50 = avgOf(a, a.length - 1, 50), ao1000 = avgOf(a, a.length - 1, 1000);
     function line(k, v) { return k + ': <b>' + (v == null ? '-' : pretty(v)) + '</b>'; }
-    cornerL.html(a.length ? [line('Deviation', sd), line('Mean', r.mean), line('Best', r.best), 'Count: <b>' + r.n + '</b>'].join('<br>') : '');
+    function bpa(n) {
+      if (a.length < n - 1) return null;
+      var w = a.slice(-(n - 1)).map(function (x) { return x.t; }), fin = w.filter(function (x) { return x !== Infinity; }), inf = w.length - fin.length, sum = fin.reduce(function (q, x) { return q + x; }, 0);
+      if (inf >= 2) return Infinity; if (inf === 1) return sum / (n - 2);
+      return (sum - Math.max.apply(null, w)) / (n - 2);
+    }
+    cornerL.html(a.length ? [line('Deviation', sd), line('Mean', r.mean), line('Best', r.best), 'Count: <b>' + r.n + '</b>', line('BPA Ao5', bpa(5)), line('BPA Ao12', bpa(12))].join('<br>') : '');
     cornerR.html(a.length ? '<span class="zc-recent">Recent results:<br>' + a.slice(-5).reverse().map(function (x) { return '<b>' + pretty(x.t) + '</b>'; }).join('<br>') + '</span><br>' +
       [line('Mo3', mo3), line('Ao5', r.ao5), line('Ao12', r.ao12), line('Ao50', ao50), line('Ao100', r.ao100), line('Ao1000', ao1000)].join('<br>') : '');
   }
