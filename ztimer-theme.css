@@ -650,3 +650,22 @@ html.zt-dark .zlist .zr-t{color:rgba(255,255,255,.95)!important}
 html.zp-bar #zactionbar{z-index:46!important}
 /* quick buttons: fixed spot beside Recent results (csTimer's own inline position is overridden) */
 html.m #zquick,html:not(.m) #zquick,#zquick{top:var(--zq-top,calc(50% + 28px))!important;bottom:auto!important;left:8px!important;right:auto!important;transform:none!important}
+
+/* ---- zt32: smaller bottom bar on phones, desktop centring, scramble image clear of the stats ---- */
+#zbar .ztab.on::after{display:none!important}
+#zbar .mybutton.enable{box-shadow:none!important}
+html.m #zbar{height:44px!important;min-height:0!important;border-radius:16px 16px 0 0!important}
+html.m #zbar .ztab{height:36px;margin:0 3px;border-radius:12px}
+html.m #zbar .ztab .zi{width:23px;height:23px}
+html.m #zpages{bottom:44px}
+html.m .zcorner{bottom:52px}
+html.m:not(.zt-toolsfull) #toolsDiv{bottom:calc(env(safe-area-inset-bottom,0px) + 50px)!important}
+/* the timer is centred on the screen, not pushed right by the hidden side bar */
+html:not(.m) #timer{left:0!important;width:100%!important}
+/* scramble image goes bottom-centre between the two stat columns, like the app */
+@media (min-width:700px){
+  html:not(.zt-toolsfull) #toolsDiv{left:50%!important;right:auto!important;transform:translateX(-50%)!important;bottom:calc(env(safe-area-inset-bottom,0px) + 58px)!important}
+  html:not(.zt-toolsfull) #toolsDiv canvas,html:not(.zt-toolsfull) #toolsDiv svg,html:not(.zt-toolsfull) #toolsDiv img{max-height:130px!important;max-width:260px!important}
+}
+/* desktop: quick buttons centred under the timer */
+html:not(.m) #zquick{left:50%!important;transform:translateX(-50%)!important}
