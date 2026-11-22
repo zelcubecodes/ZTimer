@@ -631,3 +631,17 @@ html.zt-dark .zrow .zr-d{color:rgba(255,255,255,.6)!important}
 html.zt-dark .zsd,html.zt-dark .zsd *,html.zt-dark .zsd-menu,html.zt-dark .zsd-menu *{color:rgba(255,255,255,.92)!important}
 html.zt-dark .zsd-row,html.zt-dark .zsd-foot,html.zt-dark .zsd-pen{border-color:#0d0d0d!important}
 html.zt-dark .zlist .zr-t{color:rgba(255,255,255,.95)!important}
+
+/* ---- zt30: scramble card hugs its text like the app, add-time input, quick buttons under the timer ---- */
+#scrambleDiv{padding:0 4px 46px!important;box-sizing:border-box}
+#scrambleDiv>.title{margin:0!important;padding:0!important;height:0!important;min-height:0!important;line-height:0!important;overflow:visible!important}
+#scrambleDiv>.title *{line-height:normal}
+#scrambleTxt,#scrambleDiv #scramble{margin:0!important;padding:4px 0 0!important;text-align:center!important}
+#scrambleDiv>div:not(.title):not(.zscrb){margin:0!important}
+.zscrb{bottom:5px!important;right:8px!important;gap:6px!important}
+.zsb{width:36px;height:36px}
+.zsb .zi{width:21px;height:21px}
+#scrambleDiv input.icon.icon{left:8px;bottom:8px}
+#zquick>*{min-width:44px;height:38px}
+#zquick{gap:6px}
+.zm-card input[type=text]{text-align:center;letter-spacing:.02em}

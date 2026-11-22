@@ -227,7 +227,7 @@
     function close() { ov.remove(); }
     function save() {
       var ms = parseTime(inp.val());
-      if (!ms) { hint.text('That is not a time. Try 12.34 or 1:05.20').css('color', '#d32f2f'); return; }
+      if (!ms) { hint.text('Type a time first, like 1234 for 12.34').css('color', '#d32f2f'); return; }
       try { q[0][0] = pen; q[0][1] = ms; } catch (e) {}
       saveIdx(i); close(); lastSig = ''; renderSolves(p); solveDialog(i, p);
     }
@@ -721,18 +721,28 @@
   }
   function addTimeDialog(done) {
     var pen = 0, ov = $('<div class="zmodal"></div>'), card = $('<div class="zm-card"></div>').appendTo(ov);
-    var inp = $('<input type="text" inputmode="decimal" placeholder="12.34" autocomplete="off">');
+    var inp = $('<input type="text" inputmode="numeric" placeholder="0.00" autocomplete="off">');
     var chips = $('<div class="zm-chips"></div>');
     [['None', 0], ['+2', 2000], ['DNF', -1]].forEach(function (c) {
       $('<button class="zm-chip"></button>').text(c[0]).toggleClass('on', c[1] === 0).on('click', function () {
         pen = c[1]; chips.find('.zm-chip').removeClass('on'); $(this).addClass('on');
       }).appendTo(chips);
     });
-    var hint = $('<p class="zm-hint">Type seconds like 12.34, or 1:05.20 for minutes.</p>');
+    var hint = $('<p class="zm-hint">Just type the digits. 1234 becomes 12.34 and 10520 becomes 1:05.20.</p>');
+    /* the : and . are added for you, digits slide in from the right like the app */
+    inp.on('input', function () {
+      var d = this.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 6), out = '';
+      if (d) {
+        while (d.length < 3) d = '0' + d;
+        var cs = d.slice(-2), sec = d.slice(0, -2);
+        out = sec.length > 2 ? sec.slice(0, -2) + ':' + sec.slice(-2) + '.' + cs : sec + '.' + cs;
+      }
+      this.value = out; hint.css('color', '');
+    });
     function close() { ov.remove(); }
     function add() {
       var ms = parseTime(inp.val());
-      if (!ms) { hint.text('That is not a time. Try 12.34 or 1:05.20').css('color', '#d32f2f'); return; }
+      if (!ms) { hint.text('Type a time first, like 1234 for 12.34').css('color', '#d32f2f'); return; }
       kernel.pushSignal('time', [pen, ms]);
       close(); lastSig = ''; setTimeout(function () { if (done) done(); toast('Time added: <b>' + pretty(pen < 0 ? Infinity : ms + (pen > 0 ? pen : 0)) + '</b>'); }, 150);
     }
@@ -1196,7 +1206,17 @@
     cornerL = $('<div id="zcorner-l" class="zcorner"></div>').appendTo('body');
     cornerR = $('<div id="zcorner-r" class="zcorner"></div>').appendTo('body');
     setInterval(function () { if (current === 'timer' || current === 'trainer') { updateBar(); updateCorners(); placeCorners(); scrambleButtons(); } }, 500);
-    $(window).on('resize', placeCorners);
+    /* quick buttons sit just under the timer digits, wherever they end up on this screen */
+    function placeQuick() {
+      var l = document.getElementById('lcd'), q = document.getElementById('zquick');
+      if (!l || !q) return;
+      var r = l.getBoundingClientRect(); if (!r.height) return;
+      q.style.setProperty('top', Math.round(r.bottom + 2) + 'px', 'important');
+      q.style.setProperty('bottom', 'auto', 'important');
+    }
+    placeQuick(); setInterval(placeQuick, 300);
+    try { kernel.regListener('ztquick3', 'time', function () { setTimeout(placeQuick, 60); }); } catch (e) {}
+    $(window).on('resize', function () { placeCorners(); placeQuick(); });
     [['Delete', 'remove'], ['Retry', 'retry'], ['DNF', 'dnf'], ['Add 2', 'plus2'], ['Comment', 'comment']].forEach(function (m) {
       $('#zquick input').filter(function () { return (this.title || '').indexOf(m[0]) === 0; }).addClass('zq zi-' + m[1]).val('');
     });
