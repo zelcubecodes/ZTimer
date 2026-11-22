@@ -645,3 +645,8 @@ html.zt-dark .zlist .zr-t{color:rgba(255,255,255,.95)!important}
 #zquick>*{min-width:44px;height:38px}
 #zquick{gap:6px}
 .zm-card input[type=text]{text-align:center;letter-spacing:.02em}
+
+/* the shared top bar must sit above the page overlay on Solves and Stats */
+html.zp-bar #zactionbar{z-index:46!important}
+/* quick buttons: fixed spot beside Recent results (csTimer's own inline position is overridden) */
+html.m #zquick,html:not(.m) #zquick,#zquick{top:var(--zq-top,calc(50% + 28px))!important;bottom:auto!important;left:8px!important;right:auto!important;transform:none!important}

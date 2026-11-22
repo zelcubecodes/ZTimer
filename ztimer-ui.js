@@ -1206,16 +1206,13 @@
     cornerL = $('<div id="zcorner-l" class="zcorner"></div>').appendTo('body');
     cornerR = $('<div id="zcorner-r" class="zcorner"></div>').appendTo('body');
     setInterval(function () { if (current === 'timer' || current === 'trainer') { updateBar(); updateCorners(); placeCorners(); scrambleButtons(); } }, 500);
-    /* quick buttons sit just under the timer digits, wherever they end up on this screen */
+    /* quick buttons sit in the free space beside "Recent results", under the +/- difference line, at a fixed spot so they never jump */
     function placeQuick() {
-      var l = document.getElementById('lcd'), q = document.getElementById('zquick');
-      if (!l || !q) return;
-      var r = l.getBoundingClientRect(); if (!r.height) return;
-      q.style.setProperty('top', Math.round(r.bottom + 2) + 'px', 'important');
-      q.style.setProperty('bottom', 'auto', 'important');
+      var c = cornerR && cornerR[0]; if (!c) return;
+      var r = c.getBoundingClientRect(); if (!r.height) return;
+      document.documentElement.style.setProperty('--zq-top', Math.round(r.top) + 'px');
     }
-    placeQuick(); setInterval(placeQuick, 300);
-    try { kernel.regListener('ztquick3', 'time', function () { setTimeout(placeQuick, 60); }); } catch (e) {}
+    placeQuick(); setInterval(placeQuick, 1000);
     $(window).on('resize', function () { placeCorners(); placeQuick(); });
     [['Delete', 'remove'], ['Retry', 'retry'], ['DNF', 'dnf'], ['Add 2', 'plus2'], ['Comment', 'comment']].forEach(function (m) {
       $('#zquick input').filter(function () { return (this.title || '').indexOf(m[0]) === 0; }).addClass('zq zi-' + m[1]).val('');
