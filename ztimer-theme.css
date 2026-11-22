@@ -669,3 +669,44 @@ html:not(.m) #timer{left:0!important;width:100%!important}
 }
 /* desktop: quick buttons centred under the timer */
 html:not(.m) #zquick{left:50%!important;transform:translateX(-50%)!important}
+
+/* ---- zt33: timer stays put, bare quick buttons, centred title, empty image box hidden ---- */
+html #timer{top:0!important;height:100%!important;padding:0!important}
+html #container{vertical-align:middle!important}
+html.m #timer{top:2.5%!important;height:100%!important}
+#lcd .insplabel,#lcd .difflabel{position:absolute!important;left:0;right:0;top:100%;margin:0;text-align:center}
+#toolsDiv:not(:has(img,canvas,svg)){display:none!important}
+
+/* bare quick buttons, just the symbols like the app, fixed under the timer */
+#zquick>*{background:transparent!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:50%!important;width:46px;min-width:46px;height:46px}
+#zquick>*:active{background:color-mix(in srgb,var(--zt-fg) 22%,transparent)!important}
+#zquick input.zq{background-size:30px!important}
+#zquick{gap:10px}
+html.m #zquick,html:not(.m) #zquick,#zquick{top:calc(50% + 100px)!important;bottom:auto!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important}
+html:not(.m) #zquick{top:calc(50% + 175px)!important}
+/* bare scramble card buttons */
+.zsb,html.zt-dark .zsb{width:40px;height:40px;background:transparent!important;color:#1f1f1f!important;border:0!important}
+html.zt-dark .zsb{color:rgba(255,255,255,.9)!important}
+.zsb:active,html.zt-dark .zsb:active{background:rgba(128,128,128,.25)!important}
+.zsb .zi{width:26px;height:26px}
+.zscrb{gap:2px!important}
+/* title truly centred in the top bar */
+.za-title{position:static;flex:1;align-self:stretch;padding:0}
+.za-title .za-name,.za-title .za-cat{position:absolute;left:50%;transform:translateX(-50%);max-width:calc(100% - 250px)}
+.za-title .za-name{top:9px;white-space:nowrap}
+.za-title .za-cat{top:32px}
+/* side menu like the app */
+#zdrawer .zd-panel{border-radius:0!important;font-family:'Quicksand','Segoe UI',Roboto,Arial,sans-serif}
+.zd-head{height:210px;padding:0!important;border-radius:0!important;background:#f3f3f3 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 210' preserveAspectRatio='none'%3E%3Cpath fill='%23e8e8e8' d='M0 70 L70 40 L120 80 L170 20 L300 90 L300 210 L0 210Z'/%3E%3Cpath fill='%23efefef' d='M0 115 L50 100 L135 128 L215 85 L300 112 L300 210 L0 210Z'/%3E%3C/svg%3E") center/cover no-repeat!important;color:transparent!important;border-bottom:1px solid #e0e0e0;flex:none}
+.zd-head b,.zd-head span{display:none!important}
+.zd-item{margin:0 12px;padding:15px 14px;border-radius:12px;font-size:18px;font-weight:700;color:#1b1b1b}
+.zd-item .zi{width:30px;height:30px;color:#757575}
+.zd-item.on{background:#e3f2fd;color:#1e88e5}
+.zd-item.on .zi{color:#1e88e5}
+.zd-item .zd-chev{margin-left:auto;width:26px;height:26px;color:#555}
+.zd-sec{padding:18px 26px 8px;font-size:17px;text-transform:none;letter-spacing:0;font-weight:700;color:#757575}
+.zd-div{margin:8px 0;background:#e0e0e0}
+html.zt-dark .zd-head{background-color:#262626!important;border-color:#0d0d0d}
+html.zt-dark .zd-item{color:rgba(255,255,255,.9)}
+html.zt-dark .zd-item.on{background:#1f3a52!important;color:#64b5f6}
+.za-title .za-name{transform:translateX(calc(-50% + 12px))}

@@ -639,8 +639,11 @@
     var cs = findSet(kernel.getProp('scrType')); actionbar.find('.za-cases').toggleClass('on', !!(cs && caseData(cs[1])));
   }
   function closeDrawer() { drawer.removeClass('open'); }
+  function openDrawer() { drawer.find('.zd-item[data-page]').each(function () { $(this).toggleClass('on', $(this).attr('data-page') === current); }); drawer.addClass('open'); }
   function buildDrawer() {
-    var items = [['timer', 'Timer', function () { show('timer'); }],
+    var items = [['timer', 'Timer', function () { show('timer'); }, 'timer'],
+      ['trainer', 'Trainer', function () { show('trainer'); }, 'trainer', true],
+      ['div'],
       ['sec', 'Other'],
       ['share', 'Export/Import', function () { show('backup'); }],
       ['palette', 'App theme', function () { show('themes'); }],
@@ -652,7 +655,7 @@
     items.forEach(function (it) {
       if (it[0] === 'sec') { $('<div class="zd-sec"></div>').text(it[1]).appendTo(panel); return; }
       if (it[0] === 'div') { $('<div class="zd-div"></div>').appendTo(panel); return; }
-      $('<div class="zd-item" role="button" tabindex="0"></div>').append(icon(it[0]), $('<span></span>').text(it[1]))
+      $('<div class="zd-item" role="button" tabindex="0"></div>').attr('data-page', it[3] || '').append(icon(it[0]), $('<span></span>').text(it[1]), it[4] ? icon('dropdown').addClass('zd-chev') : null)
         .on('click', function () { closeDrawer(); setTimeout(it[2], 120); }).appendTo(panel);
     });
     panel.append($('<div class="zd-foot"></div>').html('Free software, GPL-3.0<br>Based on csTimer by Shuang Chen<br><a href="https://github.com/zelcubecodes/ZTimer" target="_blank" rel="noopener">github.com/zelcubecodes/ZTimer</a>'));
@@ -844,7 +847,7 @@
       ['go', 'Export and import', 'Save or load your solves', function () { show('backup'); }],
       ['go', 'App theme', 'Pick one of the app\u2019s colour themes', function () { show('themes'); }],
       ['go', 'About and feedback', 'Credits, licence and links', function () { $('#leftbar .c5').click(); }],
-      ['go', 'Side menu', 'Or swipe in from the left edge', function () { show(mode); drawer.addClass('open'); }]
+      ['go', 'Side menu', 'Or swipe in from the left edge', function () { show(mode); openDrawer(); }]
     ]],
     ['Other', [
       ['sw', 'useKSC', 'Keyboard shortcuts', 'Use keyboard shortcuts on a computer'],
@@ -1153,7 +1156,7 @@
     makePage('solves', 'Solves', 'list'); makePage('stats', 'Stats', 'graph');
     makePage('trainerpick', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Category', 'books'); makePage('backup', 'Export/Import', 'share');
     actionbar = $('<div id="zactionbar"></div>').append(
-      barBtn('settings', 'Settings', function () { show('options'); }),
+      barBtn('settings', 'Menu', function () { openDrawer(); }),
       barBtn('bluetooth', 'Bluetooth cube', openBluetooth).addClass('za-bt'),
       barBtn('trainer', 'Timer or trainer solves', toggleScope).addClass('za-scope'),
       $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
@@ -1164,14 +1167,28 @@
     /* the app opens its side menu with a swipe from the left edge */
     (function () {
       var x0, y0, edge = false;
-      $(document).on('touchstart', function (e) { var t = e.originalEvent.touches[0]; x0 = t.clientX; y0 = t.clientY; edge = x0 < 24; })
-        .on('touchend', function (e) { if (!edge) return; edge = false; var t = e.originalEvent.changedTouches[0]; if (t.clientX - x0 > 70 && Math.abs(t.clientY - y0) < 60) drawer.addClass('open'); });
+      function begin(x, y, tg) { x0 = x; y0 = y; edge = x < 40 || $(tg).closest('#zactionbar,#zbar').length > 0; }
+      function end(x, y) { if (!edge) return; edge = false; if (x - x0 > 70 && Math.abs(y - y0) < 60) openDrawer(); }
+      $(document).on('touchstart', function (e) { var t = e.originalEvent.touches[0]; begin(t.clientX, t.clientY, e.target); })
+        .on('touchend', function (e) { var t = e.originalEvent.changedTouches[0]; end(t.clientX, t.clientY); })
+        .on('mousedown', function (e) { begin(e.clientX, e.clientY, e.target); })
+        .on('mouseup', function (e) { end(e.clientX, e.clientY); });
     })();
     buildDrawer();
     loadModes(); mode = isTrainerId(kernel.getProp('scrType')) ? 'trainer' : 'timer';
     /* csTimer's hold-to-open circle menu is switched off */
     try { if (kernel.getProp('useGES')) kernel.setProp('useGES', false); } catch (e) {}
-    setTimeout(function () { if (!$('#leftbar .c6').hasClass('enable')) $('#leftbar .c6').click(); }, 700);
+    (function () {
+      var tries = 0;
+      function imgOk() { return $('#toolsDiv').find('img,canvas,svg').length > 0; }
+      function ensureTools() {
+        var b = $('#leftbar .c6'); tries++;
+        if (!b.length || imgOk() || tries > 10) return;
+        if (!b.hasClass('enable')) b.click(); else if (tries > 2) { b.click(); setTimeout(function () { b.click(); }, 80); }
+        setTimeout(ensureTools, 1200);
+      }
+      setTimeout(ensureTools, 900);
+    })();
     /* swipe left or right to move between the tabs (not on the timer, charts or sliders) */
     (function () {
       var x0, y0, ok = false, order = TABS.map(function (t) { return t[0]; });
