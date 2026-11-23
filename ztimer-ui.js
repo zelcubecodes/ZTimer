@@ -1187,6 +1187,15 @@
         if (!b.hasClass('enable')) b.click(); else if (tries > 2) { b.click(); setTimeout(function () { b.click(); }, 80); }
         setTimeout(ensureTools, 1200);
       }
+      /* the little box on the timer page always shows the scramble picture; every other tool lives under Settings > Tools */
+      function imageFirst() {
+        try {
+          var f = JSON.parse(kernel.getProp('toolsfunc') || '[]');
+          if (f[0] !== 'image') { f = ['image'].concat(f.filter(function (x) { return x !== 'image'; })); kernel.setProp('toolsfunc', JSON.stringify(f)); setTimeout(function () { location.reload(); }, 300); }
+        } catch (e) {}
+        $('html').removeClass('zt-toolsfull');
+      }
+      setTimeout(imageFirst, 500);
       setTimeout(ensureTools, 900);
     })();
     /* swipe left or right to move between the tabs (not on the timer, charts or sliders) */
