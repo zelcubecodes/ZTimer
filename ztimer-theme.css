@@ -674,7 +674,7 @@ html:not(.m) #zquick{left:50%!important;transform:translateX(-50%)!important}
 html #timer{top:0!important;height:100%!important;padding:0!important}
 html #container{vertical-align:middle!important}
 html.m #timer{top:2.5%!important;height:100%!important}
-#lcd .insplabel,#lcd .difflabel{position:absolute!important;left:0;right:0;top:100%;margin:0;text-align:center}
+#lcd .insplabel{position:absolute!important;left:0;right:0;top:100%;margin:0;text-align:center}
 #toolsDiv:not(:has(img,canvas,svg)){display:none!important}
 
 /* bare quick buttons, just the symbols like the app, fixed under the timer */
@@ -710,3 +710,11 @@ html.zt-dark .zd-head{background-color:#262626!important;border-color:#0d0d0d}
 html.zt-dark .zd-item{color:rgba(255,255,255,.9)}
 html.zt-dark .zd-item.on{background:#1f3a52!important;color:#64b5f6}
 .za-title .za-name{transform:translateX(calc(-50% + 12px))}
+
+/* ---- zt36: difference to the side of the digits, buttons clear of the scramble picture ---- */
+#timer #lcd .difflabel,.m #timer #lcd .difflabel{display:inline-block!important;position:static!important;width:0;overflow:visible;white-space:nowrap;margin:0 0 0 .1em!important;text-align:left;font-size:.15em}
+.m #timer #lcd .difflabel{font-size:.17em}
+html.m #zquick,html:not(.m) #zquick,#zquick{top:min(calc(50% + 100px),calc(100% - 255px))!important}
+html:not(.m) #zquick{top:min(calc(50% + 175px),calc(100% - 255px))!important}
+@media (max-height:760px){html:not(.zt-toolsfull) #toolsDiv img{max-height:96px!important}}
+@media (max-height:760px){html:not(.m) #zquick{top:calc(100% - 206px)!important}}

@@ -702,16 +702,17 @@
     var mo3 = null;
     if (a.length >= 3) { var l3 = a.slice(-3).map(function (x) { return x.t; }); mo3 = l3.indexOf(Infinity) >= 0 ? Infinity : (l3[0] + l3[1] + l3[2]) / 3; }
     var ao50 = avgOf(a, a.length - 1, 50), ao1000 = avgOf(a, a.length - 1, 1000);
-    function line(k, v) { return k + ': <b>' + (v == null ? '-' : pretty(v)) + '</b>'; }
+    function line(k, v) { return k + ': <b>' + (v == null ? '--' : pretty(v)) + '</b>'; }
     function bpa(n) {
       if (a.length < n - 1) return null;
       var w = a.slice(-(n - 1)).map(function (x) { return x.t; }), fin = w.filter(function (x) { return x !== Infinity; }), inf = w.length - fin.length, sum = fin.reduce(function (q, x) { return q + x; }, 0);
       if (inf >= 2) return Infinity; if (inf === 1) return sum / (n - 2);
       return (sum - Math.max.apply(null, w)) / (n - 2);
     }
-    cornerL.html(a.length ? [line('Deviation', sd), line('Mean', r.mean), line('Best', r.best), 'Count: <b>' + r.n + '</b>', line('BPA Ao5', bpa(5)), line('BPA Ao12', bpa(12))].join('<br>') : '');
-    cornerR.html(a.length ? '<span class="zc-recent">Recent results:<br>' + a.slice(-5).reverse().map(function (x) { return '<b>' + pretty(x.t) + '</b>'; }).join('<br>') + '</span><br>' +
-      [line('Mo3', mo3), line('Ao5', r.ao5), line('Ao12', r.ao12), line('Ao50', ao50), line('Ao100', r.ao100), line('Ao1000', ao1000)].join('<br>') : '');
+    var rec = a.slice(-5).reverse().map(function (x) { return pretty(x.t); }); while (rec.length < 5) rec.push('--');
+    cornerL.html([line('Deviation', sd), line('Mean', r.mean), line('Best', r.best), 'Count: <b>' + r.n + '</b>', line('BPA Ao5', bpa(5)), line('BPA Ao12', bpa(12))].join('<br>'));
+    cornerR.html('<span class="zc-recent">Recent results:<br>' + rec.map(function (x) { return '<b>' + x + '</b>'; }).join('<br>') + '</span><br>' +
+      [line('Mo3', mo3), line('Ao5', r.ao5), line('Ao12', r.ao12), line('Ao50', ao50), line('Ao100', r.ao100), line('Ao1000', ao1000)].join('<br>'));
   }
 
   /* ---- Add a time by hand (like the app's Add time dialog) ---- */
