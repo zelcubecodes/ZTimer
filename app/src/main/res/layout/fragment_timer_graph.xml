@@ -35,6 +35,13 @@
 
         </androidx.cardview.widget.CardView>
 
+        <!-- Personal best history and time distribution, filled in by TimerGraphFragment -->
+        <LinearLayout
+            android:id="@+id/stats_extra"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
     </LinearLayout>
 
 </androidx.core.widget.NestedScrollView>
