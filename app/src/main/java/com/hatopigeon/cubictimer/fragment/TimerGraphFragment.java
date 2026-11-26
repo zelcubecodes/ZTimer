@@ -26,6 +26,7 @@ import com.hatopigeon.cubictimer.spans.TimeFormatter;
 import com.hatopigeon.cubictimer.stats.ChartStatistics;
 import com.hatopigeon.cubictimer.stats.ChartStatisticsLoader;
 import com.hatopigeon.cubictimer.stats.ChartStyle;
+import com.hatopigeon.cubictimer.stats.PbHistory;
 import com.hatopigeon.cubictimer.stats.Statistics;
 import com.hatopigeon.cubictimer.stats.ScopedStatistics;
 import com.hatopigeon.cubictimer.stats.StatisticsCache;
@@ -126,6 +127,17 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
 
     @BindView(R.id.stats_card)
         CardView statsCard;
+
+    @BindView(R.id.stats_extra)
+        android.widget.LinearLayout statsExtra;
+
+    // Personal best history and time distribution
+    private long[][] extraSeries;               // one series per entry of PbHistory.NS
+    private java.util.List<Long> extraDates;
+    private int pbType = 0;                     // index in PbHistory.NS
+    private int distType = 0;
+    private int pbShown = 15;
+    private int extraToken = 0;
 
     private boolean sessionStatsEnabled;
     private boolean todaysStatsEnabled;
@@ -613,6 +625,181 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
         //progressBar.setVisibility(visibility == View.VISIBLE ? View.INVISIBLE : View.VISIBLE);
     }
 
+    // ---------------------------------------------------------------- PB history and time distribution
+
+    private int dp(int v) {
+        return ThemeUtils.dpToPix(mContext, v);
+    }
+
+    /** Works out every kind of result in the background, then draws the two cards. */
+    private void buildExtras(ChartStatistics chartStats) {
+        if (statsExtra == null || mContext == null) return;
+        if (currentPuzzle != null && currentPuzzle.equals(PuzzleUtils.TYPE_333MBLD)) {
+            statsExtra.removeAllViews(); // multi-blind results are points, not times
+            return;
+        }
+        final java.util.List<Long> times = new ArrayList<>(chartStats.getRawTimes());
+        final java.util.List<Long> dates = new ArrayList<>(chartStats.getRawDates());
+        final int trim = Prefs.getInt(R.string.pk_stat_trim_size, Prefs.getDefaultIntValue(R.integer.defaultTrimSize));
+        final int token = ++extraToken;
+        new Thread(() -> {
+            final long[][] all = new long[PbHistory.NS.length][];
+            for (int i = 0; i < all.length; i++) all[i] = PbHistory.series(times, PbHistory.NS[i], trim);
+            if (getActivity() == null) return;
+            getActivity().runOnUiThread(() -> {
+                if (getView() == null || token != extraToken) return;
+                extraSeries = all;
+                extraDates = dates;
+                renderExtras();
+            });
+        }).start();
+    }
+
+    private String formatResult(long v, int n) {
+        return convertTimeToString(tr(v), n == 1 ? PuzzleUtils.FORMAT_SINGLE : PuzzleUtils.FORMAT_STATS, currentPuzzle);
+    }
+
+    private android.widget.LinearLayout extraCard(String title) {
+        android.widget.LinearLayout card = new android.widget.LinearLayout(mContext);
+        card.setOrientation(android.widget.LinearLayout.VERTICAL);
+        card.setPadding(dp(14), dp(12), dp(14), dp(12));
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(ThemeUtils.fetchAttrColor(mContext, R.attr.graph_stats_card_background));
+        bg.setCornerRadius(dp(14));
+        card.setBackground(bg);
+        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(dp(8), 0, dp(8), dp(8));
+        card.setLayoutParams(lp);
+        TextView t = new TextView(mContext);
+        t.setText(title);
+        t.setTextSize(16);
+        t.setTypeface(t.getTypeface(), android.graphics.Typeface.BOLD);
+        t.setTextColor(ThemeUtils.fetchAttrColor(mContext, R.attr.graph_stats_card_text_color));
+        card.addView(t);
+        return card;
+    }
+
+    /** Colours a chip like the tabs of the stats card, with its own background so chips never share one. */
+    private void styleChip(TextView chip, boolean on) {
+        chip.setTextColor(ThemeUtils.fetchAttrColor(mContext,
+                on ? R.attr.graph_stats_card_text_color : R.attr.graph_stats_card_text_color_faded));
+        chip.setBackground(ThemeUtils.createSquareDrawable(mContext, ThemeUtils.fetchAttrColor(mContext,
+                on ? R.attr.graph_stats_card_background : R.attr.graph_stats_card_background_faded), 0, 20, 0));
+    }
+
+    /** A row of Single / Ao5 / Ao12 / Ao100 / Ao1000 buttons. */
+    private View typeRow(final int selected, final java.util.function.IntConsumer onPick) {
+        android.widget.HorizontalScrollView scroll = new android.widget.HorizontalScrollView(mContext);
+        scroll.setHorizontalScrollBarEnabled(false);
+        android.widget.LinearLayout row = new android.widget.LinearLayout(mContext);
+        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        for (int i = 0; i < PbHistory.NS.length; i++) {
+            final int idx = i;
+            TextView chip = new TextView(mContext);
+            chip.setText(PbHistory.label(PbHistory.NS[i]));
+            chip.setTextSize(13);
+            chip.setGravity(android.view.Gravity.CENTER);
+            chip.setPadding(dp(12), dp(7), dp(12), dp(7));
+            styleChip(chip, i == selected);
+            chip.setOnClickListener(v -> onPick.accept(idx));
+            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(0, dp(10), dp(6), dp(6));
+            row.addView(chip, lp);
+        }
+        scroll.addView(row);
+        return scroll;
+    }
+
+    private TextView note(String s) {
+        TextView t = new TextView(mContext);
+        t.setText(s);
+        t.setTextSize(14);
+        t.setTextColor(ThemeUtils.fetchAttrColor(mContext, R.attr.graph_stats_card_text_color_faded));
+        t.setPadding(dp(2), dp(8), dp(2), dp(8));
+        return t;
+    }
+
+    private void renderExtras() {
+        if (extraSeries == null || statsExtra == null) return;
+        statsExtra.removeAllViews();
+        final int textColor = ThemeUtils.fetchAttrColor(mContext, R.attr.graph_stats_card_text_color);
+        final int fadedColor = ThemeUtils.fetchAttrColor(mContext, R.attr.graph_stats_card_text_color_faded);
+
+        // ---- Personal best history
+        android.widget.LinearLayout pb = extraCard("Personal best history");
+        pb.addView(typeRow(pbType, i -> { pbType = i; pbShown = 15; renderExtras(); }));
+        final int n = PbHistory.NS[pbType];
+        final long[] series = extraSeries[pbType];
+        final java.util.List<PbHistory.Record> recs = PbHistory.records(series, extraDates);
+        if (recs.isEmpty()) {
+            pb.addView(note(n == 1 || PbHistory.known(series) > 0 ? "Your records will show up here as you improve."
+                    : "You need " + n + " solves for " + PbHistory.label(n) + " (you have " + series.length + ")."));
+        } else {
+            final java.text.DateFormat df = android.text.format.DateFormat.getMediumDateFormat(mContext);
+            final int shown = Math.min(pbShown, recs.size());
+            for (int k = 0; k < shown; k++) {
+                PbHistory.Record r = recs.get(recs.size() - 1 - k); // newest first
+                android.widget.LinearLayout row = new android.widget.LinearLayout(mContext);
+                row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                row.setPadding(dp(2), dp(9), dp(2), dp(9));
+                TextView date = new TextView(mContext);
+                date.setText(r.date > 0 ? df.format(new java.util.Date(r.date)) : "");
+                date.setTextSize(13);
+                date.setTextColor(fadedColor);
+                row.addView(date, new android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                if (r.previous != com.hatopigeon.cubictimer.stats.AverageCalculatorSuper.UNKNOWN) {
+                    TextView diff = new TextView(mContext);
+                    diff.setText("-" + convertTimeToString(r.previous - r.value, PuzzleUtils.FORMAT_STATS, currentPuzzle));
+                    diff.setTextSize(12);
+                    diff.setTextColor(fadedColor);
+                    diff.setPadding(0, 0, dp(14), 0);
+                    row.addView(diff);
+                }
+                TextView val = new TextView(mContext);
+                val.setText(formatResult(r.value, n));
+                val.setTextSize(16);
+                val.setTypeface(val.getTypeface(), android.graphics.Typeface.BOLD);
+                val.setTextColor(textColor);
+                row.addView(val);
+                pb.addView(row);
+            }
+            if (shown < recs.size()) {
+                TextView more = note("Show more (" + (recs.size() - shown) + " left)");
+                more.setTextColor(textColor);
+                more.setTypeface(more.getTypeface(), android.graphics.Typeface.BOLD);
+                more.setOnClickListener(v -> { pbShown += 15; renderExtras(); });
+                pb.addView(more);
+            }
+        }
+        statsExtra.addView(pb);
+
+        // ---- Time distribution
+        android.widget.LinearLayout dist = extraCard("Time distribution");
+        dist.addView(typeRow(distType, i -> { distType = i; renderExtras(); }));
+        final int dn = PbHistory.NS[distType];
+        final boolean whole = currentPuzzle != null && currentPuzzle.equals(PuzzleUtils.TYPE_333FMC);
+        final PbHistory.Bins bins = PbHistory.distribution(extraSeries[distType], whole);
+        if (bins == null) {
+            dist.addView(note(PbHistory.known(extraSeries[distType]) == 0 && dn > 1
+                    ? "You need " + dn + " solves for " + PbHistory.label(dn) + " (you have " + extraSeries[distType].length + ")."
+                    : "Needs at least 3 results."));
+        } else {
+            String[] labels = new String[bins.counts.length];
+            for (int k = 0; k < labels.length; k++) {
+                long ms = bins.start + k * bins.width;
+                labels[k] = bins.width < 1000 ? String.format(Locale.US, "%.1f", ms / 1000f) : String.valueOf(ms / 1000);
+            }
+            com.hatopigeon.cubictimer.layout.HistogramView hv = new com.hatopigeon.cubictimer.layout.HistogramView(mContext);
+            hv.setData(bins.counts, labels, textColor);
+            dist.addView(hv, new android.widget.LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+        statsExtra.addView(dist);
+    }
+
     /**
      * Called when the chart statistics loader has completed loading the chart data. The loader
      * listens for changes to the data and this method will be called each time the display of the
@@ -631,6 +818,8 @@ public class TimerGraphFragment extends Fragment implements StatisticsCache.Stat
         // Add all times line, best times line, average-of-N times lines (with highlighted
         // best AoN times) and mean limit line and identify them all using a custom legend.
         chartStats.applyTo(lineChartView);
+
+        buildExtras(chartStats);
 
         // Zoom up graph
         //   X-axis : latest 10,000 solves
