@@ -120,6 +120,7 @@ public class MainActivity extends AppCompatActivity
     private static final int TRAINER_OLL_ID      = 14;
     private static final int TRAINER_PLL_ID      = 15;
     private static final int RECORDS_ID          = 16;
+    private static final int SYNC_ID             = 17;
 
 
     private static final int REQUEST_SETTING           = 42;
@@ -251,6 +252,13 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Quietly bring in solves from other devices when the app opens (only if sync is set up)
+        com.hatopigeon.cubictimer.sync.SyncManager.autoSync(this);
+    }
+
     /* NOTE: Leaving this here (commented out) as it may be useful again (probably soon).
     @Override
     protected void onResume() {
@@ -359,6 +367,13 @@ public class MainActivity extends AppCompatActivity
                                 .withIconTintingEnabled(true)
                                 .withSelectable(false)
                                 .withIdentifier(SCHEME_ID),
+
+                        new PrimaryDrawerItem()
+                                .withName(R.string.drawer_title_sync)
+                                .withIcon(R.drawable.ic_outline_sync_24px)
+                                .withIconTintingEnabled(true)
+                                .withSelectable(false)
+                                .withIdentifier(SYNC_ID),
 
                         new DividerDrawerItem(),
 
@@ -477,6 +492,10 @@ public class MainActivity extends AppCompatActivity
                             case SCHEME_ID:
                                 SchemeSelectDialogMain.newInstance()
                                         .show(fragmentManager, "scheme_dialog");
+                                break;
+
+                            case SYNC_ID:
+                                com.hatopigeon.cubictimer.sync.SyncDialog.show(MainActivity.this);
                                 break;
 
                             case SETTINGS_ID:
