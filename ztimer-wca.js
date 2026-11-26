@@ -195,13 +195,53 @@
     }
     function openComp(c) {
       main.empty().append(back('Live', function () { sub = null; setView('live'); }));
-      main.append($('<div class="zw-card"></div>').append($('<b></b>').text(c.name), $('<span class="zw-sm"></span>').text(dates(c.startDate, c.endDate))));
-      var box = $('<div></div>').appendTo(main).append(sk('round')), evId = null, rd = 0, data = null;
+      main.append($('<div class="zw-card zw-col"></div>').append($('<b></b>').text(c.name), $('<span class="zw-sm"></span>').text(dates(c.startDate, c.endDate))));
+      var tabsC = $('<div class="zw-pills"></div>').appendTo(main), box = $('<div></div>').appendTo(main).append(sk('round')), schedBox = $('<div style="display:none"></div>').appendTo(main), podBox = $('<div style="display:none"></div>').appendTo(main), evId = null, rd = 0, data = null, schedLoaded = false;
+      function showTab(i) {
+        tabsC.children().removeClass('on').eq(i).addClass('on'); box.toggle(i === 0); schedBox.toggle(i === 1); podBox.toggle(i === 2);
+        if (i === 1 && !schedLoaded) { schedLoaded = true; loadSchedule(); }
+      }
+      ['Results', 'Schedule', 'Podiums'].forEach(function (n, i) { $('<button class="zw-pill"></button>').text(n).on('click', function () { showTab(i); }).appendTo(tabsC); });
+      tabsC.children().eq(0).addClass('on');
+      function loadSchedule() {
+        schedBox.empty().append(sk('list'));
+        get(WCA + '/competitions/' + encodeURIComponent(c.wcaId || c.id) + '/wcif/public').then(function (w) {
+          schedBox.empty(); var days = {}, order = [];
+          ((w.schedule && w.schedule.venues) || []).forEach(function (v) { (v.rooms || []).forEach(function (rm) { (rm.activities || []).forEach(function (a) {
+            var t = new Date(a.startTime), key = t.toLocaleDateString(undefined, { timeZone: v.timezone || 'UTC', weekday: 'long', day: 'numeric', month: 'long' });
+            if (!days[key]) { days[key] = []; order.push(key); }
+            days[key].push({ t: t, e: new Date(a.endTime), n: a.name, room: rm.name, tz: v.timezone || 'UTC' });
+          }); }); });
+          if (!order.length) { schedBox.append($('<p class="zw-note"></p>').text('This competition has no schedule yet.')); return; }
+          order.forEach(function (k) {
+            var card = $('<div class="zw-card"></div>').append($('<b class="zw-cn"></b>').text(k));
+            days[k].sort(function (a, b) { return a.t - b.t; }).forEach(function (a) {
+              var f = function (d) { return d.toLocaleTimeString(undefined, { timeZone: a.tz, hour: '2-digit', minute: '2-digit' }); };
+              card.append($('<div class="zw-hr"></div>').append($('<span class="zw-sm" style="min-width:88px"></span>').text(f(a.t) + ' \u2013 ' + f(a.e)), $('<span class="zw-grow"></span>').text(a.n), $('<span class="zw-sm"></span>').text(a.room)));
+            });
+            schedBox.append(card);
+          });
+        }).catch(function (e) { err(schedBox, offline(e), loadSchedule); });
+      }
+      function drawPodiums() {
+        podBox.empty(); var any = false;
+        (data.events || []).forEach(function (e) {
+          var rounds = (e.rounds || []).slice().sort(function (a, b) { return a.number - b.number; }), r = rounds[rounds.length - 1];
+          if (!r || !(r.results || []).length) return;
+          var top = r.results.filter(function (x) { return x.ranking > 0 && x.ranking <= 3 && x.best; }).sort(function (a, b) { return a.ranking - b.ranking; });
+          if (!top.length) return; any = true;
+          var card = $('<div class="zw-card"></div>').append($('<div class="zw-pe"></div>').append($('<span class="zpi zpi-ev-' + e.eventId + ' zev"></span>'), $('<b></b>').text(' ' + (EVN[e.eventId] || e.eventId))));
+          top.forEach(function (x) { var p = data.ppl[x.personId] || {};
+            card.append($('<div class="zw-hr"></div>').append($('<span class="zw-c1"></span>').text(['\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'][x.ranking - 1]), $('<span class="zw-grow"></span>').text(p.name || ''), $('<b></b>').text(fmt(x.best, e.eventId, false)), $('<b></b>').text(x.average ? fmt(x.average, e.eventId, true) : ''))); });
+          podBox.append(card);
+        });
+        if (!any) podBox.append($('<p class="zw-note"></p>').text('Podiums appear once finals have results.'));
+      }
       function load(quiet) {
         get(LIVE + '/competitions/' + encodeURIComponent(c.wcaId || c.id) + '/results').then(function (d) {
           data = d; var ppl = {}; (d.persons || []).forEach(function (p) { ppl[p.id] = p; }); data.ppl = ppl;
           if (!evId || !(d.events || []).some(function (e) { return e.eventId === evId; })) { evId = d.events && d.events[0] && d.events[0].eventId; rd = 0; }
-          draw();
+          draw(); drawPodiums();
         }).catch(function (e) { if (!quiet) err(box, offline(e), function () { box.empty().append(sk('round')); load(); }); });
       }
       function draw() {
@@ -232,21 +272,31 @@
       timer = setInterval(function () { if (zs('wcaAuto') && data) load(true); }, 30000);
     }
 
-    /* ---------------- World records ---------------- */
+    /* ---------------- World records: the whole history of each event, like the app ---------------- */
+    var rec = { ev: '333', avg: false }, wrData = null;
     function records() {
-      var box = $('<div></div>').appendTo(main).append(sk('list'));
-      main.prepend($('<h3 class="zw-title"></h3>').text('World records'));
-      get(WCA + '/records').then(function (d) {
-        box.empty(); var w = d.world_records || {};
-        EVENTS.forEach(function (e) {
-          var x = w[e[0]]; if (!x) return;
-          box.append($('<div class="zw-card zw-rc"></div>').append($('<div class="zw-pe"></div>').append($('<span class="zpi zpi-ev-' + e[0] + ' zev"></span>'), $('<b></b>').text(' ' + e[1])),
-            $('<div class="zw-rv"></div>').append($('<span></span>').append($('<small>Single</small>'), $('<b></b>').text(x.single ? fmt(x.single, e[0], false) : '-')),
-              $('<span></span>').append($('<small>Average</small>'), $('<b></b>').text(x.average ? fmt(x.average, e[0], true) : '-')))));
+      main.append($('<h3 class="zw-title"></h3>').text('World records'));
+      var ctl = $('<div></div>').appendTo(main), list = $('<div class="zw-list"></div>').appendTo(main);
+      list.append(sk('list'));
+      function draw() {
+        var evs = $('<div class="zw-pills zw-evs"></div>'), tg = $('<div class="zw-pills"></div>');
+        ctl.empty().append(evs, tg);
+        wrData.order.forEach(function (id) { $('<button class="zw-ev"></button>').append($('<span class="zpi zpi-ev-' + id + ' zev"></span>')).toggleClass('on', id === rec.ev).attr('title', wrData.events[id].name).on('click', function () { rec.ev = id; draw(); }).appendTo(evs); });
+        ['Single', 'Average'].forEach(function (n, i) { $('<button class="zw-pill"></button>').text(n).toggleClass('on', (i === 1) === rec.avg).on('click', function () { rec.avg = i === 1; draw(); }).appendTo(tg); });
+        var e = wrData.events[rec.ev], rows = (e[rec.avg ? 'average' : 'single'] || []).slice().reverse();
+        list.empty().append($('<h4 class="zw-h"></h4>').text(e.name));
+        if (e.note) list.append($('<p class="zw-note"></p>').text(e.note));
+        if (!rows.length) { list.append($('<p class="zw-note"></p>').text('No ' + (rec.avg ? 'average' : 'single') + ' records for this event.')); return; }
+        rows.forEach(function (r) {
+          list.append($('<div class="zw-card zw-wr"></div>').toggleClass('cur', !!r.current).append(
+            $('<div class="zw-recv"></div>').append($('<b></b>').text(fmt(r.v, rec.ev, rec.avg)), r.current ? $('<span class="zw-badge sL">Current</span>') : '', r.tie ? $('<span class="zw-badge">Tied</span>') : ''),
+            $('<div class="zw-recn"></div>').text(r.name + (r.country ? '  \u00B7  ' + r.country : '')),
+            $('<div class="zw-sm"></div>').text((r.comp || '') + '  \u00B7  ' + dates(r.d, r.d) + (r.round ? '  \u00B7  ' + r.round : ''))).on('click', function () { if (r.pid) { setView('results'); profile(r.pid); } }));
         });
-        box.append($('<p class="zw-note"></p>').text('Data: World Cube Association.'));
-      }).catch(function (e) { err(box, offline(e), records_retry); });
-      function records_retry() { setView('records'); }
+        list.append($('<p class="zw-note"></p>').text('World records as marked by the WCA. Data: World Cube Association.'));
+      }
+      if (wrData) { draw(); return; }
+      get('ztimer-wr-history.json').then(function (d) { wrData = d; draw(); }).catch(function (e) { err(list, offline(e), function () { setView('records'); }); });
     }
 
     /* ---------------- Rankings ---------------- */

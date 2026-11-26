@@ -136,7 +136,7 @@
     var head = $('<div class="zp-head"></div>').append(icon(ic), $('<b class="zp-title"></b>').text(title),
       $('<span class="zp-sub"></span>'),
       $('<button class="zp-gear" title="Options" aria-label="Options"></button>').append(icon('settings')).on('click', function () { show('options'); }));
-    if (id === 'options' || id === 'themes' || id === 'scheme' || id === 'backup' || id === 'sessions')
+    if (id === 'options' || id === 'themes' || id === 'scheme' || id === 'backup' || id === 'sessions' || id === 'sync')
       head.prepend($('<button class="zp-back" title="Back" aria-label="Back"></button>').append(icon('back')).on('click', function () { navBack(false); }));
     p.append(head, $('<div class="zp-body"></div>'));
     p.hide().appendTo(root);
@@ -221,9 +221,60 @@
     show('timer');
     setTimeout(function () { try { kernel.pushSignal('scrfix', x.scr); toast('Scramble loaded in the timer'); } catch (e) {} }, 250);
   }
-  function shareSolve(x, d) {
-    var txt = pretty(x.t) + (d ? ' (' + d.toLocaleDateString('en-GB') + ')' : '') + '\n' + (x.scr || '');
-    try { if (navigator.share) navigator.share({ text: txt }); else { navigator.clipboard.writeText(txt); toast('Copied'); } } catch (e) {}
+  /* ---- Solve card: a picture of a solve that can be saved or sent to other apps ---- */
+  function shareSolve(x, d) { openSolveCard(x, d); }
+  function cardCanvas(x, d, img) {
+    var W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    var c = cv.getContext('2d'), cs = getComputedStyle(document.documentElement), A = cs.getPropertyValue('--zt-a').trim() || '#1959ff', B = cs.getPropertyValue('--zt-b').trim() || '#3b12ff',
+      fg = cs.getPropertyValue('--zt-fg').trim() || '#fff', pz = currentPuzzle(), FONT = 'Quicksand, "Segoe UI", Arial, sans-serif';
+    var g = c.createLinearGradient(0, 0, W * 0.6, H); g.addColorStop(0, A); g.addColorStop(1, B); c.fillStyle = g; c.fillRect(0, 0, W, H);
+    c.fillStyle = fg; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+    c.globalAlpha = 0.85; c.font = '700 54px ' + FONT; c.fillText(pz.name + (pz.cat && pz.cat !== 'Normal' ? '  \u00B7  ' + pz.cat : ''), W / 2, 150);
+    c.globalAlpha = 1;
+    var t = x.t === Infinity ? 'DNF' : pretty(x.t), big = t.length > 6 ? 230 : 300; c.font = '700 ' + big + 'px ' + FONT; c.fillText(t, W / 2, 470);
+    c.globalAlpha = 0.8; c.font = '600 48px ' + FONT;
+    var sub = []; if (x.pen > 0 && x.t !== Infinity) sub.push('+2'); if (d) sub.push(d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }));
+    c.fillText(sub.join('  \u00B7  '), W / 2, 550); c.globalAlpha = 1;
+    /* scramble in a rounded panel */
+    var px = 70, pw = W - 140, py = 620, ph = 250;
+    c.fillStyle = 'rgba(255,255,255,.92)'; rr(c, px, py, pw, ph, 36); c.fill();
+    c.fillStyle = '#1b1b2b'; c.font = '600 40px ' + FONT; c.textAlign = 'center';
+    var words = String(x.scr || '').split(/\s+/).filter(Boolean), lines = [], cur = '';
+    words.forEach(function (w) { var t2 = cur ? cur + ' ' + w : w; if (c.measureText(t2).width > pw - 80 && cur) { lines.push(cur); cur = w; } else cur = t2; }); if (cur) lines.push(cur);
+    var show = lines.slice(0, 4), lh = 56, y0 = py + ph / 2 - (show.length * lh) / 2 + 40; if (lines.length > 4) show[3] += ' ...';
+    show.forEach(function (l, i) { c.fillText(l, W / 2, y0 + i * lh); });
+    if (img) { var s = 300, ix = (W - s) / 2; c.drawImage(img, ix, 910, s * (img.width / img.height > 1 ? 1 : img.width / img.height), s / (img.width / img.height > 1 ? img.width / img.height : 1)); }
+    c.fillStyle = fg; c.globalAlpha = 0.8; c.font = '700 44px ' + FONT; c.fillText('ZTimer', W / 2, H - 60); c.globalAlpha = 1;
+    return cv;
+  }
+  function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+  function openSolveCard(x, d) {
+    var ov = $('<div class="zmodal zapp"></div>'), card = $('<div class="zm-card zapp-card zcard"></div>').appendTo(ov), name = 'ztimer-' + (x.t === Infinity ? 'dnf' : String(pretty(x.t)).replace(/[^0-9a-z]+/gi, '-')) + '.png';
+    card.append($('<div class="zapp-head"></div>').append($('<b></b>').text('Solve card')));
+    var holder = $('<div class="zcard-pic"></div>').appendTo(card), cv = null, blob = null;
+    function done(img) {
+      cv = cardCanvas(x, d, img); holder.empty().append($(cv));
+      cv.toBlob(function (b) { blob = b; }, 'image/png');
+    }
+    var src = scrImgSrc(x.scr);
+    if (src) { var im = new Image(); im.onload = function () { done(im); }; im.onerror = function () { done(null); }; im.src = src; } else done(null);
+    function save() { if (!cv) return; var a = document.createElement('a'); a.download = name; a.href = cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove(); toast('Saved ' + name); }
+    function shareImg() {
+      if (!blob) return; var f = new File([blob], name, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], title: 'My solve', text: pretty(x.t) + ' on ZTimer' }).catch(function () {});
+      else { save(); toast('Your browser cannot send pictures to apps. The card was saved, post it from your gallery.'); }
+    }
+    var txt = encodeURIComponent((x.t === Infinity ? 'DNF' : pretty(x.t)) + ' ' + currentPuzzle().name + (x.scr ? '\n' + x.scr : '')), site = encodeURIComponent(location.origin + location.pathname);
+    var row = $('<div class="zcard-btns"></div>').appendTo(card);
+    function b(label, fn, cls) { return $('<button class="zcard-b"></button>').addClass(cls || '').text(label).on('click', fn).appendTo(row); }
+    b('Save image', save, 'pri'); b('Share to app...', shareImg, 'pri');
+    var q = $('<div class="zcard-q"></div>').appendTo(card);
+    [['Instagram', function () { shareImg(); }], ['Facebook', function () { shareImg(); }], ['Messenger', function () { shareImg(); }],
+      ['WhatsApp', function () { window.open('https://wa.me/?text=' + txt, '_blank'); }], ['Telegram', function () { window.open('https://t.me/share/url?url=' + site + '&text=' + txt, '_blank'); }], ['X', function () { window.open('https://twitter.com/intent/tweet?text=' + txt, '_blank'); }]]
+      .forEach(function (s) { $('<button class="zcard-s"></button>').text(s[0]).on('click', s[1]).appendTo(q); });
+    card.append($('<p class="zp-note zcard-note"></p>').text('Instagram, Facebook and Messenger take the picture through your phone\u2019s share sheet. WhatsApp, Telegram and X send the time as text.'));
+    card.append($('<div class="zm-btns"></div>').append($('<button class="zm-btn">Close</button>').on('click', function () { ov.remove(); })));
+    ov.on('click', function (e) { if (e.target === ov[0]) ov.remove(); }).appendTo('body');
   }
   function scrImgSrc(scr) {
     try { var svg = image.draw([kernel.getProp('scrType'), scr]); return svg ? 'data:image/svg+xml;base64,' + btoa(svg.render()) : null; } catch (e) { return null; }
@@ -522,12 +573,29 @@
     fams.forEach(function (f, i) { $('<button class="zt2"></button>').text(f[0]).on('click', function () { fill(i); }).appendTo(tabs); });
     fill(trFam);
   }
+  /* Case probability like the app: Actual (csTimer's own odds), Equal (every selected case equally likely), Random order (each case once, shuffled) */
+  var probOrder = [];
+  function zFull() { try { return JSON.parse(localStorage.ztFull || 'null'); } catch (e) { return null; } }
+  function applyProb() {
+    var full = zFull(), mode = zs('caseProb');
+    if (!full || kernel.getProp('scrType') !== full.id) return;
+    var idxs = []; full.sel.forEach(function (v, i) { if (v) idxs.push(i); });
+    if (!idxs.length) return;
+    var cur = null; try { cur = JSON.parse(kernel.getProp('scrFlt')); } catch (e) {}
+    var fullStr = JSON.stringify([full.id, full.sel.map(Number)]);
+    if (mode === 'actual') { if (kernel.getProp('scrFlt') !== fullStr) kernel.setProp('scrFlt', fullStr); return; }
+    var pick;
+    if (mode === 'equal') pick = idxs[Math.floor(Math.random() * idxs.length)];
+    else { if (!probOrder.length) { probOrder = idxs.slice(); for (var k = probOrder.length - 1; k > 0; k--) { var j = Math.floor(Math.random() * (k + 1)), t = probOrder[k]; probOrder[k] = probOrder[j]; probOrder[j] = t; } } pick = probOrder.pop(); }
+    kernel.setProp('scrFlt', JSON.stringify([full.id, full.sel.map(function (v, i) { return i === pick ? 1 : 0; })]));
+  }
   function renderCases(p, body) {
     var id = trSet[1], d = caseData(id), n = d.n.length;
     p.find('.zp-sub').text(trSet[0]);
     if (!trSel) {
       trSel = [];
       var cur = null; try { cur = JSON.parse(kernel.getProp('scrFlt')); } catch (e) {}
+      var zf = zFull(); if (zf && zf.id === id && zf.sel.length === n) cur = [id, zf.sel];
       for (var i = 0; i < n; i++) trSel[i] = (cur && cur[0] === id && cur[1] && cur[1].length === n) ? cur[1][i] > 0 : true;
     }
     var bar = $('<div class="zcbar"></div>').appendTo(body), cnt = $('<span class="zcc"></span>');
@@ -546,6 +614,8 @@
       if (!trSel.some(Boolean)) { toast('Select at least one case.'); return; }
       kernel.setProp('scrType', id);
       kernel.setProp('scrFlt', JSON.stringify([id, trSel.map(function (v) { return v ? 1 : 0; })]));
+      try { localStorage.ztFull = JSON.stringify({ id: id, sel: trSel.map(function (v) { return v ? 1 : 0; }) }); } catch (e) {}
+      probOrder = []; applyProb();
       show('trainer');
     }).appendTo(body);
   }
@@ -658,6 +728,7 @@
       ['share', 'Export/Import', function () { show('backup'); }],
       ['palette', 'App theme', function () { show('themes'); }],
       ['imgpref', 'Color scheme', function () { show('scheme'); }],
+      ['sync', 'Sync with the app', function () { show('sync'); }],
       ['div'],
       ['settings', 'Settings', function () { show('options'); }],
       ['help', 'About and feedback', function () { $('#leftbar .c5').click(); }]];
@@ -841,7 +912,7 @@
      ['num', key, title, summary, min, max] number, ['go', title, summary, fn] link to another screen. */
   /* ZTimer's own settings (the ones csTimer has no setting for) live in this browser's storage */
   var ZS_DEF = { bestSingle: true, bestAvg: true, worstSingle: false, cMo3: true, cAo1000: true, cBpa5: true, cBpa12: true, cRecent: true, cStats: true, bigQuick: false, swipe: true,
-    noMenuBg: false, noTabBg: false, bgOn: false, bgOpacity: 60, stSession: true, stToday: true, clearBtn: true, wcaAuto: true, wcaAttempts: false, showImg: true };
+    noMenuBg: false, noTabBg: false, caseProb: 'actual', bgOn: false, bgOpacity: 60, stSession: true, stToday: true, clearBtn: true, wcaAuto: true, wcaAttempts: false, showImg: true };
   function zs(k) { try { var o = JSON.parse(localStorage.ztSet || '{}'); return k in o ? o[k] : ZS_DEF[k]; } catch (e) { return ZS_DEF[k]; } }
   function zsSet(k, v) { try { var o = JSON.parse(localStorage.ztSet || '{}'); o[k] = v; localStorage.ztSet = JSON.stringify(o); } catch (e) {} applyZs(); }
   function applyZs() {
@@ -877,6 +948,7 @@
   }
   /* the app's settings screen: three sections of links, then WCA settings; every link opens its own page */
   var APP_SETTINGS = [
+    ['Trainer', [{ t: 'sel', title: 'Case probability', sum: 'Actual / Equal / Random order', opts: [['actual', 'Actual'], ['equal', 'Equal'], ['order', 'Random order']], get: function () { return zs('caseProb'); }, set: function (v) { zsSet('caseProb', v); probOrder = []; applyProb(); } }]],
     ['Timer', [goRow('Inspection behavior', '', 'inspection'), goRow('Timer behavior', '', 'behavior'), goRow('Timer appearance', '', 'appearance')]],
     ['WCA settings', [zSw('wcaAuto', 'Auto-refresh WCA Live', 'Refresh results every 30 seconds while viewing a round'), zSw('wcaAttempts', 'Show attempts in WCA Live results', 'Show every solve under each competitor in a round')]],
     ['Other', [goRow('General', '', 'general'), goRow('Background image settings', '', 'bgimage'), goRow('Statistics', '', 'stats'), goRow('List', '', 'list')]]
@@ -1062,7 +1134,7 @@
     if (e.type === 'sub') { optPath.pop(); renderOptions(pages.options); pages.options.find('.zp-body').scrollTop(0); } else show(e.id, true);
   }
   function optGo(sub) { optPath.push(sub); navPush({ type: 'sub' }); renderOptions(pages.options); pages.options.find('.zp-body').scrollTop(0); }
-  var SETTINGS_PAGES = { options: 1, themes: 1, scheme: 1, backup: 1, sessions: 1 };
+  var SETTINGS_PAGES = { options: 1, themes: 1, scheme: 1, backup: 1, sessions: 1, sync: 1 };
   window.addEventListener('popstate', function () {
     if (skipPop > 0) { skipPop--; return; }
     if (navStack.length) navBack(true);
@@ -1248,6 +1320,82 @@
     fill(fi);
   }
 
+
+  /* ---- Sync with the app ---- */
+  function replaceSession(v, name, id, times, done) {
+    $('html').addClass('zt-quiet');
+    try { stats.getSessionManager().importSessions([{ name: name, opt: { scrType: id }, times: times }]); } catch (e) {}
+    try { kernel.hideDialog(); } catch (e) {}
+    function end() { setTimeout(function () { hideStaleMgr(); $('html').removeClass('zt-quiet'); lastSig = ''; done(); }, 250); }
+    setTimeout(function () { if (v != null) removeSession(v, end); else end(); }, 220);
+  }
+  function puzzleName(scr) {
+    var n = null; PUZZLES.forEach(function (g) { g[1].forEach(function (q) { if (q[1] === scr) n = q[0]; }); });
+    var fs = findSet(scr); if (fs) n = fs[2] || fs[0];
+    return n || scr;
+  }
+  window.ZT_BRIDGE = { sessionsList: sessionsList, sessSel: sessSel, findSess: findSess, goSession: goSession, parseSess: parseSess, puzzleName: puzzleName, replaceSession: replaceSession };
+  function ago(t) { if (!t) return 'never'; var m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' days ago'; }
+  /* turns pasted or loaded text from other timers into solves: one time per line, like 12.34, 1:02.45, DNF or 9.87+ */
+  function parseTimeList(text) {
+    var out = [], now = Math.floor(Date.now() / 1000), n = 0;
+    String(text).split(/\r?\n/).forEach(function (line) {
+      var m = /(?:^|[\s,;\t])(DNF|(\d+):(\d{1,2}):(\d{1,2})(?:[.,](\d{1,3}))?|(\d+):(\d{1,2})(?:[.,](\d{1,3}))?|(\d+)[.,](\d{1,3})|(\d+))(\+?)(?=$|[\s,;\t])/i.exec(line);
+      if (!m) return;
+      var ms, pen = 0;
+      function frac(f) { return f ? Math.round(parseFloat('0.' + f) * 1000) : 0; }
+      if (/^dnf$/i.test(m[1])) { ms = 0; pen = -1; }
+      else if (m[2] != null) ms = ((+m[2]) * 3600 + (+m[3]) * 60 + (+m[4])) * 1000 + frac(m[5]);
+      else if (m[6] != null) ms = ((+m[6]) * 60 + (+m[7])) * 1000 + frac(m[8]);
+      else if (m[9] != null) ms = (+m[9]) * 1000 + frac(m[10]);
+      else ms = (+m[11]) * 1000;
+      if (m[12] === '+' && pen === 0) pen = 2000;
+      out.push([[pen, ms], '', '', now - (n++) ]);
+    });
+    return out.reverse();
+  }
+  function renderSync(p) {
+    var body = p.find('.zp-body').empty(), S = window.ZTSync, st = S ? S.state() : {};
+    p.find('.zp-sub').text('Share your solves with the app');
+    if (!S || !S.configured()) {
+      body.append($('<div class="zocard"></div>').append($('<h3>Server not set up</h3>'), $('<p class="zp-note"></p>').text('Open ztimer-sync-config.js, paste your Supabase project URL and anon key, and upload it. The steps are in supabase/README.md.')));
+    } else if (!st.code) {
+      var c1 = $('<div class="zocard"></div>').append($('<h3>Get started</h3>')).appendTo(body);
+      c1.append($('<p class="zp-note"></p>').text('A sync code links this browser and your app. No email or password. Keep the code private: anyone with it can see your solves.'));
+      c1.append($('<button class="zshare"></button>').append($('<span>Create a new sync code</span>')).on('click', function () { S.setCode(S.makeCode()); renderSync(p); }));
+      var inp = $('<input type="text" class="zsync-in" placeholder="Enter the code from your app" autocapitalize="characters">').appendTo(c1);
+      c1.append($('<button class="zshare"></button>').append($('<span>Use this code</span>')).on('click', function () { if (S.setCode(inp.val())) renderSync(p); else toast('That code looks too short.'); }));
+    } else {
+      var c = $('<div class="zocard"></div>').append($('<h3>Your sync code</h3>')).appendTo(body);
+      c.append($('<div class="zsync-code"></div>').text(st.code));
+      c.append($('<button class="zshare"></button>').append($('<span>Copy code</span>')).on('click', function () { try { navigator.clipboard.writeText(st.code); toast('Code copied'); } catch (e) { toast('Copy it by hand.'); } }));
+      var n = $('<div class="zocard"></div>').append($('<h3>Nickname</h3>')).appendTo(body), nin = $('<input type="text" class="zsync-in" maxlength="20" placeholder="Pick a nickname (optional)">').val(st.nick || '').appendTo(n);
+      n.append($('<p class="zp-note"></p>').text('3 to 20 letters, numbers or _. Nicknames are unique and will be used for friends and racing.'));
+      n.append($('<button class="zshare"></button>').append($('<span>Save nickname</span>')).on('click', function () { S.sync(window.ZT_BRIDGE, { nick: nin.val().trim() }).then(function () { toast('Nickname saved'); renderSync(p); }, function (e) { toast(e.message); }); }));
+      var s = $('<div class="zocard"></div>').append($('<h3>Sync</h3>')).appendTo(body), status = $('<p class="zp-note"></p>').text('Last synced: ' + ago(st.last)).appendTo(s);
+      s.append($('<button class="zshare"></button>').append($('<span>Sync now</span>')).on('click', function () {
+        status.text('Syncing...'); S.sync(window.ZT_BRIDGE).then(function (r) { status.text(r.busy ? 'Already syncing...' : 'Done. Sent ' + r.sent + ', received ' + r.got + '.'); if (r.applied) toast('Added ' + r.applied + ' solves from your other devices'); }, function (e) { status.text(e.message || 'Could not sync.'); });
+      }));
+      s.append(appRow({ t: 'sw', title: 'Sync automatically', sum: 'When the site opens and a little after each solve', get: function () { return st.auto !== false; }, set: function (v) { S.setAuto(v); } }, p));
+      s.append($('<button class="zshare zsync-off"></button>').append($('<span>Stop syncing on this browser</span>')).on('click', function () { if (confirm('Stop syncing here? Your solves stay on this device and on the server.')) { S.signOut(); renderSync(p); } }));
+    }
+    var imp = $('<div class="zocard"></div>').append($('<h3>Import from other timers</h3>')).appendTo(body);
+    imp.append($('<p class="zp-note"></p>').text('csTimer exports work from Export or import. For other timers, load a text or CSV file with one time per line (12.34, 1:02.45, DNF, 9.87+). The times go into the current category.'));
+    imp.append($('<button class="zshare"></button>').append($('<span>Choose a file</span>')).on('click', function () {
+      var f = $('<input type="file" accept=".txt,.csv,.tsv,text/plain" style="display:none">').appendTo('body');
+      f.on('change', function () { var file = this.files[0]; f.remove(); if (!file) return; var r = new FileReader(); r.onload = function () {
+        var add = parseTimeList(r.result); if (!add.length) { toast('No times found in that file.'); return; }
+        var id = kernel.getProp('scrType'), cur = sessSel().find('option:selected'), v = cur.val(), name = cur.text();
+        Promise.resolve(storage.get(parseInt(v, 10))).then(function (old) { replaceSession(v, name, id, (old || []).concat(add).sort(function (a, b) { return (a[3] || 0) - (b[3] || 0); }), function () { var s2 = findSess(name); if (s2) goSession(s2.v); toast('Imported ' + add.length + ' times'); }); });
+      }; r.readAsText(file); });
+      f[0].click();
+    }));
+  }
+  /* automatic sync: when the site opens, and shortly after the solves change */
+  var autoT = null;
+  function autoSync() { var S = window.ZTSync; if (!S || !S.configured() || !S.state().code || S.state().auto === false) return; clearTimeout(autoT); autoT = setTimeout(function () { S.sync(window.ZT_BRIDGE).catch(function () {}); }, 20000); }
+
+
   /* ---- Goals page: daily goal, streak, practice calendar ---- */
   function renderGoals(body, a, again) {
     var g = getGoals(), days = {}, today = dayKey(Date.now() / 1000);
@@ -1412,6 +1560,7 @@
     if (id === 'puzzles') renderPuzzles(p);
     if (id === 'themes') renderThemes(p);
     if (id === 'scheme') renderScheme(p);
+    if (id === 'sync') renderSync(p);
     if (id === 'options') renderOptions(p);
     if (id === 'sessions') renderSessions(p);
     if (id === 'backup') renderBackup(p);
@@ -1421,7 +1570,7 @@
   }
 
   function init() {
-    applyTheme(savedTheme(), false); applyZs();
+    applyTheme(savedTheme(), false); applyZs(); setTimeout(function () { var S = window.ZTSync; if (S && S.configured() && S.state().code && S.state().auto !== false) S.sync(window.ZT_BRIDGE).catch(function () {}); }, 4000);
     var z = $('#zbar');
     if (!z.length) return;
     bar = z.empty();
@@ -1431,7 +1580,7 @@
     });
     root = $('<div id="zpages"></div>').hide().appendTo('body');
     makePage('solves', 'Solves', 'list'); makePage('stats', 'Stats', 'graph');
-    makePage('trainerpick', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('scheme', 'Color scheme', 'imgpref'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Category', 'books'); makePage('backup', 'Export/Import', 'share');
+    makePage('trainerpick', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('scheme', 'Color scheme', 'imgpref'); makePage('sync', 'Sync', 'sync'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Category', 'books'); makePage('backup', 'Export/Import', 'share');
     actionbar = $('<div id="zactionbar"></div>').append(
       barBtn('settings', 'Menu', function () { openDrawer(); }),
       barBtn('bluetooth', 'Bluetooth cube', openBluetooth).addClass('za-bt'),
@@ -1538,7 +1687,7 @@
       qbtn('DNF').off('click').on('click', setPen('DNF'));
       qbtn('Add 2').off('click').on('click', setPen('+2'));
       undo.on('click', function () { kernel.pushSignal('ctrl', ['stats', 'OK']); setTimeout(function () { showLast(); setUndo(false); }, 80); this.blur(); });
-      kernel.regListener('ztquick2', 'time', function () { setUndo(false); });
+      kernel.regListener('ztquick2', 'time', function () { setUndo(false); autoSync(); setTimeout(applyProb, 60); });
     })();
     var GLYPH = { e8ce: 'settings', e60d: 'imgpref', eae9: 'palette', e6b6: 'timer', e900: 'category', e9bb: 'help', e993: 'build', e69d: 'edit' };
     function iconify() {
