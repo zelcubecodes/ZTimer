@@ -32,7 +32,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 import androidx.core.content.res.ResourcesCompat;
 
-import com.hatopigeon.cubictimer.R;
+import com.hatopigeon.ztimer.R;
 import com.hatopigeon.cubictimer.items.Solve;
 
 import java.io.File;
