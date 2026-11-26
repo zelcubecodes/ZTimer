@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Your Supabase project. Dashboard -> Project Settings -> API: "Project URL" and the "anon public" key.
+         The anon key is meant to be public. Setup steps are in supabase/README.md -->
+    <string name="sync_supabase_url" translatable="false">https://supabase.co</string>
+    <string name="sync_supabase_key" translatable="false">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9icGlseWNleGdkb2xoYnh4YXhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU3MDExMDAsImV4cCI6MjExMTI3NzEwMH0.PQ-VuFAVvlwBVvKGB63KD-5IdlO80Uv8Ukb1V3sMabA</string>
+    <string name="drawer_title_sync" translatable="false">Sync</string>
+</resources>
