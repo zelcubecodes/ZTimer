@@ -128,6 +128,14 @@ public class ChartStatistics {
     /**
      * The values of "N" for all "average-of-N" data sets to be charted.
      */
+    /**
+     * Every solve that was added, oldest first, and the day it was done. DNF is stored as
+     * {@link AverageCalculatorSuper#DNF}. The Stats page uses these for the personal best history
+     * and the time distribution.
+     */
+    private final java.util.ArrayList<Long> mRawTimes = new java.util.ArrayList<>();
+    private final java.util.ArrayList<Long> mRawDates = new java.util.ArrayList<>();
+
     private final int[] mNsOfAverages;
 
     /**
@@ -259,6 +267,8 @@ public class ChartStatistics {
      * Resets all chart data and statistics to their initial, empty state.
      */
     public void reset() {
+        mRawTimes.clear();
+        mRawDates.clear();
         mStatistics.reset();
         mXIndex = 0;
         mBestTime = Long.MAX_VALUE;
@@ -556,6 +566,8 @@ public class ChartStatistics {
 
         // The value of "time" is validated by "Statistics.addTime".
         mStatistics.addTime(time, true, false); // May throw IAE.
+        mRawTimes.add(time);
+        mRawDates.add(date);
 
         if (time != DNF) {
             long record = time;
@@ -648,6 +660,16 @@ public class ChartStatistics {
         }
         // If the new solve and all current averages were DNF or UNKNOWN, then no entry was added
         // to the chart, so do not add any X-axis value and do not increment the X-index.
+    }
+
+    /** Every solve added so far, oldest first (DNF is {@link AverageCalculatorSuper#DNF}). */
+    public java.util.List<Long> getRawTimes() {
+        return mRawTimes;
+    }
+
+    /** The date of every solve added so far, in the same order as {@link #getRawTimes()}. */
+    public java.util.List<Long> getRawDates() {
+        return mRawDates;
     }
 
     /**
