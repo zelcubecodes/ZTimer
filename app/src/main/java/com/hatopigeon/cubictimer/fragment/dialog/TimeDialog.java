@@ -96,15 +96,9 @@ public class TimeDialog extends DialogFragment {
                         public boolean onMenuItemClick(MenuItem item) {
                             switch (item.getItemId()) {
                                 case R.id.share:
-                                    Intent shareIntent = new Intent();
-                                    shareIntent.setAction(Intent.ACTION_SEND);
-                                    if (!PuzzleUtils.isTimeDisabled(solve.getPuzzle())) {
-                                        shareIntent.putExtra(Intent.EXTRA_TEXT, PuzzleUtils.convertTimeToString(solve.getTime(), PuzzleUtils.FORMAT_SINGLE, solve.getPuzzle()) + "s.\n" + solve.getComment() + "\n" + com.hatopigeon.cubictimer.utils.WideMoves.toPreferred(solve.getScramble(), solve.getPuzzle()));
-                                    } else {
-                                        shareIntent.putExtra(Intent.EXTRA_TEXT, PuzzleUtils.convertTimeToString(solve.getTime(), PuzzleUtils.FORMAT_SINGLE, solve.getPuzzle()) + ".\n" + solve.getComment() + "\n" + com.hatopigeon.cubictimer.utils.WideMoves.toPreferred(solve.getScramble(), solve.getPuzzle()));
-                                    }
-                                    shareIntent.setType("text/plain");
-                                    getContext().startActivity(shareIntent);
+                                    // A picture of the solve that can be saved or sent to other apps
+                                    com.hatopigeon.cubictimer.utils.SolveCard.show(
+                                            requireActivity(), solve, scrambleImage.getDrawable());
                                     break;
                                 case R.id.remove:
                                     // do not close popup
