@@ -225,10 +225,10 @@ public class WcaCompPage {
         return t;
     }
 
-    private void loadingText(String s) {
+    /** Boxes shaped like the tab that is loading, so the page already has its shape before the data arrives. */
+    private void loadingText(int kind) {
         content.removeAllViews();
-        // A spinner line and placeholder cards, so the page has its shape while it loads
-        content.addView(ui.loadingBlock(s, 3), ui.matchWrap(0, 0, 0, 0));
+        content.addView(ui.loadingBlock(kind), ui.matchWrap(0, 0, 0, 0));
     }
 
     private void errorBox(String error) {
@@ -687,16 +687,19 @@ public class WcaCompPage {
 
     private void renderInfo() {
         final int my = tab;
+        final int myTok = token;
         JSONObject cached = INFO.get(compId);
         if (cached == null) {
-            loadingText("Loading competition...");
+            loadingText(WcaUi.SK_INFO);
             ensureInfo(err -> {
-                if (my != tab) return;
+                if (my != tab || myTok != token) return;
                 if (err != null) errorBox(err);
                 else renderInfo();
             });
             return;
         }
+        // The loading boxes (or an older copy of this tab) must go before the real content is added
+        content.removeAllViews();
         JSONObject c = cached;
         final String bannerUrl = firstImage(c.optString("information"));
         if (bannerUrl != null) {
@@ -781,7 +784,7 @@ public class WcaCompPage {
 
         // The competitor count comes from the competitor list, which loads a little later.
         ensureWcif(err -> {
-            if (err != null || my != tab) return;
+            if (err != null || my != tab || myTok != token) return;
             Wcif w = WCIF.get(compId);
             if (w == null) return;
             Set<String> countries = new HashSet<>();
@@ -887,11 +890,12 @@ public class WcaCompPage {
 
     private void renderCompetitors() {
         final int my = tab;
+        final int myTok = token;
         final Wcif w = WCIF.get(compId);
         if (w == null) {
-            loadingText("Loading competitors...");
+            loadingText(WcaUi.SK_PEOPLE);
             ensureWcif(err -> {
-                if (my != tab) return;
+                if (my != tab || myTok != token) return;
                 if (err != null) errorBox(err);
                 else renderCompetitors();
             });
@@ -1197,11 +1201,12 @@ public class WcaCompPage {
 
     private void renderEvents() {
         final int my = tab;
+        final int myTok = token;
         final Wcif w = WCIF.get(compId);
         if (w == null) {
-            loadingText("Loading events...");
+            loadingText(WcaUi.SK_EVENTS);
             ensureWcif(err -> {
-                if (my != tab) return;
+                if (my != tab || myTok != token) return;
                 if (err != null) errorBox(err);
                 else renderEvents();
             });
@@ -1357,11 +1362,12 @@ public class WcaCompPage {
 
     private void renderSchedule() {
         final int my = tab;
+        final int myTok = token;
         final Wcif w = WCIF.get(compId);
         if (w == null) {
-            loadingText("Loading schedule...");
+            loadingText(WcaUi.SK_SCHEDULE);
             ensureWcif(err -> {
-                if (my != tab) return;
+                if (my != tab || myTok != token) return;
                 if (err != null) errorBox(err);
                 else renderSchedule();
             });
@@ -1668,11 +1674,12 @@ public class WcaCompPage {
 
     private void renderResultsTab() {
         final int my = tab;
+        final int myTok = token;
         JSONArray all = RESULTS.get(compId);
         if (all == null) {
-            loadingText("Loading results...");
+            loadingText(WcaUi.SK_RESULTS);
             ensureResults(err -> {
-                if (my != tab) return;
+                if (my != tab || myTok != token) return;
                 if (err != null) errorBox(err);
                 else renderResultsTab();
             });
@@ -1850,11 +1857,12 @@ public class WcaCompPage {
 
     private void renderPodiums() {
         final int my = tab;
+        final int myTok = token;
         JSONArray all = RESULTS.get(compId);
         if (all == null) {
-            loadingText("Loading podiums...");
+            loadingText(WcaUi.SK_PODIUMS);
             ensureResults(err -> {
-                if (my != tab) return;
+                if (my != tab || myTok != token) return;
                 if (err != null) errorBox(err);
                 else renderPodiums();
             });

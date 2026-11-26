@@ -489,6 +489,7 @@ public class WcaResultsFragment extends Fragment {
         status.setText("Searching...");
         footer.setText("");
         body.removeAllViews();
+        body.addView(ui.loadingBlock(WcaUi.SK_RECORDS), ui.matchWrap(0, 0, 0, 0));
         openId = null;
         fetchHits(q, (people, comps, failed) -> {
             if (!isAdded()) return;
@@ -511,6 +512,8 @@ public class WcaResultsFragment extends Fragment {
         status.setText("Loading " + wcaId + "...");
         footer.setText("");
         body.removeAllViews();
+        // A profile-shaped skeleton while the competitor loads
+        body.addView(ui.loadingBlock(WcaUi.SK_PROFILE), ui.matchWrap(0, 0, 0, 0));
         openId = wcaId;
         WcaHttp.get(WCA + "/persons/" + Uri.encode(wcaId), new WcaHttp.Callback() {
             @Override
@@ -548,6 +551,7 @@ public class WcaResultsFragment extends Fragment {
             status.setText(WcaHttp.describe(requireContext(), error) + ". Showing a saved copy from "
                     + dateTime(store.cachedAt(wcaId)) + ".");
         } else {
+            body.removeAllViews(); // the loading boxes have nothing to turn into
             String why = WcaHttp.describe(requireContext(), error);
             String hint = error.contains("403")
                     ? " WCA refused the request."

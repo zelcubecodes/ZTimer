@@ -671,6 +671,11 @@ public class WcaLiveFragment extends Fragment {
             listStatus.setText("Saved on this device.");
         }
 
+        if (items.isEmpty() && listLoading && !listLoaded && (filterMode <= 1 || filterMode == 4)) {
+            // Cards shaped like the real ones, pulsing until the competitions arrive
+            listContainer.addView(ui.loadingBlock(WcaUi.SK_COMPS), ui.matchWrap(0, 0, 0, 0));
+            return;
+        }
         if (items.isEmpty()) {
             String msg = filterMode == 2 ? "No favorites yet. Tap a star."
                     : filterMode == 3 ? "Nothing viewed yet."
@@ -842,9 +847,7 @@ public class WcaLiveFragment extends Fragment {
         card.setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(12));
         card.addView(ui.text("Recent records", 18, true, 0.85f), ui.matchWrap(0, 0, 0, 8));
         if (recordsLoading && records.isEmpty()) {
-            TextView loadingLine = ui.status(14);
-            loadingLine.setText("Loading recent records...");
-            card.addView(loadingLine);
+            card.addView(ui.loadingBlock(WcaUi.SK_RECORDS), ui.matchWrap(0, 0, 0, 0));
         } else if (recordsError != null && records.isEmpty()) {
             card.addView(ui.text(recordsError + ".", 14, false, 0.8f));
         } else if (records.isEmpty()) {
@@ -1397,6 +1400,9 @@ public class WcaLiveFragment extends Fragment {
             detailStatus.setText(detailError + ".");
         }
         if (!haveData) {
+            if (detailError == null) {
+                resultsContainer.addView(ui.loadingBlock(WcaUi.SK_RESULTS), ui.matchWrap(0, 0, 0, 0));
+            }
             if (detailError != null) {
                 boolean offline = detailError.startsWith("No internet");
                 resultsContainer.addView(ui.text(

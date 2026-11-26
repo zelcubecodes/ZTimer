@@ -219,16 +219,254 @@ public final class WcaUi {
         return v;
     }
 
-    /** What a page shows while its data loads: a spinner line, then placeholder cards. */
+    // ---- skeletons: grey boxes shaped like the page that is loading, pulsing until the real data arrives
+
+    /** Kinds of skeleton, one for each page that loads data. */
+    public static final int SK_INFO = 0;
+    public static final int SK_PEOPLE = 1;
+    public static final int SK_EVENTS = 2;
+    public static final int SK_SCHEDULE = 3;
+    public static final int SK_RESULTS = 4;
+    public static final int SK_PODIUMS = 5;
+    public static final int SK_COMPS = 6;
+    public static final int SK_PROFILE = 7;
+    public static final int SK_RECORDS = 8;
+
+    /** A grey bar standing in for a piece of text that has not arrived yet. widthDp -1 fills the width. */
+    public View skBar(int widthDp, int heightDp) {
+        View v = new View(ctx);
+        v.setBackground(rounded((text & 0x00FFFFFF) | 0x26000000, dp(4)));
+        v.setLayoutParams(new LinearLayout.LayoutParams(widthDp < 0 ? ViewGroup.LayoutParams.MATCH_PARENT : dp(widthDp), dp(heightDp)));
+        return v;
+    }
+
+    /** A grey circle or rounded square, for a flag, a picture or an event icon. */
+    public View skBlock(int sizeDp, boolean round) {
+        View v = new View(ctx);
+        v.setBackground(rounded((text & 0x00FFFFFF) | 0x26000000, round ? dp(sizeDp) / 2f : dp(6)));
+        v.setLayoutParams(new LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp)));
+        return v;
+    }
+
+    private LinearLayout skCard() {
+        LinearLayout c = new LinearLayout(ctx);
+        c.setOrientation(LinearLayout.VERTICAL);
+        c.setPadding(dp(14), dp(12), dp(14), dp(12));
+        c.setBackground(rounded(itemBg, dp(R_CARD)));
+        return c;
+    }
+
+    private LinearLayout skRow(int padV) {
+        LinearLayout r = new LinearLayout(ctx);
+        r.setOrientation(LinearLayout.HORIZONTAL);
+        r.setGravity(Gravity.CENTER_VERTICAL);
+        r.setPadding(0, dp(padV), 0, dp(padV));
+        return r;
+    }
+
+    private LinearLayout.LayoutParams skGap(int w, int h, int l, int t, int r, int b) {
+        return lp(w < 0 ? ViewGroup.LayoutParams.MATCH_PARENT : dp(w), dp(h), l, t, r, b);
+    }
+
+    /** Makes a view pulse gently while it is on screen. The delay staggers cards into a wave. */
+    private void skPulse(final View v, final long delay) {
+        final android.animation.ObjectAnimator pulse = android.animation.ObjectAnimator.ofFloat(v, "alpha", 0.5f, 1f);
+        pulse.setDuration(750);
+        pulse.setStartDelay(delay);
+        pulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+        pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+        v.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View view) { pulse.start(); }
+            @Override public void onViewDetachedFromWindow(View view) { pulse.cancel(); view.setAlpha(1f); }
+        });
+    }
+
+    private void skAdd(LinearLayout box, View card, int index) {
+        skPulse(card, index * 90L);
+        box.addView(card, lp(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, 0, 4, 0, 4));
+    }
+
+    /** One list card: a round picture on the left, two lines of text, and something small on the right. */
+    private LinearLayout skListCard(boolean pic, int line1, int line2, boolean right) {
+        LinearLayout card = skCard();
+        LinearLayout row = skRow(2);
+        if (pic) row.addView(skBlock(36, true), lp(dp(36), dp(36), 0, 0, 12, 0));
+        LinearLayout mid = new LinearLayout(ctx);
+        mid.setOrientation(LinearLayout.VERTICAL);
+        mid.addView(skBar(line1, 16), skGap(line1, 16, 0, 0, 0, 7));
+        mid.addView(skBar(line2, 11), skGap(line2, 11, 0, 0, 0, 0));
+        LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        row.addView(mid, mp);
+        if (right) row.addView(skBar(52, 18), skGap(52, 18, 8, 0, 0, 0));
+        card.addView(row);
+        return card;
+    }
+
+    /** A table card: a header line, then rows of place, name and one or two result columns. */
+    private LinearLayout skTableCard(int rows, boolean twoCols) {
+        LinearLayout card = skCard();
+        card.setPadding(dp(14), dp(10), dp(14), dp(10));
+        LinearLayout head = skRow(8);
+        head.addView(skBar(24, 10), skGap(24, 10, 0, 0, 14, 0));
+        head.addView(skBar(70, 10), skGap(70, 10, 0, 0, 0, 0));
+        card.addView(head);
+        for (int i = 0; i < rows; i++) {
+            LinearLayout r = skRow(9);
+            r.addView(skBar(22, 15), skGap(22, 15, 0, 0, 14, 0));
+            LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, dp(15), 1f);
+            np.rightMargin = dp(12);
+            View name = skBar(-1, 15);
+            name.setLayoutParams(np);
+            r.addView(name);
+            r.addView(skBar(48, 15), skGap(48, 15, 0, 0, twoCols ? 12 : 0, 0));
+            if (twoCols) r.addView(skBar(48, 15), skGap(48, 15, 0, 0, 0, 0));
+            card.addView(r);
+        }
+        return card;
+    }
+
+    /** A strip of event icons, like the event picker at the top of a competition page. */
+    private LinearLayout skEventStrip() {
+        LinearLayout card = skCard();
+        card.setPadding(dp(8), dp(6), dp(8), dp(6));
+        LinearLayout row = new LinearLayout(ctx);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        for (int i = 0; i < 7; i++) row.addView(skBlock(28, false), lp(dp(28), dp(28), 8, 8, 8, 8));
+        card.addView(row);
+        return card;
+    }
+
+    /**
+     * What a page shows while its data loads: boxes in the shape of the page, without the text,
+     * pulsing in a wave. The real content replaces them when it arrives.
+     */
+    public LinearLayout skeleton(int kind) {
+        LinearLayout box = new LinearLayout(ctx);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int i = 0;
+        switch (kind) {
+            case SK_INFO: {
+                LinearLayout card = skCard();
+                card.addView(skBar(210, 22), skGap(210, 22, 0, 0, 0, 12));
+                int[][] rows = {{60, 150}, {64, 190}, {56, 120}, {70, 170}, {76, 140}};
+                for (int[] rw : rows) {
+                    LinearLayout r = skRow(6);
+                    r.addView(skBar(rw[0], 12), skGap(rw[0], 12, 0, 0, 16, 0));
+                    r.addView(skBar(rw[1], 14), skGap(rw[1], 14, 0, 0, 0, 0));
+                    card.addView(r);
+                }
+                LinearLayout icons = new LinearLayout(ctx);
+                icons.setOrientation(LinearLayout.HORIZONTAL);
+                for (int k = 0; k < 7; k++) icons.addView(skBlock(28, false), lp(dp(28), dp(28), 0, 0, 12, 0));
+                card.addView(icons, matchWrap(0, 12, 0, 0));
+                skAdd(box, card, i++);
+                LinearLayout about = skCard();
+                about.addView(skBar(60, 13), skGap(60, 13, 0, 0, 0, 10));
+                about.addView(skBar(-1, 12), skGap(-1, 12, 0, 0, 0, 7));
+                about.addView(skBar(-1, 12), skGap(-1, 12, 0, 0, 0, 7));
+                about.addView(skBar(180, 12), skGap(180, 12, 0, 0, 0, 0));
+                skAdd(box, about, i++);
+                break;
+            }
+            case SK_PEOPLE:
+                skAdd(box, skEventStrip(), i++);
+                skAdd(box, skTableCard(9, true), i++);
+                break;
+            case SK_EVENTS:
+                for (int k = 0; k < 5; k++) {
+                    LinearLayout card = skCard();
+                    LinearLayout row = skRow(2);
+                    row.addView(skBlock(30, false), lp(dp(30), dp(30), 0, 0, 12, 0));
+                    row.addView(skBar(130 - (k % 3) * 18, 17), skGap(130 - (k % 3) * 18, 17, 0, 0, 0, 0));
+                    card.addView(row);
+                    card.addView(skBar(-1, 11), skGap(-1, 11, 0, 8, 40, 0));
+                    card.addView(skBar(160, 11), skGap(160, 11, 0, 7, 0, 0));
+                    skAdd(box, card, i++);
+                }
+                break;
+            case SK_SCHEDULE: {
+                LinearLayout tabs = skCard();
+                tabs.setPadding(dp(14), dp(10), dp(14), dp(10));
+                LinearLayout tr = new LinearLayout(ctx);
+                tr.setOrientation(LinearLayout.HORIZONTAL);
+                for (int k = 0; k < 3; k++) tr.addView(skBar(78, 28), skGap(78, 28, 0, 0, 8, 0));
+                tabs.addView(tr);
+                skAdd(box, tabs, i++);
+                LinearLayout card = skCard();
+                for (int k = 0; k < 7; k++) {
+                    LinearLayout r = skRow(8);
+                    r.addView(skBar(44, 13), skGap(44, 13, 0, 0, 12, 0));
+                    r.addView(skBlock(22, false), lp(dp(22), dp(22), 0, 0, 10, 0));
+                    r.addView(skBar(120 + (k % 3) * 24, 14), skGap(120 + (k % 3) * 24, 14, 0, 0, 0, 0));
+                    card.addView(r);
+                }
+                skAdd(box, card, i++);
+                break;
+            }
+            case SK_RESULTS:
+                skAdd(box, skEventStrip(), i++);
+                skAdd(box, skTableCard(8, true), i++);
+                break;
+            case SK_PODIUMS:
+                for (int k = 0; k < 3; k++) {
+                    LinearLayout card = skCard();
+                    LinearLayout head = skRow(2);
+                    head.addView(skBlock(26, false), lp(dp(26), dp(26), 0, 0, 10, 0));
+                    head.addView(skBar(110, 16), skGap(110, 16, 0, 0, 0, 0));
+                    card.addView(head);
+                    for (int p = 0; p < 3; p++) {
+                        LinearLayout r = skRow(7);
+                        r.addView(skBlock(18, true), lp(dp(18), dp(18), 0, 0, 12, 0));
+                        LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, dp(14), 1f);
+                        np.rightMargin = dp(12);
+                        View nm = skBar(-1, 14);
+                        nm.setLayoutParams(np);
+                        r.addView(nm);
+                        r.addView(skBar(50, 14), skGap(50, 14, 0, 0, 0, 0));
+                        card.addView(r);
+                    }
+                    skAdd(box, card, i++);
+                }
+                break;
+            case SK_COMPS:
+                for (int k = 0; k < 6; k++) skAdd(box, skListCard(true, 170 - (k % 3) * 24, 96, true), i++);
+                break;
+            case SK_PROFILE: {
+                LinearLayout card = skCard();
+                LinearLayout head = skRow(2);
+                head.addView(skBlock(64, true), lp(dp(64), dp(64), 0, 0, 14, 0));
+                LinearLayout mid = new LinearLayout(ctx);
+                mid.setOrientation(LinearLayout.VERTICAL);
+                mid.addView(skBar(170, 20), skGap(170, 20, 0, 0, 0, 8));
+                mid.addView(skBar(110, 12), skGap(110, 12, 0, 0, 0, 8));
+                mid.addView(skBar(140, 12), skGap(140, 12, 0, 0, 0, 0));
+                head.addView(mid);
+                card.addView(head);
+                skAdd(box, card, i++);
+                skAdd(box, skTableCard(7, true), i++);
+                break;
+            }
+            case SK_RECORDS:
+                for (int k = 0; k < 4; k++) skAdd(box, skListCard(false, 150 - (k % 2) * 30, 100, true), i++);
+                break;
+            default:
+                for (int k = 0; k < 3; k++) skAdd(box, skListCard(true, 150, 90, false), i++);
+                break;
+        }
+        return box;
+    }
+
+    /** What a page shows while its data loads: boxes shaped like the page, without the text. */
+    public LinearLayout loadingBlock(int kind) {
+        return skeleton(kind);
+    }
+
+    /** Older form kept for callers that only know a message and a card count. */
     public LinearLayout loadingBlock(String message, int cards) {
         LinearLayout box = new LinearLayout(ctx);
         box.setOrientation(LinearLayout.VERTICAL);
-        TextView line = status(14);
-        line.setText(message);
-        box.addView(line, matchWrap(4, 8, 4, 8));
         for (int i = 0; i < cards; i++) {
-            box.addView(skeletonCard(i == 0 ? 72 : 56), lp(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT, 0, 0, 0, 8));
+            skAdd(box, skListCard(true, 150, 90, false), i);
         }
         return box;
     }
