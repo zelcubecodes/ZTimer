@@ -47,30 +47,40 @@
     ['Lightly Skyish', '3afafa', '42f7cd', '5bfbfb', '31f7c9', 'f76642', 1], ['Cyanic Teal', '00ffa1', '00ffff', '55ffc0', '66ffff', 'ff4000', 1],
     ['Icy Hills', 'fffeff', 'd7fffe', 'fffeff', 'e8fffe', 'ff5252', 1], ['Greeny Everest', 'c6ffbd', 'ffffff', 'd5ffce', 'f2fff0', 'ff5252', 1]
   ];
+  /* the app's text styles: they change the colour of the text (timer, bars, labels) */
+  var TEXT_STYLES = [['Default', null], ['Pessoa', '#FF1744'], ['Lou', '#FF2A9F'], ['Burgess', '#FF4500'], ['Bowie', '#E86E60'], ['Brie', '#FFD4F9'], ['Matsson', '#651FFF'],
+    ['Isakov', '#2962FF'], ['Adams', '#54FFFF'], ['Irwin', '#006B21'], ['Tarkovsky', '#00E676'], ['Ebert', '#82FFB3'], ['Tolkien', '#FFFF4C'], ['Asimov', '#FFFDBB'], ['Kubrick', '#BDBDBD']];
+  var textStyle = 'Default', DEFAULT_THEME = 'Pixie Falls';
   function themeVars(t) {
     var light = !!t[6];
     return { light: light, bar: '#' + t[3], vars: {
       '--zt-a': '#' + t[1], '--zt-b': '#' + t[2], '--zt-bar': '#' + t[3], '--zt-tab': '#' + t[4], '--zt-amber': '#' + t[5],
-      '--zt-fg': light ? '#161616' : '#ffffff', '--zt-onlink': '#ffffff', '--zt-link': '#2962ff',
+      '--zt-fg': textColor(t, light), '--zt-onlink': '#ffffff', '--zt-link': '#2962ff',
       '--zt-glass': light ? 'rgba(0,0,0,.07)' : (t[0] === 'Simply Black' || t[0] === 'Spotty Guy' ? 'rgba(255,255,255,.08)' : 'rgba(10,12,90,.30)'),
       '--zt-shadow': light ? 'none' : '0 4px 24px rgba(0,0,40,.35)', '--zt-shadow2': light ? 'none' : '0 1px 6px rgba(0,0,40,.35)' } };
+  }
+  function textColor(t, light) {
+    for (var k = 0; k < TEXT_STYLES.length; k++) if (TEXT_STYLES[k][0] === textStyle && TEXT_STYLES[k][1]) return TEXT_STYLES[k][1];
+    return light ? '#161616' : '#ffffff';
   }
   function applyTheme(i, save) {
     var t = THEMES[i] || THEMES[0], v = themeVars(t), root = document.documentElement;
     for (var k in v.vars) root.style.setProperty(k, v.vars[k]);
     $('html').toggleClass('zt-light', v.light).toggleClass('zt-dark', t[0] === 'Simply Black' || t[0] === 'Spotty Guy');
     $('meta[name=theme-color]').attr('content', v.bar);
-    if (save) { try { document.cookie = 'ztimerTheme=' + encodeURIComponent(JSON.stringify({ i: i, n: t[0], light: v.light, vars: v.vars })) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {} }
+    if (save) { try { document.cookie = 'ztimerTheme=' + encodeURIComponent(JSON.stringify({ i: i, n: t[0], tx: textStyle, light: v.light, vars: v.vars })) + ';max-age=31536000;path=/;SameSite=Lax'; } catch (e) {} }
     lastSig = '';
   }
   /* themes used to be saved by position with the old short names; this maps them to the app's names */
   var OLD_THEME_NAMES = ['Hazy Blues', 'Pinky Promises', 'Definitely Purple', 'Even Purplier', 'Quite Purply', 'Tantalizing Torange', 'Delicious Brownie', 'Simply Black', 'Lightly Skyish', 'Greeny Gorilla', 'Cyanic Teal', 'Earthy Teal', 'What... Green?', 'Oof Hot', 'Notably Yellow', 'Relaxing Dawn', 'Greeny Everest', 'Icy Hills', 'Simply White'];
   function savedTheme() {
     try {
-      var m = /(?:^|; )ztimerTheme=([^;]*)/.exec(document.cookie), c = m ? JSON.parse(decodeURIComponent(m[1])) : null, nm = c ? (c.n || OLD_THEME_NAMES[c.i]) : null;
+      var m = /(?:^|; )ztimerTheme=([^;]*)/.exec(document.cookie), c = m ? JSON.parse(decodeURIComponent(m[1])) : null, nm = c ? (c.n || OLD_THEME_NAMES[c.i]) : DEFAULT_THEME;
+      if (c && c.tx) textStyle = c.tx;
       for (var k = 0; k < THEMES.length; k++) if (THEMES[k][0] === nm) return k;
-      return 0;
-    } catch (e) { return 0; }
+    } catch (e) {}
+    for (var d = 0; d < THEMES.length; d++) if (THEMES[d][0] === DEFAULT_THEME) return d;
+    return 0;
   }
   function fg() { return (getComputedStyle(document.documentElement).getPropertyValue('--zt-fg') || '#fff').trim(); }
 
@@ -126,6 +136,8 @@
     var head = $('<div class="zp-head"></div>').append(icon(ic), $('<b class="zp-title"></b>').text(title),
       $('<span class="zp-sub"></span>'),
       $('<button class="zp-gear" title="Options" aria-label="Options"></button>').append(icon('settings')).on('click', function () { show('options'); }));
+    if (id === 'options' || id === 'themes' || id === 'scheme' || id === 'backup' || id === 'sessions')
+      head.prepend($('<button class="zp-back" title="Back" aria-label="Back"></button>').append(icon('back')).on('click', function () { navBack(false); }));
     p.append(head, $('<div class="zp-body"></div>'));
     p.hide().appendTo(root);
     pages[id] = p;
@@ -151,7 +163,7 @@
     var body = p.find('.zp-body').empty(), a = showArch ? archSolves() : solves(), src = $('#stats select').first();
     subtitle(p);
     var tools = $('<div class="zsbar"></div>').appendTo(body);
-    $('<button class="zbtn" title="Add time" aria-label="Add time"></button>').append(icon('alarm')).on('click', function () { addTimeDialog(function () { renderSolves(p); }); }).appendTo(tools);
+    $('<button class="zbtn" title="Add time" aria-label="Add time"></button>').append(icon('alarmadd')).on('click', function () { addTimeDialog(function () { renderSolves(p); }); }).appendTo(tools);
     $('<span class="zsb-sep"></span>').appendTo(tools);
     $('<input type="search" class="zsearch" placeholder="Search comments" aria-label="Search solves">').val(solveQuery).on('input', function () {
       solveQuery = this.value; var pos = this.selectionStart; renderSolves(p); var n = p.find('.zsearch')[0]; n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {}
@@ -166,10 +178,10 @@
       popMenu($(this), [['Sort by time, fastest first', function () { sortMode = 'best'; renderSolves(p); }], ['Sort by time, slowest first', function () { sortMode = 'worst'; renderSolves(p); }],
         ['Sort by date, newest first', function () { sortMode = 'new'; renderSolves(p); }], ['Sort by date, oldest first', function () { sortMode = 'old'; renderSolves(p); }],
         ['Share ao5', function () { shareAvg(5); }], ['Share ao12', function () { shareAvg(12); }],
-        ['Delete all solves', function () {
+        zs('clearBtn') ? ['Delete all solves', function () {
           if (!a.length) return;
           if (confirm('Delete all ' + a.length + ' solves in this session?')) { for (var k = 0; k < a.length; k++) kernel.pushSignal('ctrl', ['stats', 'undo']); setTimeout(function () { renderSolves(p); }, 300); }
-        }], ['Category', function () { show('sessions'); }], ['Export or import', function () { show('backup'); }]]);
+        }] : null, ['Category', function () { show('sessions'); }], ['Export or import', function () { show('backup'); }]].filter(Boolean));
     }).appendTo(tools);
     if (!a.length) { body.append($('<p class="zp-note"></p>').text(showArch ? 'Nothing archived here yet. Use the three dots on a solve to archive it.' : 'No solves in this session yet. Go to the Timer tab and do a solve.')); return; }
     var list = $('<div class="zlist zgrid"></div>').appendTo(body);
@@ -349,12 +361,12 @@
     }
     c.fillStyle = fg(); c.textAlign = 'center'; c.fillText('1', L + 6, H - 8); c.fillText(String(n), W - R - 10, H - 8);
   }
-  function drawHistogram(cv, a) {
+  function drawHistogram(cv, a, vals) {
     var W = cv.parentNode.clientWidth || 320, H = 170, dpr = window.devicePixelRatio || 1;
     cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
     var c = cv.getContext('2d'); c.scale(dpr, dpr); c.clearRect(0, 0, W, H); c.textAlign = 'center';
-    var v = a.map(function (x) { return x.t; }).filter(function (x) { return x !== Infinity; });
-    if (v.length < 3) { c.fillStyle = fg(); c.font = '600 14px Quicksand,sans-serif'; c.fillText('Needs at least 3 solves', W / 2, H / 2); return; }
+    var v = (vals || a.map(function (x) { return x.t; })).filter(function (x) { return x != null && x !== Infinity; });
+    if (v.length < 3) { c.fillStyle = fg(); c.font = '600 14px Quicksand,sans-serif'; c.fillText('Needs at least 3 results', W / 2, H / 2); return; }
     var lo = Math.min.apply(null, v), hi = Math.max.apply(null, v), steps = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 30000, 60000], bw = 60000;
     for (var i = 0; i < steps.length; i++) if (Math.ceil((hi - lo + 1) / steps[i]) <= 10) { bw = steps[i]; break; }
     var start = Math.floor(lo / bw) * bw, n = Math.max(1, Math.ceil((hi - start + 1) / bw)), bins = [], mx = 0;
@@ -405,7 +417,7 @@
     function mx(arr) { var o = oks(arr); return o.length ? Math.max.apply(null, o) : null; }
     function total(arr) { return arr.length ? arr.reduce(function (s, x) { return s + (x.t === Infinity ? 0 : x.t); }, 0) : null; }
     function f(v) { return v == null ? '--' : pretty(v); }
-    var sets = [gl, a, td];
+    var cols = [['Global', gl], ['Session', zs('stSession') ? a : undefined], ['Today', zs('stToday') ? td : undefined]].filter(function (c) { return c[1] !== undefined; }), sets = cols.map(function (c) { return c[1]; });
     function row(label, fn) { return [label].concat(sets.map(function (arr) { return arr ? fn(arr) : '...'; })); }
     var T = [
       ['Improvement', [row('Deviation', function (x) { return f(dev(x)); }), row('Ao12', function (x) { return f(bestAvg(x, 12)); }), row('Ao50', function (x) { return f(bestAvg(x, 50)); }),
@@ -417,9 +429,9 @@
     var card = $('<div class="zstat"></div>'), tabs = $('<div class="zst-tabs"></div>').appendTo(card), grid = $('<div class="zst-grid"></div>').appendTo(card);
     function fill(k) {
       statTab = k; tabs.children().removeClass('on').eq(k).addClass('on'); grid.empty();
-      grid.css('grid-template-columns', '0.9fr 1fr 1fr 1fr');
+      grid.css('grid-template-columns', '0.9fr' + ' 1fr'.repeat(cols.length));
       grid.append($('<span class="zst-h zst-sig"></span>').append(icon('sigma')));
-      ['Global', 'Session', 'Today'].forEach(function (h) { grid.append($('<span class="zst-h"></span>').text(h)); });
+      cols.forEach(function (c) { grid.append($('<span class="zst-h"></span>').text(c[0])); });
       T[k][1].forEach(function (rw) { rw.forEach(function (c, i) { grid.append($('<span></span>').addClass(i ? 'zst-v' : 'zst-l').text(c)); }); });
     }
     T.forEach(function (t, k) { $('<button></button>').text(t[0]).on('click', function () { fill(k); }).appendTo(tabs); });
@@ -433,11 +445,16 @@
     body.append($('<div class="zgraph"></div>').append(cv));
     body.append($('<div class="zlegend"></div>').html('<span style="--c:#ffffff">Everything</span><span style="--c:#ffd740">Best</span><span style="--c:#f44336">Ao5</span><span style="--c:#8bc34a">Ao12</span>'));
     body.append(statCard(a, function () { if (current === 'stats') renderStats(p); }));
-    var hv = document.createElement('canvas');
-    body.append($('<h3 class="zp-h">Time distribution</h3>'), $('<div class="zgraph"></div>').append(hv));
-    renderPbHistory(body, a);
+    var hv = document.createElement('canvas'), distBox = $('<div></div>').appendTo(body), pbBox = $('<div></div>').appendTo(body);
+    function drawDist() {
+      var n = PB_NS[distType]; distBox.empty().append($('<h3 class="zp-h">Time distribution</h3>'), typeChips(distType, function (i) { distType = i; drawDist(); }));
+      var wrap = $('<div class="zgraph"></div>').append(hv).appendTo(distBox);
+      drawHistogram(hv, a, seriesOf(a, n));
+    }
+    function drawPb() { pbBox.empty(); renderPbHistory(pbBox, a, function () { drawPb(); }); }
+    drawPb();
     body.append($('<button class="zshare"></button>').append(icon('share'), $('<span>Copy summary</span>')).on('click', function () { copySummary(a, r); }));
-    drawChart(cv, r, a); drawHistogram(hv, a);
+    drawChart(cv, r, a); drawDist();
   }
   function copySummary(a, r) {
     var c = currentPuzzle(), f = function (v) { return v == null ? '-' : pretty(v); };
@@ -534,20 +551,12 @@
   }
 
   /* ---- WCA page ---- */
+  var wcaHandle = null;
   function renderWca(p) {
-    var body = p.find('.zp-body').empty(), box = $('<div class="zwca"></div>').appendTo(body);
-    p.find('.zp-sub').text('World Cube Association data');
-    if (window.zWcaRender) window.zWcaRender(box); else box.text('WCA data is not available.');
-    var EV = { '3x3': '333', '2x2': '222', '4x4': '444', '5x5': '555', '6x6': '666', '7x7': '777', '3x3 Blindfolded': '333bf', '3x3 Fewest Moves': '333fm', '3x3 One-Handed': '333oh', 'Clock': 'clock',
-      'Megaminx': 'minx', 'Pyraminx': 'pyram', 'Skewb': 'skewb', 'Square-1': 'sq1', '4x4 Blindfolded': '444bf', '5x5 Blindfolded': '555bf', '3x3 Multi-Blind': '333mbf' };
-    function decorate() {
-      box.find('table td:first-child:not([data-ev])').each(function () {
-        var k = EV[$(this).text().trim()]; $(this).attr('data-ev', 1);
-        if (k) $(this).prepend($('<span class="zpi zpi-ev-' + k + ' zev"></span>'));
-      });
-    }
-    try { new MutationObserver(decorate).observe(box[0], { childList: true, subtree: true }); } catch (e) {}
-    decorate();
+    var body = p.find('.zp-body').empty();
+    p.find('.zp-sub').text('Results and live');
+    if (wcaHandle) wcaHandle.stop();
+    if (window.zWcaApp) wcaHandle = window.zWcaApp(body, { icon: icon, zs: zs, toast: toast }); else body.text('WCA data is not available.');
   }
 
   /* ---- Puzzle chooser page (like the app's puzzle dialog) ---- */
@@ -637,6 +646,7 @@
     var c = currentPuzzle();
     actionbar.find('.za-name').text(mode === 'trainer' ? 'Training ' + c.name : c.name); actionbar.find('.za-cat').text(c.cat);
     var cs = findSet(kernel.getProp('scrType')); actionbar.find('.za-cases').toggleClass('on', !!(cs && caseData(cs[1])));
+    actionbar.find('.za-scope .zi').removeClass('zi-trainer zi-timer').addClass(mode === 'trainer' ? 'zi-timer' : 'zi-trainer');
   }
   function closeDrawer() { drawer.removeClass('open'); }
   function openDrawer() { drawer.find('.zd-item[data-page]').each(function () { $(this).toggleClass('on', $(this).attr('data-page') === current); }); drawer.addClass('open'); }
@@ -647,6 +657,7 @@
       ['sec', 'Other'],
       ['share', 'Export/Import', function () { show('backup'); }],
       ['palette', 'App theme', function () { show('themes'); }],
+      ['imgpref', 'Color scheme', function () { show('scheme'); }],
       ['div'],
       ['settings', 'Settings', function () { show('options'); }],
       ['help', 'About and feedback', function () { $('#leftbar .c5').click(); }]];
@@ -671,7 +682,7 @@
       $('<button class="zsb zsb-last" title="Previous scramble" aria-label="Previous scramble"></button>').append(icon('undo')).on('click', function () {
         card.find('.title > nobr').eq(1).children('span').eq(0).click();
       }).appendTo(box);
-      $('<button class="zsb" title="Add time" aria-label="Add time"></button>').append(icon('alarm')).on('click', function () { addTimeDialog(function () { updateCorners(); }); }).appendTo(box);
+      $('<button class="zsb" title="Add time" aria-label="Add time"></button>').append(icon('alarmadd')).on('click', function () { addTimeDialog(function () { updateCorners(); }); }).appendTo(box);
       $('<button class="zsb" title="Edit scramble" aria-label="Edit scramble"></button>').append(icon('edit')).on('click', function () {
         commentDialog($('#scrambleTxt').text().trim(), function (txt) { txt = txt.trim(); if (txt) { try { kernel.pushSignal('scrfix', txt); } catch (e) {} } }, 'Edit scramble');
       }).appendTo(box);
@@ -692,11 +703,14 @@
     if (sig === lastSig) return;
     lastSig = sig;
     var r = compute(a), st = kernel.getProp('scrType');
-    if (prev && prev.st === st && a.length === prev.n + 1 && prev.n >= 4 && prev.best != null && r.best != null && r.best < prev.best && a[a.length - 1].t === r.best)
-      pbBurst('Congratulations!<br>You\u2019ve just beaten your previous personal best by ' + pretty(prev.best - r.best));
-    else if (prev && prev.st === st && a.length === prev.n + 1 && prev.ao5 != null && r.ao5 != null && r.ao5 !== Infinity && r.ao5 === r.bao5 && r.ao5 < prev.bao5)
-      pbBurst('<b>New average best!</b><br>ao5 ' + pretty(r.ao5));
-    prev = { st: st, n: a.length, best: r.best, ao5: r.ao5, bao5: r.bao5 };
+    var okT = a.filter(function (x) { return x.t !== Infinity; }).map(function (x) { return x.t; }), worst = okT.length ? Math.max.apply(null, okT) : null;
+    if (prev && prev.st === st && a.length === prev.n + 1 && prev.n >= 4 && prev.best != null && r.best != null && r.best < prev.best && a[a.length - 1].t === r.best) {
+      if (zs('bestSingle')) pbBurst('Congratulations!<br>You\u2019ve just beaten your previous personal best by ' + pretty(prev.best - r.best));
+    } else if (prev && prev.st === st && a.length === prev.n + 1 && prev.ao5 != null && r.ao5 != null && r.ao5 !== Infinity && r.ao5 === r.bao5 && r.ao5 < prev.bao5) {
+      if (zs('bestAvg')) pbBurst('<b>New average best!</b><br>ao5 ' + pretty(r.ao5));
+    } else if (zs('worstSingle') && prev && prev.st === st && a.length === prev.n + 1 && prev.n >= 4 && prev.worst != null && worst != null && worst > prev.worst && a[a.length - 1].t === worst)
+      pbBurst('<b>New worst time</b><br>' + pretty(worst));
+    prev = { st: st, n: a.length, best: r.best, ao5: r.ao5, bao5: r.bao5, worst: worst };
     var ok = a.filter(function (x) { return x.t !== Infinity; }).map(function (x) { return x.t; }), sd = null;
     if (ok.length > 1) { var mu = r.mean; sd = Math.sqrt(ok.reduce(function (q, x) { return q + (x - mu) * (x - mu); }, 0) / ok.length); }
     var mo3 = null;
@@ -710,9 +724,9 @@
       return (sum - Math.max.apply(null, w)) / (n - 2);
     }
     var rec = a.slice(-5).reverse().map(function (x) { return pretty(x.t); }); while (rec.length < 5) rec.push('--');
-    cornerL.html([line('Deviation', sd), line('Mean', r.mean), line('Best', r.best), 'Count: <b>' + r.n + '</b>', line('BPA Ao5', bpa(5)), line('BPA Ao12', bpa(12))].join('<br>'));
-    cornerR.html('<span class="zc-recent">Recent results:<br>' + rec.map(function (x) { return '<b>' + x + '</b>'; }).join('<br>') + '</span><br>' +
-      [line('Mo3', mo3), line('Ao5', r.ao5), line('Ao12', r.ao12), line('Ao50', ao50), line('Ao100', r.ao100), line('Ao1000', ao1000)].join('<br>'));
+    cornerL.html([line('Deviation', sd), line('Mean', r.mean), line('Best', r.best), 'Count: <b>' + r.n + '</b>', zs('cBpa5') ? line('BPA Ao5', bpa(5)) : '', zs('cBpa12') ? line('BPA Ao12', bpa(12)) : ''].filter(Boolean).join('<br>'));
+    cornerR.html((zs('cRecent') ? '<span class="zc-recent">Recent results:<br>' + rec.map(function (x) { return '<b>' + x + '</b>'; }).join('<br>') + '</span><br>' : '') +
+      [zs('cMo3') ? line('Mo3', mo3) : '', line('Ao5', r.ao5), line('Ao12', r.ao12), line('Ao50', ao50), line('Ao100', r.ao100), zs('cAo1000') ? line('Ao1000', ao1000) : ''].filter(Boolean).join('<br>'));
   }
 
   /* ---- Add a time by hand (like the app's Add time dialog) ---- */
@@ -789,14 +803,116 @@
       var v = themeVars(t), c = v.light ? '#161616' : '#ffffff';
       $('<button class="ztheme"></button>').css({ background: 'linear-gradient(160deg,#' + t[1] + ',#' + t[2] + ')', color: c }).toggleClass('on', i === cur)
         .append(i === cur ? icon('settings').removeClass('zi-settings').addClass('zi-check') : '', $('<span></span>').text(t[0]), $('<i></i>').css('background', '#' + t[3]))
-        .on('click', function () { applyTheme(i, true); renderThemes(p); }).appendTo(grid);
+        .on('click', function () { textStyle = 'Default'; applyTheme(i, true); renderThemes(p); }).appendTo(grid);
     });
+    /* text styles, like the second row of the app's theme pop-up */
+    body.append($('<h3 class="zp-h">Text style</h3>'));
+    var tg = $('<div class="ztextgrid"></div>').appendTo(body);
+    TEXT_STYLES.forEach(function (ts) {
+      var on = ts[0] === textStyle, col = ts[1] || (THEMES[cur][6] ? '#161616' : '#ffffff');
+      $('<button class="ztext"></button>').toggleClass('on', on).append($('<span class="ztx-a"></span>').text('Aa').css('color', col), $('<span class="ztx-n"></span>').text(ts[0]))
+        .on('click', function () { textStyle = ts[0]; applyTheme(cur, true); renderThemes(p); }).appendTo(tg);
+    });
+  }
+
+  /* ---- Colour scheme page: the cube's colours (the app's "Color scheme") ---- */
+  var SCHEME_FACES = [['Up', 0], ['Right', 1], ['Front', 2], ['Down', 3], ['Left', 4], ['Back', 5]];
+  var SCHEME_PAL = ['#fff', '#ff0', '#fa0', '#f00', '#0d0', '#00f', '#f0f', '#0ff', '#f8a', '#8f0', '#a0f', '#888', '#000'];
+  var SCHEME_DEFAULT = '#ff0#fa0#00f#fff#f00#0d0';
+  function renderScheme(p) {
+    var body = p.find('.zp-body').empty(), cols = (kernel.getProp('colcube') || SCHEME_DEFAULT).match(/#[0-9a-fA-F]{3}/g) || SCHEME_DEFAULT.match(/#[0-9a-fA-F]{3}/g);
+    p.find('.zp-sub').text('Colours of the cube');
+    var net = $('<div class="zscheme-net"></div>').appendTo(body);
+    cols.slice(0, 6).forEach(function (c, i) { $('<i></i>').css('background', c).attr('title', SCHEME_FACES[i][0]).appendTo(net); });
+    SCHEME_FACES.forEach(function (f) {
+      var row = $('<div class="zscheme-row"></div>').append($('<b></b>').text(f[0])), pal = $('<div class="zscheme-pal"></div>').appendTo(row);
+      SCHEME_PAL.forEach(function (c) {
+        $('<button class="zsw-c"></button>').css('background', c).toggleClass('on', cols[f[1]].toLowerCase() === c).attr('aria-label', c)
+          .on('click', function () { var n = cols.slice(); n[f[1]] = c; kernel.setProp('colcube', n.join('')); renderScheme(p); }).appendTo(pal);
+      });
+      body.append(row);
+    });
+    body.append($('<button class="zshare"></button>').append(icon('retry'), $('<span>Reset to the default colours</span>')).on('click', function () { kernel.setProp('colcube', SCHEME_DEFAULT); renderScheme(p); }));
   }
 
 
   /* ---- Options page: the app's settings as grouped cards. Each row reads and writes csTimer's real settings. ----
      Row types: ['sw', key, title, summary] switch, ['sel', key, title, summary, [[value,label],...]] choice,
      ['num', key, title, summary, min, max] number, ['go', title, summary, fn] link to another screen. */
+  /* ZTimer's own settings (the ones csTimer has no setting for) live in this browser's storage */
+  var ZS_DEF = { bestSingle: true, bestAvg: true, worstSingle: false, cMo3: true, cAo1000: true, cBpa5: true, cBpa12: true, cRecent: true, cStats: true, bigQuick: false, swipe: true,
+    noMenuBg: false, noTabBg: false, bgOn: false, bgOpacity: 60, stSession: true, stToday: true, clearBtn: true, wcaAuto: true, wcaAttempts: false, showImg: true };
+  function zs(k) { try { var o = JSON.parse(localStorage.ztSet || '{}'); return k in o ? o[k] : ZS_DEF[k]; } catch (e) { return ZS_DEF[k]; } }
+  function zsSet(k, v) { try { var o = JSON.parse(localStorage.ztSet || '{}'); o[k] = v; localStorage.ztSet = JSON.stringify(o); } catch (e) {} applyZs(); }
+  function applyZs() {
+    $('html').toggleClass('zt-bigq', !!zs('bigQuick')).toggleClass('zt-nomenubg', !!zs('noMenuBg')).toggleClass('zt-notabbg', !!zs('noTabBg'))
+      .toggleClass('zt-nocorners', !zs('cStats')).toggleClass('zt-noimg', !zs('showImg'));
+    var st = $('#zt-bgstyle'); if (!st.length) st = $('<style id="zt-bgstyle"></style>').appendTo('head');
+    var img = ''; try { img = localStorage.ztBgImg || ''; } catch (e) {}
+    if (zs('bgOn') && img) { var a = Math.max(0, Math.min(100, +zs('bgOpacity'))) / 100;
+      st.text('html,body{background-image:linear-gradient(160deg,color-mix(in srgb,var(--zt-a) ' + Math.round(a * 100) + '%,transparent),color-mix(in srgb,var(--zt-b) ' + Math.round(a * 100) + '%,transparent)),url(' + img + ')!important;background-size:cover!important;background-position:center!important;background-attachment:fixed!important}'); }
+    else st.text('');
+    lastSig = '';
+  }
+  /* row builders for the app-style settings: every row has a title, a summary and a getter / setter */
+  function kSw(key, title, sum) { return { t: 'sw', title: title, sum: sum, get: function () { return !!kernel.getProp(key); }, set: function (v) { kernel.setProp(key, v); }, has: function () { return kernel.getProp(key) !== undefined; } }; }
+  function zSw(key, title, sum) { return { t: 'sw', title: title, sum: sum, get: function () { return !!zs(key); }, set: function (v) { zsSet(key, v); } }; }
+  function cSw(title, sum, get, set) { return { t: 'sw', title: title, sum: sum, get: get, set: set }; }
+  function kNum(key, title, sum, min, max) { return { t: 'num', title: title, sum: sum, min: min, max: max, get: function () { return +kernel.getProp(key); }, set: function (v) { kernel.setProp(key, v); }, has: function () { return kernel.getProp(key) !== undefined; } }; }
+  function kSel(key, title, sum, opts) { return { t: 'sel', title: title, sum: sum, opts: opts, get: function () { return kernel.getProp(key); }, set: function (v) { kernel.setProp(key, v); }, has: function () { return kernel.getProp(key) !== undefined; } }; }
+  function goRow(title, sum, fn) { return { t: 'go', title: title, sum: sum, fn: fn }; }
+  function pickBgImage() {
+    var f = $('<input type="file" accept="image/*" style="display:none">').appendTo('body');
+    f.on('change', function () {
+      var file = this.files[0]; f.remove(); if (!file) return;
+      var r = new FileReader(); r.onload = function () {
+        var im = new Image(); im.onload = function () {
+          var k = Math.min(1, 1600 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = im.width * k; cv.height = im.height * k;
+          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+          try { localStorage.ztBgImg = cv.toDataURL('image/jpeg', 0.82); zsSet('bgOn', true); toast('Background image saved'); renderOptions(pages.options); } catch (e) { toast('That picture is too big to keep here.'); }
+        }; im.src = r.result;
+      }; r.readAsDataURL(file);
+    });
+    f[0].click();
+  }
+  /* the app's settings screen: three sections of links, then WCA settings; every link opens its own page */
+  var APP_SETTINGS = [
+    ['Timer', [goRow('Inspection behavior', '', 'inspection'), goRow('Timer behavior', '', 'behavior'), goRow('Timer appearance', '', 'appearance')]],
+    ['WCA settings', [zSw('wcaAuto', 'Auto-refresh WCA Live', 'Refresh results every 30 seconds while viewing a round'), zSw('wcaAttempts', 'Show attempts in WCA Live results', 'Show every solve under each competitor in a round')]],
+    ['Other', [goRow('General', '', 'general'), goRow('Background image settings', '', 'bgimage'), goRow('Statistics', '', 'stats'), goRow('List', '', 'list')]]
+  ];
+  var APP_SUB = {
+    inspection: ['Inspection behavior', [['Inspection', [
+      cSw('Inspection', 'Count down 15 seconds before the solve starts', function () { return kernel.getProp('useIns') !== 'n'; }, function (v) { kernel.setProp('useIns', v ? 'a' : 'n'); }),
+      kSw('showIns', 'Inspection icon', 'Show an icon when inspection is switched on')]],
+      ['Alerts', [cSw('Alert time left', 'Says 8 seconds and 12 seconds during inspection', function () { return kernel.getProp('voiceIns') !== 'n'; }, function (v) { kernel.setProp('voiceIns', v ? '1' : 'n'); }),
+        kNum('voiceVol', 'Alert volume', 'Volume of the spoken alerts', 1, 100)]]]],
+    behavior: ['Timer behavior', [['General', [kSw('useMilli', 'Use three decimal places', 'Calculate and display times to the thousandth of a second')]],
+      ['Control', [cSw('Manual mode', 'Adds a button on the timer screen for easier manual time entry', function () { return kernel.getProp('input') === 'i'; }, function (v) { kernel.setProp('input', v ? 'i' : 't'); }),
+        cSw('Hold to start', 'Hold the timer for 0.5 seconds to start', function () { return +kernel.getProp('preTime') > 0; }, function (v) { kernel.setProp('preTime', v ? 550 : 0); }),
+        kSw('useMouse', 'Touch timer', 'Tap the timer to start and stop')]],
+      ['Multi Phase', [cSw('Multi-Phase', 'Enable multi-phase for measuring lap times', function () { return +kernel.getProp('phases') > 1; }, function (v) { kernel.setProp('phases', v ? 2 : 1); }),
+        kNum('phases', 'Number of phases', 'The number of phases (2 - 10)', 2, 10), kSw('phaseBeep', 'Phase beep', 'Beep when a phase time is recorded')]],
+      ['Alerts', [zSw('bestSingle', 'Best time alert', 'Alert when you get a personal best'), zSw('bestAvg', 'Best average alert', 'Alert and highlight stats when you get a new best average'),
+        zSw('worstSingle', 'Worst time alert', 'Alert when you get a personal worst')]]]],
+    appearance: ['Timer appearance', [['Features', [zSw('showImg', 'Scramble image', 'Show an image of the scramble on the timer'), zSw('cStats', 'Session stats', 'Show current session statistics on the timer'),
+        zSw('cMo3', 'Session stats : Mo3', 'Show Mo3 on current session statistics'), zSw('cAo1000', 'Session stats : Ao1000', 'Show Ao1000 on current session statistics'),
+        zSw('cBpa5', 'BPA Ao5', 'Show the best possible Ao5 on the timer'), zSw('cBpa12', 'BPA Ao12', 'Show the best possible Ao12 on the timer'),
+        zSw('cRecent', 'Recent results', 'Show current session recent results on the timer'), kSw('zQuick', 'Quick action buttons', 'Show the buttons that appear under the timer after a solve'),
+        zSw('bigQuick', 'Enlarge quick action buttons', 'Enlarge the buttons under the timer after a solve')]],
+      ['Other', [cSw('Hide time while solving', 'The timer will display your time when you finish', function () { return kernel.getProp('timeU') === 'n'; }, function (v) { kernel.setProp('timeU', v ? 'n' : 'u'); }),
+        kNum('scrSize', 'Scramble text size', 'Controls the size of the scramble sequence text shown in the timer', 5, 50)]],
+      ['Advanced', [kNum('timerSize', 'Timer text size', 'Controls the size of the timer text', 1, 100), kNum('imgSize', 'Scramble image size', 'Controls the size of the scramble image', 5, 50)]]]],
+    general: ['General', [['General', [zSw('swipe', 'Allow swiping between tabs', 'If this setting is disabled, you\u2019ll have to tap the tabs to switch between them.'),
+      zSw('noMenuBg', 'Disable menu background', 'Disables the tinted background behind the top menu bar'), zSw('noTabBg', 'Disable tab bar background', 'Disables the tinted background behind the bottom tab bar')]]]],
+    bgimage: ['Background image settings', [['Background image settings', [zSw('bgOn', 'Show background image', 'Display the selected image as the background'),
+      goRow('Choose background image', 'Choose a background image from your device', pickBgImage),
+      { t: 'num', title: 'Theme color overlay opacity', sum: 'Set the opacity of the theme color overlay above the background image (0% = fully transparent)', min: 0, max: 100, get: function () { return +zs('bgOpacity'); }, set: function (v) { zsSet('bgOpacity', v); } }]]]],
+    stats: ['Statistics', [['Statistics', [kSel('trim', 'Average trim', 'Controls the number of best and worst solves excluded from the averages', [['0', 'None'], ['1', 'One each side'], ['p1', '1%'], ['p5', '5%'], ['p10', '10%'], ['p20', '20%'], ['m', 'Median']])]],
+      ['Tables', [zSw('stSession', 'Session stats', 'Show current session stats on the statistics table'), zSw('stToday', 'Today\u2019s stats', 'Show today\u2019s stats on the statistics table. The date is switched on at 5:00am')]]]],
+    list: ['List', [['List', [zSw('clearBtn', 'Show "Clear" button', 'The "Clear" button is shown in the time list, and lets you remove all solves from the current session')]]]]
+  };
+  var optPath = [], navStack = [], skipPop = 0;
   var OPTIONS = [
     ['Inspection', [
       ['sel', 'useIns', 'WCA inspection', 'Count down 15 seconds before the solve starts', [['a', 'Always (hold to start)'], ['ap', 'Always (release to start)'], ['b', 'Except blindfolded (hold)'], ['bp', 'Except blindfolded (release)'], ['n', 'Never']]],
@@ -887,36 +1003,93 @@
     if (!$('#toolsDiv').is(':visible')) $('#leftbar .c6').click();
     if (!$('#ztools-done').length) $('<button id="ztools-done">Done</button>').on('click', function () { $('html').removeClass('zt-toolsfull'); }).appendTo('body');
   }
-  /* Bluetooth button (next to settings, like the app): shows csTimer's Bluetooth cube tool and starts the connection */
+  /* Bluetooth: ZTimer's own pop-up on top of csTimer's drivers (GAN, Moyu, QiYi, GoCube, Giiker ... and smart timers) */
   function openBluetooth() {
-    openTools();
-    var label = (typeof TOOLS_GIIKER !== 'undefined' ? TOOLS_GIIKER : 'Bluetooth cube');
-    try {
-      var sels = $('#toolsDiv select').filter(function () { return $(this).find('option').length; });
-      var has = function (sel) { return sel.find('option').filter(function () { return $(this).text() === label; }).first(); };
-      var done = false;
-      sels.each(function () { var o = has($(this)); if (!done && o.length) { $(this).val(o.val()).trigger('change'); done = true; } });
-      if (!done) sels.each(function () {
-        var s1 = $(this);
-        s1.find('option').each(function () {
-          if (done) return;
-          s1.val($(this).val()).trigger('change');
-          $('#toolsDiv select').each(function () { var o = has($(this)); if (!done && o.length) { $(this).val(o.val()).trigger('change'); done = true; } });
-        });
+    var d = appDialog('Bluetooth'), box = $('<div class="zbt"></div>').appendTo(d.card), poll = null, sup = !!navigator.bluetooth;
+    var status = $('<div class="zbt-st"></div>'), btnCube = $('<button class="zbt-btn"></button>'), btnTimer = $('<button class="zbt-btn alt"></button>'),
+      btnOff = $('<button class="zbt-btn off"></button>').text('Disconnect'), btnSolved = $('<button class="zbt-btn alt"></button>').text('Mark cube as solved'),
+      note = $('<p class="zbt-note"></p>');
+    function connected() { try { return !!(window.GiikerCube && GiikerCube.isConnected()); } catch (e) { return false; } }
+    function refresh() {
+      var on = connected(); box.toggleClass('on', on);
+      status.empty().append($('<i class="zbt-dot"></i>'), $('<span></span>').text(on ? 'Connected' : (sup ? 'Not connected' : 'Not available here')));
+      btnCube.text(on ? 'Connect another cube' : 'Connect smart cube'); btnTimer.text('Connect smart timer');
+      btnOff.toggle(on); btnSolved.toggle(on);
+      if (on) { try { GiikerCube.getCube().getBatteryLevel().then(function (v) { if (v != null) status.find('span').text('Connected  \u00B7  battery ' + v + '%'); }, function () {}); } catch (e) {} }
+    }
+    function run(fn, name) {
+      if (!sup) { toast('Web Bluetooth is not available in this browser.'); return; }
+      status.find('span').text('Looking for your ' + name + '...');
+      Promise.resolve().then(fn).then(function () { refresh(); if (connected() || name === 'timer') toast('<b>Bluetooth</b><br>Connected'); }, function (e) {
+        var m = String(e && e.message || e || ''); refresh(); if (!/cancel|chosen|NotFound/i.test(m)) toast('Could not connect: ' + m.slice(0, 80));
       });
-    } catch (e) {}
-    setTimeout(function () { $('#toolsDiv .click').filter(function () { return /connect/i.test($(this).text()) && !/disconnect/i.test($(this).text()); }).first().click(); }, 150);
+    }
+    btnCube.on('click', function () { run(function () { kernel.setProp('input', 'g'); return giikerutil.init(); }, 'cube'); });
+    btnTimer.on('click', function () { run(function () { kernel.setProp('input', 'b'); return window.BluetoothTimer.init(); }, 'timer'); });
+    btnOff.on('click', function () { try { GiikerCube.stop(); } catch (e) {} try { giikerutil.stop(); } catch (e) {} setTimeout(refresh, 300); });
+    btnSolved.on('click', function () { try { giikerutil.markSolved(); toast('Cube marked as solved'); } catch (e) {} });
+    note.html(sup ? 'Turn your cube or timer on, then tap Connect and pick it from the list. Works with GAN, Moyu, QiYi, GoCube, Giiker and more.' : 'This browser cannot use Bluetooth. Open ZTimer in Chrome or Edge (Android, Windows, Mac, Linux), or in Bluefy on iPhone.');
+    box.append(status, btnCube, btnTimer, btnOff, btnSolved, note, $('<div class="zm-btns"></div>').append($('<button class="zm-btn">Close</button>').on('click', function () { clearInterval(poll); d.close(); })));
+    d.ov.on('remove', function () { clearInterval(poll); });
+    refresh(); poll = setInterval(function () { if (!document.body.contains(d.ov[0])) { clearInterval(poll); return; } var was = box.hasClass('on'); if (was !== connected()) refresh(); }, 1200);
   }
+  function appRow(r, p) {
+    var row = $('<div class="zopt"></div>'), text = $('<div class="zo-t"></div>').append($('<b></b>').text(r.title));
+    if (r.sum) text.append($('<span></span>').text(r.sum));
+    row.append(text);
+    if (r.t === 'go') { row.addClass('go').on('click', function () { if (typeof r.fn === 'string') optGo(r.fn); else r.fn(); }).append('<i class="zchev"></i>'); return row; }
+    if (r.t === 'sw') {
+      var on = !!r.get(), sw = $('<button class="zsw" role="switch"></button>').toggleClass('on', on).attr('aria-checked', on).append('<i></i>');
+      row.addClass('tap').on('click', function () { var v = !r.get(); r.set(v); sw.toggleClass('on', v).attr('aria-checked', v); lastSig = ''; renderOptionsKeep(p); }); row.append(sw);
+    } else if (r.t === 'sel') {
+      var s2 = $('<select class="zosel"></select>'), idx = 0, cur = r.get();
+      r.opts.forEach(function (c, k) { $('<option></option>').val(k).text(c[1]).appendTo(s2); if (String(c[0]) === String(cur)) idx = k; });
+      s2.val(idx).on('change', function () { r.set(r.opts[+this.value][0]); lastSig = ''; }); row.append(s2);
+    } else if (r.t === 'num') {
+      var out = $('<span class="zo-n"></span>').text(r.get()), rg = $('<input type="range" class="zorange">').attr({ min: r.min, max: r.max }).val(r.get());
+      rg.on('input', function () { out.text(this.value); }).on('change', function () { r.set(+this.value); lastSig = ''; }); row.addClass('num').append(out, rg);
+    }
+    return row;
+  }
+  function renderOptionsKeep(p) { var y = p.find('.zp-body').scrollTop(); renderOptions(p); p.find('.zp-body').scrollTop(y); }
+  /* going into a settings page and back: the arrow at the top left, or the phone's back button (phones only) */
+  function isMobile() { try { return window.matchMedia('(max-width:899px)').matches || $('html').hasClass('m'); } catch (e) { return false; } }
+  function navPush(e) { if (!isMobile()) return; navStack.push(e); try { history.pushState({ zt: 1 }, ''); } catch (x) { navStack.pop(); } }
+  function navBack(viaPop) {
+    var e = navStack.pop();
+    if (!e) { if (SETTINGS_PAGES[current]) show('timer', true); return; }
+    if (!viaPop) { skipPop++; try { history.back(); } catch (x) {} }
+    if (e.type === 'sub') { optPath.pop(); renderOptions(pages.options); pages.options.find('.zp-body').scrollTop(0); } else show(e.id, true);
+  }
+  function optGo(sub) { optPath.push(sub); navPush({ type: 'sub' }); renderOptions(pages.options); pages.options.find('.zp-body').scrollTop(0); }
+  var SETTINGS_PAGES = { options: 1, themes: 1, scheme: 1, backup: 1, sessions: 1 };
+  window.addEventListener('popstate', function () {
+    if (skipPop > 0) { skipPop--; return; }
+    if (navStack.length) navBack(true);
+  });
   function renderOptions(p) {
-    var body = p.find('.zp-body').empty();
-    p.find('.zp-sub').text('Changes save as you make them');
+    var body = p.find('.zp-body').empty(), sub = optPath.length ? APP_SUB[optPath[optPath.length - 1]] : null;
+    p.find('.zp-title').text(sub ? sub[0] : 'Settings');
+    p.find('.zp-sub').text(sub ? '' : 'Changes save as you make them');
+    function addGroup(title, rows, fn) {
+      var card = $('<div class="zocard"></div>').append($('<h3></h3>').text(title)), any = false;
+      rows.forEach(function (r) { if (r.has && !r.has()) return; card.append(fn ? fn(r) : appRow(r, p)); any = true; });
+      if (any) body.append(card);
+    }
+    if (sub) { sub[1].forEach(function (g) { addGroup(g[0], g[1]); }); return; }
+    APP_SETTINGS.forEach(function (g) { addGroup(g[0], g[1]); });
+    /* things only the website has go at the bottom */
+    var used = {}; Object.keys(APP_SUB).forEach(function () {});
+    ['useIns', 'showIns', 'voiceIns', 'voiceVol', 'useMilli', 'preTime', 'useMouse', 'phases', 'phaseBeep', 'ahide', 'scrSize', 'timerSize', 'imgSize', 'zQuick', 'trim', 'zBar'].forEach(function (k) { used[k] = 1; });
+    body.append($('<h3 class="zp-h zp-web">Website settings</h3>'));
     OPTIONS.forEach(function (g) {
-      var card = $('<div class="zocard"></div>').append($('<h3></h3>').text(g[0]));
+      var card = $('<div class="zocard"></div>').append($('<h3></h3>').text(g[0])), any = false;
       g[1].forEach(function (o) {
-        var known = o[0] === 'go' || kernel.getProp(o[1]) !== undefined;
-        if (known) card.append(optRow(o, p));
+        if (o[0] === 'go' && /theme|Side menu|Colour theme/i.test(o[1])) return;
+        if (o[0] !== 'go' && (used[o[1]] || kernel.getProp(o[1]) === undefined)) return;
+        card.append(optRow(o, p)); any = true;
       });
-      body.append(card);
+      if (any) body.append(card);
     });
     body.append($('<p class="zp-note"></p>').text('ZTimer Web is free software (GPL-3.0), based on csTimer.'));
   }
@@ -942,16 +1115,26 @@
     });
     return out.reverse().slice(0, 30);
   }
-  function renderPbHistory(body, a) {
-    var h = pbHistory(a);
-    body.append($('<h3 class="zp-h">Personal best history</h3>'));
-    if (!h.length) { body.append($('<p class="zp-note"></p>').text('Your records will appear here as you improve.')); return; }
-    var list = $('<div class="zlist zpbl"></div>').appendTo(body);
-    h.forEach(function (x) {
-      $('<div class="zrow zpb"></div>').append($('<span class="zpb-k"></span>').text(x[0]),
-        $('<span class="zpb-d"></span>').text(x[2] ? new Date(x[2] * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : ''),
-        $('<span class="zr-t"></span>').text(pretty(x[1]))).appendTo(list);
+  /* Personal best history and time distribution: one kind of result at a time (single, Ao5, Ao12, Ao100, Ao1000) */
+  var PB_NS = [1, 5, 12, 100, 1000], pbType = 0, distType = 0, pbShown = 15;
+  function typeChips(sel, fn) {
+    var row = $('<div class="zw-pills"></div>');
+    PB_NS.forEach(function (n, i) { $('<button class="zw-pill"></button>').text(n === 1 ? 'Single' : 'Ao' + n).toggleClass('on', i === sel).on('click', function () { fn(i); }).appendTo(row); });
+    return row;
+  }
+  function seriesOf(a, n) { var out = []; for (var i = 0; i < a.length; i++) out.push(n === 1 ? a[i].t : avgOf(a, i, n)); return out; }
+  function renderPbHistory(body, a, again) {
+    var n = PB_NS[pbType], ser = seriesOf(a, n), recs = [], best = Infinity, prevBest = null;
+    ser.forEach(function (v, i) { if (v != null && v !== Infinity && v > 0 && v < best) { recs.push({ v: v, ts: a[i].ts, prev: prevBest }); best = v; prevBest = v; } });
+    body.append($('<h3 class="zp-h">Personal best history</h3>'), typeChips(pbType, function (i) { pbType = i; pbShown = 15; again(); }));
+    if (!recs.length) { body.append($('<p class="zp-note"></p>').text(n > 1 && a.length < n ? 'You need ' + n + ' solves for Ao' + n + ' (you have ' + a.length + ').' : 'Your records will appear here as you improve.')); return; }
+    var list = $('<div class="zlist zpbl"></div>').appendTo(body), shown = recs.slice().reverse().slice(0, pbShown);
+    shown.forEach(function (x) {
+      $('<div class="zrow zpb"></div>').append($('<span class="zpb-k"></span>').text(x.prev != null ? '-' + pretty(x.prev - x.v) : ''),
+        $('<span class="zpb-d"></span>').text(x.ts ? new Date(x.ts * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : ''),
+        $('<span class="zr-t"></span>').text(pretty(x.v))).appendTo(list);
     });
+    if (recs.length > pbShown) body.append($('<button class="zshare"></button>').append($('<span></span>').text('Show more (' + (recs.length - pbShown) + ' left)')).on('click', function () { pbShown += 15; again(); }));
   }
 
   /* ---- Sessions page: switch sessions with the app's cards ---- */
@@ -978,6 +1161,91 @@
       try { stats.getSessionManager().showMgrTable(); } catch (e) { toast('Could not open the session manager.'); }
     }));
     body.append($('<p class="zp-note"></p>').text('Every puzzle and category keeps its own solves, like in the app.'));
+  }
+
+
+  /* ---- Pop-ups that look like the app's: Select a category, Select a trainer ---- */
+  function appDialog(title, extraBtn) {
+    var ov = $('<div class="zmodal zapp"></div>'), card = $('<div class="zm-card zapp-card"></div>').appendTo(ov);
+    var head = $('<div class="zapp-head"></div>').append($('<b></b>').text(title)).appendTo(card);
+    if (extraBtn) head.append(extraBtn);
+    ov.on('click', function (e) { if (e.target === ov[0]) ov.remove(); }).appendTo('body');
+    return { ov: ov, card: card, close: function () { ov.remove(); } };
+  }
+  function longPress(el, fn, tap) {
+    var t = null, fired = false;
+    function start() { fired = false; clearTimeout(t); t = setTimeout(function () { fired = true; fn(); }, 520); }
+    function stop() { clearTimeout(t); }
+    el.on('touchstart mousedown', start).on('touchend touchmove touchcancel mouseup mouseleave', stop)
+      .on('contextmenu', function (e) { e.preventDefault(); }).on('click', function (e) { if (fired) { fired = false; e.preventDefault(); return; } tap(e); });
+  }
+  function askText(title, initial, cb) {
+    var d = appDialog(title), inp = $('<input type="text" maxlength="32" style="font-size:16px">').val(initial || '').appendTo(d.card);
+    function ok() { var v = inp.val().trim().replace(/\s*\/\s*/g, '-'); if (v.length < 2) { inp.css('border-color', '#d32f2f'); return; } d.close(); cb(v); }
+    d.card.append($('<div class="zm-btns"></div>').append($('<button class="zm-btn">Cancel</button>').on('click', d.close), $('<button class="zm-btn pri">Done</button>').on('click', ok)));
+    inp.on('keydown', function (e) { if (e.which === 13) ok(); }); setTimeout(function () { inp.focus(); }, 60);
+  }
+  function withConfirmYes(fn) { var oc = $.confirm; $.confirm = function () { return true; }; try { fn(); } finally { $.confirm = oc; } }
+  function removeSession(v, done) {
+    withConfirmYes(function () { sessSel().val(v).trigger('change'); sessSel().val('del').trigger('change'); });
+    setTimeout(function () { lastSig = ''; if (done) done(); }, 250);
+  }
+  function renameSession(v, id, pname, newLabel, done) {
+    var name = pname + ' / ' + newLabel;
+    Promise.resolve(storage.get(parseInt(v, 10))).then(function (times) {
+      var n = stats.getSessionManager().importSessions([{ name: name, opt: { scrType: id }, times: times || [] }]);
+      if (!n) { toast('Could not rename that category.'); return; }
+      setTimeout(function () { removeSession(v, function () { var s2 = findSess(name); if (s2) goSession(s2.v); setLast(id, newLabel); if (done) done(); }); }, 200);
+    });
+  }
+  function openCategoryDialog() {
+    var c = currentPuzzle(), id = kernel.getProp('scrType'), curV = sessSel().val();
+    var add = $('<button class="zapp-new"></button>').append($('<span>+</span>'), document.createTextNode(' New'));
+    var d = appDialog('Select a category', add), list = $('<div class="zapp-list"></div>').appendTo(d.card);
+    function fill() {
+      list.empty(); curV = sessSel().val(); var any = false;
+      sessionsList().forEach(function (s) {
+        var pp = parseSess(s.name), mine = pp[1] ? pp[0] === c.name : (s.v === curV || (c.name === '3x3x3' && s.name === '1'));
+        if (!mine) return; any = true;
+        var label = pp[1] || (/^\d+$/.test(s.name) ? 'Normal' : s.name), row = $('<div class="zapp-row"></div>').toggleClass('cur', s.v === curV).text(label).appendTo(list);
+        longPress(row, function () {
+          popMenu(row, [['Rename', function () { askText('Enter a new name', label, function (nn) { renameSession(s.v, id, c.name, nn, function () { fill(); updateBar(); }); }); }],
+            ['Remove', function () { if (confirm('Remove "' + label + '"? Its solves are deleted too.')) removeSession(s.v, function () { fill(); updateBar(); }); }]]);
+        }, function () { goSession(s.v); setLast(id, label); d.close(); setTimeout(updateBar, 150); });
+      });
+      if (!any) list.append($('<p class="zp-note"></p>').text('No categories yet.'));
+    }
+    add.on('click', function () { askText('Enter a category name', '', function (n) { d.close(); usePuzzle(id, c.name, n, function () { setTimeout(updateBar, 150); }); }); });
+    fill();
+  }
+  function openTrainerDialog() {
+    var cur = kernel.getProp('scrType'), d = appDialog('Select a trainer'), tabs = $('<div class="ztabs2 zscroll zapp-tabs"></div>').appendTo(d.card), grid = $('<div class="ztiles zpuz zapp-grid"></div>').appendTo(d.card);
+    var stars = getStars(), fams = T_FAM.slice(), st = [];
+    T_FAM.forEach(function (f) { f[1].forEach(function (x) { if (stars.indexOf(x[1]) >= 0) st.push(x); }); });
+    fams.unshift(['Starred', st]);
+    var fi = 1; T_FAM.forEach(function (f, i) { f[1].forEach(function (x) { if (x[1] === cur) fi = i + 1; }); }); if (fi === 1 && st.length && !findSet(cur)) fi = 0;
+    function fill(i) {
+      tabs.children().removeClass('on').eq(i).addClass('on'); grid.empty();
+      fams[i][1].forEach(function (x) {
+        var star = getStars().indexOf(x[1]) >= 0;
+        var t = $('<div class="ztile zpt zset" role="button" tabindex="0"></div>').toggleClass('on', cur === x[1])
+          .append($('<span class="zpl"></span>').text(x[0].length > 5 ? x[0].slice(0, 4) : x[0]).css({ background: '#AACCFF', color: '#5599FF' }), $('<b></b>').text((star ? '\u2605 ' : '') + x[0])).appendTo(grid);
+        longPress(t, function () {
+          var a = getStars(), k = a.indexOf(x[1]); if (k >= 0) a.splice(k, 1); else a.push(x[1]); setStars(a);
+          toast(k >= 0 ? 'Removed from starred' : '<b>Starred</b><br>' + x[0]); fams[0][1] = []; T_FAM.forEach(function (f) { f[1].forEach(function (y) { if (a.indexOf(y[1]) >= 0) fams[0][1].push(y); }); });
+          fill(i);
+        }, function () {
+          d.close();
+          usePuzzle(x[1], x[2] || x[0], null, function (ok) {
+            if (!ok || kernel.getProp('scrType') !== x[1]) { toast('That set is not available.'); return; }
+            show('trainer'); setTimeout(updateBar, 150);
+          });
+        });
+      });
+      if (!fams[i][1].length) grid.append($('<p class="zp-note"></p>').text('Press and hold a set to star it.'));
+    }
+    fams.forEach(function (f, i) { $('<button class="zt2"></button>').text(f[0]).on('click', function () { fill(i); }).appendTo(tabs); });
+    fill(fi);
   }
 
   /* ---- Goals page: daily goal, streak, practice calendar ---- */
@@ -1116,8 +1384,15 @@
     var st = modeState[m] || (m === 'trainer' ? { id: 'oll', name: 'OLL' } : { id: '333', name: '3x3x3' });
     usePuzzle(st.id, st.name, null, function () { lastSig = ''; updateBar(); updateCorners(); if (cb) cb(); });
   }
-  function show(id) {
-    var old = current; current = id;
+  function show(id, noHist) {
+    var old = current;
+    if (!noHist && id !== old) {
+      var inS = SETTINGS_PAGES[id], wasS = SETTINGS_PAGES[old];
+      if (inS) { if (id === 'options') optPath = []; navPush({ type: 'page', id: old }); }
+      else if (wasS && navStack.length) { var n = navStack.length; navStack = []; skipPop++; try { history.go(-n); } catch (x) {} }
+    }
+    if (current === 'wca' && id !== 'wca' && wcaHandle) { wcaHandle.stop(); wcaHandle = null; }
+    current = id;
     var screen = id === 'timer' || id === 'trainer';
     if (screen) enterMode(id);
     bar.find('.ztab').each(function () { $(this).toggleClass('on', $(this).data('p') === (id === 'trainerpick' ? 'trainer' : id)); });
@@ -1136,6 +1411,7 @@
     if (id === 'trainerpick') renderTrainer(p);
     if (id === 'puzzles') renderPuzzles(p);
     if (id === 'themes') renderThemes(p);
+    if (id === 'scheme') renderScheme(p);
     if (id === 'options') renderOptions(p);
     if (id === 'sessions') renderSessions(p);
     if (id === 'backup') renderBackup(p);
@@ -1145,7 +1421,7 @@
   }
 
   function init() {
-    applyTheme(savedTheme(), false);
+    applyTheme(savedTheme(), false); applyZs();
     var z = $('#zbar');
     if (!z.length) return;
     bar = z.empty();
@@ -1155,16 +1431,16 @@
     });
     root = $('<div id="zpages"></div>').hide().appendTo('body');
     makePage('solves', 'Solves', 'list'); makePage('stats', 'Stats', 'graph');
-    makePage('trainerpick', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Category', 'books'); makePage('backup', 'Export/Import', 'share');
+    makePage('trainerpick', 'Trainer', 'trainer'); makePage('wca', 'WCA', 'wca'); makePage('puzzles', 'Puzzle', 'category'); makePage('themes', 'Theme', 'palette'); makePage('scheme', 'Color scheme', 'imgpref'); makePage('options', 'Options', 'settings'); makePage('sessions', 'Category', 'books'); makePage('backup', 'Export/Import', 'share');
     actionbar = $('<div id="zactionbar"></div>').append(
       barBtn('settings', 'Menu', function () { openDrawer(); }),
       barBtn('bluetooth', 'Bluetooth cube', openBluetooth).addClass('za-bt'),
       barBtn('trainer', 'Timer or trainer solves', toggleScope).addClass('za-scope'),
       $('<div class="za-title" role="button" tabindex="0"></div>').append($('<b class="za-name"></b>'), $('<span class="za-cat"></span>'))
-        .on('click', function () { show(mode === 'trainer' ? 'trainerpick' : 'puzzles'); }),
+        .on('click', function () { if (mode === 'trainer') openTrainerDialog(); else show('puzzles'); }),
       barBtn('checklist', 'Choose cases', function () { var s = findSet(kernel.getProp('scrType')); if (s && caseData(s[1])) { trSet = s; trSel = null; show('trainerpick'); } }).addClass('za-cases'),
       barBtn('hourglass', 'Archived solves', toggleArch).addClass('za-hist'),
-      barBtn('category', 'Category', function () { show('sessions'); })).appendTo('body');
+      barBtn('category', 'Category', function () { openCategoryDialog(); })).appendTo('body');
     /* the app opens its side menu with a swipe from the left edge */
     (function () {
       var x0, y0, edge = false;
@@ -1204,7 +1480,7 @@
       var x0, y0, ok = false, order = TABS.map(function (t) { return t[0]; });
       root.on('touchstart', function (e) {
         var t = e.originalEvent.touches[0]; x0 = t.clientX; y0 = t.clientY;
-        ok = !$(e.target).closest('canvas,input,select,textarea,.zimp,.zcal').length && order.indexOf(current) > 0;
+        ok = zs('swipe') && !$(e.target).closest('canvas,input,select,textarea,.zimp,.zcal').length && order.indexOf(current) > 0;
       }).on('touchend', function (e) {
         if (!ok) return; ok = false;
         var t = e.originalEvent.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0, i = order.indexOf(current);
