@@ -7,7 +7,7 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.hatopigeon.cubictimer.CubicTimer;
-import com.hatopigeon.cubictimer.R;
+import com.hatopigeon.ztimer.R;
 import com.hatopigeon.cubictimer.database.DatabaseHandler;
 import com.hatopigeon.cubictimer.items.Solve;
 import com.hatopigeon.cubictimer.utils.PuzzleUtils;
