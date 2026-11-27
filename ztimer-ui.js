@@ -355,11 +355,24 @@
       lines.forEach(function (l, k) { c.fillText(l, A.x + A.w / 2, y + 25 + lh * (k + 0.78)); });
       y += ph + 28;
       if (x.cmt) { c.font = 'italic 600 34px ' + CARD_FONT; c.fillStyle = A.fg; c.globalAlpha = 0.9; var cm = String(x.cmt); if (cm.length > 60) cm = cm.slice(0, 58) + '...'; c.fillText('\u201C' + cm + '\u201D', A.x + A.w / 2, y + 30); c.globalAlpha = 1; y += 60; }
-      if (img) {
-        var iw = img.naturalWidth || img.width || 1, ih = img.naturalHeight || img.height || 1, ah = A.y + A.h - y, sc = Math.min(A.w / iw, ah / ih), dw = iw * sc, dh = ih * sc;
-        c.drawImage(img, A.x + (A.w - dw) / 2, y + (ah - dh) / 2, dw, dh);
-      }
+      if (img) drawImageFit(c, img, A.x, y, A.w, A.y + A.h - y);
     };
+  }
+  /* draws the scramble picture as large as it fits and really centred: the picture is drawn once at the final size,
+     its empty margins are measured and left out. The app does exactly the same. */
+  function drawImageFit(c, img, ax, ay, aw, ah) {
+    if (ah < 40 || aw < 40) return;
+    var iw = img.naturalWidth || img.width || 300, ih = img.naturalHeight || img.height || 300, s = Math.min(aw / iw, ah / ih),
+        bw = Math.max(1, Math.round(iw * s)), bh = Math.max(1, Math.round(ih * s)), off = document.createElement('canvas');
+    off.width = bw; off.height = bh;
+    var o = off.getContext('2d'); o.drawImage(img, 0, 0, bw, bh);
+    var sx = 0, sy = 0, sw = bw, sh = bh;
+    try {
+      var d = o.getImageData(0, 0, bw, bh).data, x0 = bw, y0 = bh, x1 = -1, y1 = -1;
+      for (var yy = 0; yy < bh; yy++) for (var xx = 0; xx < bw; xx++) if (d[(yy * bw + xx) * 4 + 3] > 10) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; }
+      if (x1 >= x0 && y1 >= y0 && x1 - x0 + 1 >= bw * 0.4 && y1 - y0 + 1 >= bh * 0.4) { sx = x0; sy = y0; sw = x1 - x0 + 1; sh = y1 - y0 + 1; }
+    } catch (e) {}
+    c.drawImage(off, sx, sy, sw, sh, ax + aw / 2 - sw / 2, ay + ah / 2 - sh / 2, sw, sh);
   }
   function bodyList(items) {
     return function (c, A) {
@@ -410,13 +423,12 @@
   function solveSpec(x, d, a, i, img) {
     var badges = [], ex = a && i != null ? i : null;
     if (ex != null) {
-      badges.push('Solve #' + (ex + 1));
       var pb = x.t !== Infinity && ex > 0; for (var k = 0; k < ex && pb; k++) if (a[k].t <= x.t) pb = false;
       if (pb) badges.unshift('PB');
     }
     if (x.pen > 0 && x.t !== Infinity) badges.push('+2');
     if (ex != null) { var s5 = avgSeries(a, 5)[ex], s12 = avgSeries(a, 12)[ex]; if (s5 != null) badges.push('Ao5 ' + timeText(s5)); if (s12 != null) badges.push('Ao12 ' + timeText(s12)); }
-    return { big: timeText(x.t), side: [[eventName(), '700', 50, 1], [d ? fmtDate(x.ts) : '', '600', 42, 0.9]], body: bodySolve(x, img, badges.slice(0, 4)) };
+    return { big: timeText(x.t), side: [[eventName(), '700', 50, 1], [d ? fmtDate(x.ts) : '', '600', 42, 0.9]].concat(ex != null ? [['Solve #' + (ex + 1), '600', 36, 0.9]] : []), body: bodySolve(x, img, badges.slice(0, 4)) };
   }
   function avgSpec(a, n) {
     var last = a.slice(-n), trim = Math.ceil(n * 0.05), idx = last.map(function (_, k) { return k; }).sort(function (u, v) { return (last[u].t === last[v].t ? 0 : last[u].t < last[v].t ? -1 : 1) || u - v; }), mark = {};
