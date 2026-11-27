@@ -374,15 +374,25 @@
     } catch (e) {}
     c.drawImage(off, sx, sy, sw, sh, ax + aw / 2 - sw / 2, ay + ah / 2 - sh / 2, sw, sh);
   }
+  /* one row per solve: its number, its time and, beside the time, the scramble of that solve */
   function bodyList(items) {
     return function (c, A) {
-      var cols = items.length > 6 ? 2 : 1, rows = Math.ceil(items.length / cols), gap = 16, cw = (A.w - gap * (cols - 1)) / cols, ch = Math.min(112, (A.h - gap * (rows - 1)) / rows), th = rows * ch + (rows - 1) * gap, y0 = A.y + Math.max(0, (A.h - th) / 2);
+      var rows = items.length, gap = rows > 6 ? 10 : 16, ch = Math.min(150, (A.h - gap * (rows - 1)) / rows), th = rows * ch + (rows - 1) * gap, y0 = A.y + Math.max(0, (A.h - th) / 2), tsz = Math.min(56, Math.round(ch * 0.5)), numW = 80, timeW = 0;
+      c.font = '700 ' + tsz + 'px ' + CARD_FONT;
+      items.forEach(function (it) { timeW = Math.max(timeW, c.measureText(it.mark ? '(' + it.t + ')' : it.t).width); });
       items.forEach(function (it, k) {
-        var col = Math.floor(k / rows), row = k % rows, x = A.x + col * (cw + gap), y = y0 + row * (ch + gap);
-        c.fillStyle = 'rgba(255,255,255,.92)'; rr(c, x, y, cw, ch, 28); c.fill();
-        c.fillStyle = '#7b7f9e'; c.font = '700 32px ' + CARD_FONT; c.textAlign = 'left'; c.fillText(String(k + 1), x + 28, y + ch / 2 + 11);
-        c.fillStyle = '#1b1b2b'; c.textAlign = 'center'; c.font = '700 ' + Math.min(60, Math.round(ch * 0.5)) + 'px ' + CARD_FONT;
-        c.fillText(it.mark ? '(' + it.t + ')' : it.t, x + cw / 2 + 10, y + ch / 2 + Math.min(60, Math.round(ch * 0.5)) * 0.35);
+        var x = A.x, y = y0 + k * (ch + gap);
+        c.fillStyle = 'rgba(255,255,255,.92)'; rr(c, x, y, A.w, ch, 28); c.fill();
+        c.textAlign = 'left'; c.fillStyle = '#7b7f9e'; c.font = '700 32px ' + CARD_FONT; c.fillText(String(k + 1), x + 28, y + ch / 2 + 11);
+        c.fillStyle = '#1b1b2b'; c.font = '700 ' + tsz + 'px ' + CARD_FONT; c.fillText(it.mark ? '(' + it.t + ')' : it.t, x + numW, y + ch / 2 + tsz * 0.35);
+        if (it.scr) {
+          var sx = x + numW + timeW + 36, sw = A.x + A.w - 28 - sx, size, lines, lh;
+          for (size = 26; size >= 13; size--) { c.font = '600 ' + size + 'px ' + CARD_FONT; lines = wrapText(c, it.scr, sw); lh = size * 1.25; if (lines.length * lh <= ch - 14) break; }
+          var maxL = Math.max(1, Math.floor((ch - 14) / lh));
+          if (lines.length > maxL) { lines = lines.slice(0, maxL); lines[maxL - 1] = lines[maxL - 1].replace(/\s*\S*$/, '') + ' ...'; }
+          c.fillStyle = '#4a4e6b';
+          lines.forEach(function (l, j) { c.fillText(l, sx, y + (ch - lines.length * lh) / 2 + lh * (j + 0.8)); });
+        }
       });
     };
   }
@@ -427,13 +437,12 @@
       if (pb) badges.unshift('PB');
     }
     if (x.pen > 0 && x.t !== Infinity) badges.push('+2');
-    if (ex != null) { var s5 = avgSeries(a, 5)[ex], s12 = avgSeries(a, 12)[ex]; if (s5 != null) badges.push('Ao5 ' + timeText(s5)); if (s12 != null) badges.push('Ao12 ' + timeText(s12)); }
     return { big: timeText(x.t), side: [[eventName(), '700', 50, 1], [d ? fmtDate(x.ts) : '', '600', 42, 0.9]].concat(ex != null ? [['Solve #' + (ex + 1), '600', 36, 0.9]] : []), body: bodySolve(x, img, badges.slice(0, 4)) };
   }
   function avgSpec(a, n) {
     var last = a.slice(-n), trim = Math.ceil(n * 0.05), idx = last.map(function (_, k) { return k; }).sort(function (u, v) { return (last[u].t === last[v].t ? 0 : last[u].t < last[v].t ? -1 : 1) || u - v; }), mark = {};
     if (n >= 5) { for (var k = 0; k < trim; k++) { mark[idx[k]] = 1; mark[idx[n - 1 - k]] = 1; } }
-    var items = last.map(function (x, k) { return { t: timeText(x.t) + (x.pen > 0 ? '+' : ''), mark: !!mark[k] }; }), d0 = last[0].ts, d1 = last[n - 1].ts;
+    var items = last.map(function (x, k) { return { t: timeText(x.t) + (x.pen > 0 ? '+' : ''), mark: !!mark[k], scr: x.scr || '' }; }), d0 = last[0].ts, d1 = last[n - 1].ts;
     return { big: timeText(avgOf(a, a.length - 1, n)), side: [[eventName(), '700', 50, 1], ['Average of ' + n, '700', 44, 0.95], [d1 ? (d0 && fmtDate(d0) !== fmtDate(d1) ? fmtDate(d0) + ' - ' + fmtDate(d1) : fmtDate(d1)) : '', '600', 38, 0.85]], body: bodyList(items) };
   }
   function distSpec(a) {

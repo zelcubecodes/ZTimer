@@ -230,6 +230,7 @@ public final class SolveCard {
         if (image == null || area.width() < 40f || area.height() < 40f) return;
         try {
             Drawable d = image.getConstantState() != null ? image.getConstantState().newDrawable().mutate() : image;
+            Rect oldBounds = d.copyBounds();
             int iw = d.getIntrinsicWidth(), ih = d.getIntrinsicHeight();
             if (iw <= 0 || ih <= 0) {
                 iw = 300;
@@ -240,6 +241,7 @@ public final class SolveCard {
             Bitmap bmp = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888);
             d.setBounds(0, 0, bw, bh);
             d.draw(new Canvas(bmp));
+            d.setBounds(oldBounds);
             int[] px = new int[bw * bh];
             bmp.getPixels(px, 0, bw, 0, 0, bw, bh);
             int minX = bw, minY = bh, maxX = -1, maxY = -1;
@@ -308,13 +310,21 @@ public final class SolveCard {
         };
     }
 
-    private static Body listBody(final List<String> items, final boolean[] marks) {
+    private static StaticLayout scrambleLayout(String text, TextPaint sp, int width, int maxLines) {
+        StaticLayout.Builder bld = StaticLayout.Builder.obtain(text, 0, text.length(), sp, Math.max(10, width))
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL);
+        if (maxLines > 0) {
+            bld.setMaxLines(maxLines).setEllipsize(android.text.TextUtils.TruncateAt.END);
+        }
+        return bld.build();
+    }
+
+    /** One row per solve: its number, its time and, beside the time, the scramble of that solve. */
+    private static Body listBody(final List<String> items, final boolean[] marks, final String[] scrambles) {
         return (c, a, fg) -> {
-            int cols = items.size() > 6 ? 2 : 1;
-            int rows = (int) Math.ceil(items.size() / (double) cols);
-            float gap = 16f;
-            float cw = (a.width() - gap * (cols - 1)) / cols;
-            float ch = Math.min(112f, (a.height() - gap * (rows - 1)) / rows);
+            int rows = items.size();
+            float gap = rows > 6 ? 10f : 16f;
+            float ch = Math.min(150f, (a.height() - gap * (rows - 1)) / rows);
             float th = rows * ch + (rows - 1) * gap;
             float y0 = a.top + Math.max(0f, (a.height() - th) / 2f);
             Paint white = fill(0xFFFFFFFF, 235);
@@ -325,16 +335,44 @@ public final class SolveCard {
             TextPaint tp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
             tp.setColor(0xFF1B1B2B);
             tp.setTypeface(sBold);
-            tp.setTextAlign(Paint.Align.CENTER);
-            float tsz = Math.min(60f, Math.round(ch * 0.5f));
+            float tsz = Math.min(56f, Math.round(ch * 0.5f));
             tp.setTextSize(tsz);
-            for (int k = 0; k < items.size(); k++) {
-                int col = k / rows, row = k % rows;
-                float x = a.left + col * (cw + gap), y = y0 + row * (ch + gap);
-                c.drawRoundRect(new RectF(x, y, x + cw, y + ch), 28f, 28f, white);
+            float numW = 80f, timeW = 0f;
+            for (int k = 0; k < rows; k++) {
+                String t = marks[k] ? "(" + items.get(k) + ")" : items.get(k);
+                timeW = Math.max(timeW, tp.measureText(t));
+            }
+            TextPaint sp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+            sp.setColor(0xFF4A4E6B);
+            sp.setTypeface(sMed);
+            for (int k = 0; k < rows; k++) {
+                float x = a.left, y = y0 + k * (ch + gap);
+                c.drawRoundRect(new RectF(x, y, a.right, y + ch), 28f, 28f, white);
                 c.drawText(String.valueOf(k + 1), x + 28f, y + ch / 2f + 11f, num);
                 String t = marks[k] ? "(" + items.get(k) + ")" : items.get(k);
-                c.drawText(t, x + cw / 2f + 10f, y + ch / 2f + tsz * 0.35f, tp);
+                c.drawText(t, x + numW, y + ch / 2f + tsz * 0.35f, tp);
+                String scr = scrambles != null && k < scrambles.length ? scrambles[k] : null;
+                if (scr == null || scr.trim().isEmpty()) continue;
+                float sx = x + numW + timeW + 36f;
+                int sw = (int) (a.right - 28f - sx);
+                float budget = ch - 14f;
+                StaticLayout lay = null;
+                for (float size = 26f; size >= 13f; size -= 1f) {
+                    sp.setTextSize(size);
+                    sp.setTextScaleX(1f);
+                    float spacing = sp.getFontSpacing();
+                    lay = scrambleLayout(scr, sp, sw, 0);
+                    if (lay.getHeight() <= budget) break;
+                    if (size <= 13f) {
+                        lay = scrambleLayout(scr, sp, sw, Math.max(1, (int) (budget / spacing)));
+                    }
+                }
+                if (lay != null) {
+                    c.save();
+                    c.translate(sx, y + (ch - lay.getHeight()) / 2f);
+                    lay.draw(c);
+                    c.restore();
+                }
             }
         };
     }
@@ -441,39 +479,14 @@ public final class SolveCard {
             if (pb) badges.add("PB");
         }
         if (plus2) badges.add("+2");
-        String a5 = averageAt(t, 5, solve.getPuzzle());
-        String a12 = averageAt(t, 12, solve.getPuzzle());
-        if (a5 != null) badges.add("Ao5 " + a5);
-        if (a12 != null) badges.add("Ao12 " + a12);
         s.body = solveBody(solve, scrambleImage, badges.size() > 4 ? badges.subList(0, 4) : badges);
         s.fileName = "solve-" + solve.getDate();
         s.title = ctx.getString(R.string.list_options_item_share);
         return s;
     }
 
-    /** The average of the last n solves up to the end of {@code t} (a DNF is -1), or null if there are not enough. */
-    private static String averageAt(long[] t, int n, String puzzle) {
-        if (t == null || t.length < n) return null;
-        long[] w = new long[n];
-        int dnf = 0;
-        for (int i = 0; i < n; i++) {
-            long v = t[t.length - n + i];
-            if (v < 0) {
-                dnf++;
-                v = Long.MAX_VALUE;
-            }
-            w[i] = v;
-        }
-        int trim = (int) Math.ceil(n * 0.05);
-        if (dnf > trim) return "DNF";
-        Arrays.sort(w);
-        long sum = 0;
-        for (int i = trim; i < n - trim; i++) sum += w[i];
-        return PuzzleUtils.convertTimeToString(sum / (n - 2 * trim), PuzzleUtils.FORMAT_STATS, puzzle);
-    }
-
     private static Spec averageSpec(Context ctx, String puzzle, String category, int n, long avg, long[] times,
-                                    int bestIdx, int worstIdx) {
+                                    int bestIdx, int worstIdx, String[] scrambles) {
         Spec s = new Spec();
         s.big = time(avg, PuzzleUtils.FORMAT_STATS, puzzle);
         s.side.add(new Side(eventName(ctx, puzzle, category), true, 50f, 255));
@@ -485,7 +498,7 @@ public final class SolveCard {
             items.add(time(times[i], PuzzleUtils.FORMAT_SINGLE, puzzle));
             marks[i] = n >= 5 && (i == bestIdx || i == worstIdx);
         }
-        s.body = listBody(items, marks);
+        s.body = listBody(items, marks, scrambles);
         s.fileName = "ao" + n;
         s.title = "Ao" + n;
         return s;
@@ -565,7 +578,25 @@ public final class SolveCard {
 
     /** Shows the card of one solve with buttons to save or send it. {@code scrambleImage} may be null. */
     public static void show(final Activity activity, final Solve solve, Drawable scrambleImage) {
-        present(activity, solveSpec(activity, solve, scrambleImage));
+        final String scr = solve.getScramble();
+        if (scrambleImage != null || scr == null || scr.trim().isEmpty()) {
+            present(activity, solveSpec(activity, solve, scrambleImage));
+            return;
+        }
+        // The dialog only makes the picture when it is shown, so make it here
+        new Thread(() -> {
+            Drawable made = null;
+            try {
+                made = new ScrambleGenerator(solve.getPuzzle()).generateImageFromScramble(
+                        android.preference.PreferenceManager.getDefaultSharedPreferences(CubicTimer.getAppContext()), scr);
+            } catch (Throwable ignored) {
+                // no picture then
+            }
+            final Drawable fin = made;
+            activity.runOnUiThread(() -> {
+                if (!activity.isFinishing()) present(activity, solveSpec(activity, solve, fin));
+            });
+        }).start();
     }
 
     /** Shows the card of the latest Ao5 or Ao12 of the session. Returns false (and says why) if there is none yet. */
@@ -577,8 +608,22 @@ public final class SolveCard {
             Toast.makeText(activity, R.string.fab_share_error, Toast.LENGTH_SHORT).show();
             return false;
         }
+        // the scrambles of those solves, oldest first like the times
+        String[] scrambles = null;
+        try {
+            List<Solve> recent = CubicTimer.getDBHandler().getRecentSolves(puzzle, category, n);
+            if (recent.size() == n) {
+                scrambles = new String[n];
+                for (int i = 0; i < n; i++) {
+                    String sc = recent.get(i).getScramble();
+                    scrambles[i] = sc == null ? "" : WideMoves.toPreferred(sc, puzzle);
+                }
+            }
+        } catch (Exception ignored) {
+            // the card is fine without the scrambles
+        }
         present(activity, averageSpec(activity, puzzle, category, n, aoN.getAverage(), times,
-                aoN.getBestTimeIndex(), aoN.getWorstTimeIndex()));
+                aoN.getBestTimeIndex(), aoN.getWorstTimeIndex(), scrambles));
         return true;
     }
 

@@ -440,6 +440,33 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
+    /**
+     * The most recent {@code n} solves of the current session (not history) of a puzzle and category,
+     * oldest first.
+     */
+    public java.util.List<Solve> getRecentSolves(String type, String subtype, int n) {
+        final Cursor cursor = getReadableDatabase().query(TABLE_TIMES,
+                new String[] {
+                        KEY_ID, KEY_TIME, KEY_TYPE, KEY_SUBTYPE, KEY_DATE, KEY_SCRAMBLE,
+                        KEY_PENALTY, KEY_COMMENT, KEY_HISTORY },
+                KEY_TYPE + "=? AND (" + KEY_SUBTYPE + "=? OR ?='*') AND COALESCE(" + KEY_HISTORY + ",0)=0 AND "
+                        + KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME,
+                new String[] { type, subtype, subtype }, null, null,
+                KEY_DATE + " DESC, " + KEY_ID + " DESC", String.valueOf(n));
+        java.util.ArrayList<Solve> out = new java.util.ArrayList<>();
+        try {
+            while (cursor.moveToNext()) {
+                out.add(new Solve(cursor.getLong(0), cursor.getLong(1), cursor.getString(2), cursor.getString(3),
+                        cursor.getLong(4), cursor.getString(5), cursor.getInt(6), cursor.getString(7),
+                        getBoolean(cursor, 8)));
+            }
+        } finally {
+            cursor.close();
+        }
+        java.util.Collections.reverse(out);
+        return out;
+    }
+
     public int updateSolve(Solve solve) {
         SQLiteDatabase db = this.getWritableDatabase();
 
