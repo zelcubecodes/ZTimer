@@ -409,6 +409,64 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
+    /**
+     * The times of the solves in the same puzzle, category and session (current or history) as the given
+     * solve, oldest first, up to and including that solve. A +2 is already added; a DNF is {@code -1}.
+     * Returns {@code null} if the solve is not found.
+     */
+    public long[] getTimesUpTo(Solve solve) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT " + KEY_ID + ", " + KEY_TIME + ", " + KEY_PENALTY
+                + " FROM " + TABLE_TIMES + " WHERE " + KEY_TYPE + "=? AND " + KEY_SUBTYPE + "=? AND COALESCE("
+                + KEY_HISTORY + ",0)=? AND " + KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME
+                + " ORDER BY " + KEY_DATE + ", " + KEY_ID,
+                new String[] { solve.getPuzzle(), solve.getSubtype(), solve.isHistory() ? "1" : "0" });
+        try {
+            long[] out = new long[Math.max(16, cursor.getCount())];
+            int n = 0;
+            boolean found = false;
+            while (cursor.moveToNext()) {
+                int pen = Solve.getPenalty(cursor.getInt(2));
+                out[n++] = pen == PuzzleUtils.PENALTY_DNF ? -1
+                        : cursor.getLong(1) + (pen == PuzzleUtils.PENALTY_PLUSTWO ? 2000 : 0);
+                if (cursor.getLong(0) == solve.getId()) {
+                    found = true;
+                    break;
+                }
+            }
+            return found ? java.util.Arrays.copyOf(out, n) : null;
+        } finally {
+            cursor.close();
+        }
+    }
+
+    /**
+     * The most recent {@code n} solves of the current session (not history) of a puzzle and category,
+     * oldest first.
+     */
+    public java.util.List<Solve> getRecentSolves(String type, String subtype, int n) {
+        final Cursor cursor = getReadableDatabase().query(TABLE_TIMES,
+                new String[] {
+                        KEY_ID, KEY_TIME, KEY_TYPE, KEY_SUBTYPE, KEY_DATE, KEY_SCRAMBLE,
+                        KEY_PENALTY, KEY_COMMENT, KEY_HISTORY },
+                KEY_TYPE + "=? AND (" + KEY_SUBTYPE + "=? OR ?='*') AND COALESCE(" + KEY_HISTORY + ",0)=0 AND "
+                        + KEY_PENALTY + "!=" + PuzzleUtils.PENALTY_HIDETIME,
+                new String[] { type, subtype, subtype }, null, null,
+                KEY_DATE + " DESC, " + KEY_ID + " DESC", String.valueOf(n));
+        java.util.ArrayList<Solve> out = new java.util.ArrayList<>();
+        try {
+            while (cursor.moveToNext()) {
+                out.add(new Solve(cursor.getLong(0), cursor.getLong(1), cursor.getString(2), cursor.getString(3),
+                        cursor.getLong(4), cursor.getString(5), cursor.getInt(6), cursor.getString(7),
+                        getBoolean(cursor, 8)));
+            }
+        } finally {
+            cursor.close();
+        }
+        java.util.Collections.reverse(out);
+        return out;
+    }
+
     public int updateSolve(Solve solve) {
         SQLiteDatabase db = this.getWritableDatabase();
 
