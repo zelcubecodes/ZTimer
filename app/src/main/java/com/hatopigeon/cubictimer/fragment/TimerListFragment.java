@@ -189,13 +189,16 @@ public class TimerListFragment extends BaseFragment
                                         .build());
                                 break;
                             case R.id.share_ao5:
-                                PuzzleUtils.shareAverageOf(5, currentPuzzle, mRecentStatistics, getActivity());
+                                com.hatopigeon.cubictimer.utils.SolveCard.showAverage(getActivity(), currentPuzzle, currentPuzzleCategory, 5, mRecentStatistics);
                                 break;
                             case R.id.share_ao12:
-                                PuzzleUtils.shareAverageOf(12, currentPuzzle, mRecentStatistics, getActivity());
+                                com.hatopigeon.cubictimer.utils.SolveCard.showAverage(getActivity(), currentPuzzle, currentPuzzleCategory, 12, mRecentStatistics);
                                 break;
                             case R.id.share_histogram:
-                                PuzzleUtils.shareHistogramOf(currentPuzzle, mRecentStatistics, getActivity());
+                                com.hatopigeon.cubictimer.utils.SolveCard.showDistribution(getActivity(), currentPuzzle, currentPuzzleCategory, mRecentStatistics);
+                                break;
+                            case R.id.share_session:
+                                com.hatopigeon.cubictimer.utils.SolveCard.showSession(getActivity(), currentPuzzle, currentPuzzleCategory, mRecentStatistics);
                                 break;
                             case R.id.sort_time:
                                 orderByKey = DatabaseHandler.KEY_TIME;

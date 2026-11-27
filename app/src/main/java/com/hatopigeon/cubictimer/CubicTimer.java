@@ -48,6 +48,9 @@ public class CubicTimer extends MultiDexApplication {
         sDBHandler = new DatabaseHandler();
 
         LocaleUtils.updateLocale(getAppContext());
+
+        // send solve changes to the sync server a few seconds after they happen
+        com.hatopigeon.cubictimer.sync.SyncManager.watch();
     }
 
     /**

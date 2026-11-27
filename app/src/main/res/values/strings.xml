@@ -152,6 +152,7 @@
     <string name="fab_share_error">Could not share. Make sure you\'ve done enough solves in this session.</string>
     <string name="fab_share_histogram_solvecount">%1$s time distribution (%2$d solves)</string>
     <string name="fab_share_title">Share session…</string>
+    <string name="fab_share_session">Session card</string>
 
     <string name="file_selection_error_content">Make sure you are selecting a valid %1$s file</string>
     <string name="file_selection_error_title">Wrong file type</string>

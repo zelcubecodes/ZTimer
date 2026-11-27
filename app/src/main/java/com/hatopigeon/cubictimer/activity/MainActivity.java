@@ -259,6 +259,12 @@ public class MainActivity extends AppCompatActivity
         com.hatopigeon.cubictimer.sync.SyncManager.autoSync(this);
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        com.hatopigeon.cubictimer.sync.SyncManager.background(this);
+    }
+
     /* NOTE: Leaving this here (commented out) as it may be useful again (probably soon).
     @Override
     protected void onResume() {

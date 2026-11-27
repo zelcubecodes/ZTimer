@@ -24,9 +24,10 @@
   function configured() { return !!(CFG.url && CFG.key); }
 
   function rpc(body) {
+    var ctl = window.AbortController ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, 45000) : null;
     return fetch(CFG.url.replace(/\/$/, '') + '/rest/v1/rpc/zt_sync', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CFG.key, Authorization: 'Bearer ' + CFG.key }, body: JSON.stringify(body)
-    }).then(function (r) { if (!r.ok) throw new Error('Server answered ' + r.status); return r.json(); });
+      method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CFG.key, Authorization: 'Bearer ' + CFG.key }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined
+    }).then(function (r) { clearTimeout(to); if (!r.ok) throw new Error('Server answered ' + r.status); return r.json(); }, function (e) { clearTimeout(to); throw new Error(e && e.name === 'AbortError' ? 'The server took too long to answer.' : 'No connection to the sync server.'); });
   }
 
   /* ---- read everything the website has, in the app's format ---- */
@@ -121,7 +122,7 @@
       var items = push.map(wire).concat(gone.map(function (u) { return { uid: u, deleted: true, puzzle: 'other', time: 0, date: 0 }; }));
       var since = st.since || null, nick = opts.nick !== undefined ? opts.nick : st.nick || null, i = 0, nickSaved = null;
       function step() {
-        var batch = items.slice(i, i + 500); i += 500;
+        var batch = items.slice(i, i + 1000); i += 1000;
         return rpc({ p_code: st.code, p_nick: nick, p_since: since, p_solves: batch }).then(function (r) {
           if (r.error) { var e = new Error(r.error === 'nick_taken' ? 'That nickname is already taken.' : r.error === 'bad_nick' ? 'Nicknames are 3 to 20 letters, numbers or _.' : 'The server refused the sync code.'); e.code = r.error; throw e; }
           nick = null; nickSaved = r.nick; sent += batch.length; since = r.server_time || since;

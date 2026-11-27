@@ -310,60 +310,155 @@ public final class SyncManager {
         for (Row r : push) state.put(r.uid, r.hash);
         for (String u : gone) state.remove(u);
 
-        // What other devices changed
-        DatabaseHandler db = CubicTimer.getDBHandler();
-        int applied = 0;
-        for (JSONObject p : pulled) {
-            String uid = p.getString("uid");
-            String puzzle = p.optString("puzzle", "other");
-            if (skip(puzzle)) continue;
-            Row mine = byUid.get(uid);
-            if (p.optBoolean("deleted", false)) {
-                if (mine != null) {
-                    db.deleteSolveByID(mine.id);
-                    applied++;
-                }
-                state.remove(uid);
-                continue;
-            }
-            String cat = p.optString("category", "Normal");
-            long time = p.optLong("time"), date = p.optLong("date");
-            int pen = p.optInt("penalty");
-            String scr = p.isNull("scramble") ? "" : p.optString("scramble", "");
-            String com = p.isNull("comment") ? "" : p.optString("comment", "");
-            boolean hist = p.optBoolean("history", false);
-            String hash = hashOf(puzzle, cat, time, pen, date, scr, com) + (hist ? "h" : "");
-            if (mine != null) {
-                if (!mine.hash.equals(hash)) {
-                    Solve s = new Solve(time, puzzle, cat, date, scr, pen, com, hist);
-                    s.setId(mine.id);
-                    db.updateSolve(s);
-                    applied++;
-                }
-            } else {
-                db.addSolve(new Solve(time, puzzle, cat, date, scr, pen, com, hist));
-                applied++;
-            }
-            state.put(uid, hash);
-        }
+        // What other devices changed (all in one database transaction, which is much faster)
+        int applied = applyPulled(pulled, byUid, state);
         saveState(c, state);
         prefs(c).edit().putString(K_SINCE, since).putLong(K_LAST, System.currentTimeMillis())
                 .putString(K_NICK, savedNick != null ? savedNick : getNick(c)).apply();
         if (applied > 0) {
+            // tell the screens, but do not let that tell us to sync again
+            suppressUntil = System.currentTimeMillis() + 5000L;
             MAIN.post(() -> TTIntent.broadcast(CATEGORY_TIME_DATA_CHANGES, ACTION_TIMES_MODIFIED));
         }
         return "Sent " + (push.size() + gone.size()) + ", received " + pulled.size() + (applied > 0 ? " (" + applied + " changes applied)" : "") + ".";
+    }
+
+    private static int applyPulled(final List<JSONObject> pulled, final Map<String, Row> byUid, final Map<String, String> state) {
+        final int[] applied = {0};
+        CubicTimer.getDBHandler().runInTransaction(() -> {
+            DatabaseHandler db = CubicTimer.getDBHandler();
+            for (JSONObject p : pulled) {
+                try {
+                    String uid = p.getString("uid");
+                    String puzzle = p.optString("puzzle", "other");
+                    if (skip(puzzle)) continue;
+                    Row mine = byUid.get(uid);
+                    if (p.optBoolean("deleted", false)) {
+                        if (mine != null) {
+                            db.deleteSolveByID(mine.id);
+                            applied[0]++;
+                        }
+                        state.remove(uid);
+                        continue;
+                    }
+                    String cat = p.optString("category", "Normal");
+                    long time = p.optLong("time"), date = p.optLong("date");
+                    int pen = p.optInt("penalty");
+                    String scr = p.isNull("scramble") ? "" : p.optString("scramble", "");
+                    String com = p.isNull("comment") ? "" : p.optString("comment", "");
+                    boolean hist = p.optBoolean("history", false);
+                    String hash = hashOf(puzzle, cat, time, pen, date, scr, com) + (hist ? "h" : "");
+                    if (mine != null) {
+                        if (!mine.hash.equals(hash)) {
+                            Solve s = new Solve(time, puzzle, cat, date, scr, pen, com, hist);
+                            s.setId(mine.id);
+                            db.updateSolve(s);
+                            applied[0]++;
+                        }
+                    } else {
+                        db.addSolve(new Solve(time, puzzle, cat, date, scr, pen, com, hist));
+                        applied[0]++;
+                    }
+                    state.put(uid, hash);
+                } catch (Exception ignored) {
+                    // one bad row from the server must not stop the others
+                }
+            }
+        });
+        return applied[0];
     }
 
     private static void post(final Callback cb, final boolean ok, final String msg) {
         if (cb != null) MAIN.post(() -> cb.done(ok, msg));
     }
 
-    /** Called when the app opens: syncs quietly if a code is set and it has been a while. */
+    // ------------------------------------------------------------------ automatic sync
+
+    private static final long MIN_GAP_OPEN = 30 * 1000L;      // when the app comes to the front
+    private static final long AFTER_SOLVE = 6 * 1000L;        // a few seconds after a solve changes
+    private static final long EVERY = 2 * 60 * 1000L;         // while the app stays open
+    private static volatile long suppressUntil = 0;
+    private static volatile boolean foreground = false;
+    private static boolean watching = false;
+    private static int failures = 0;
+
+    private static final Runnable PERIODIC = new Runnable() {
+        @Override
+        public void run() {
+            if (!foreground) return;
+            Context c = CubicTimer.getAppContext();
+            if (c != null) trySync(c);
+            MAIN.postDelayed(this, EVERY);
+        }
+    };
+
+    private static boolean ready(Context c) {
+        return configured(c) && !getCode(c).isEmpty();
+    }
+
+    /** One quiet round in the background. A failure is tried again later, a little later each time. */
+    private static void trySync(final Context c) {
+        if (!ready(c)) return;
+        sync(c, null, (ok, msg) -> {
+            if (ok) {
+                failures = 0;
+            } else if (!"Already syncing.".equals(msg)) {
+                failures = Math.min(failures + 1, 5);
+                scheduleSoon(c, Math.min(5 * 60 * 1000L, 10 * 1000L * (1L << failures)));
+            }
+        });
+    }
+
+    private static final Runnable SOON = () -> {
+        Context c = CubicTimer.getAppContext();
+        if (c != null) trySync(c);
+    };
+
+    /** Syncs once, after {@code delayMs}. Asking again before then just moves the time (so a burst of solves is one sync). */
+    public static void scheduleSoon(Context c, long delayMs) {
+        if (!ready(c.getApplicationContext())) return;
+        MAIN.removeCallbacks(SOON);
+        MAIN.postDelayed(SOON, delayMs);
+    }
+
+    /**
+     * Starts listening for changes to the solves, so they are sent a few seconds later. Call once when the
+     * app starts.
+     */
+    public static synchronized void watch() {
+        if (watching) return;
+        watching = true;
+        TTIntent.registerReceiver(new android.content.BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, android.content.Intent intent) {
+                String a = intent == null ? null : intent.getAction();
+                if (a == null || System.currentTimeMillis() < suppressUntil) return;
+                if (a.equals(TTIntent.ACTION_TIME_ADDED) || a.equals(TTIntent.ACTION_TIMES_MODIFIED)
+                        || a.equals(TTIntent.ACTION_TIMES_MOVED_TO_HISTORY) || a.equals(TTIntent.ACTION_COMMENT_ADDED)) {
+                    scheduleSoon(context, AFTER_SOLVE);
+                }
+            }
+        }, CATEGORY_TIME_DATA_CHANGES);
+    }
+
+    /** Called when the app comes to the front: syncs quietly if a code is set, then every couple of minutes while it stays open. */
     public static void autoSync(Context c) {
         Context app = c.getApplicationContext();
-        if (!configured(app) || getCode(app).isEmpty()) return;
-        if (System.currentTimeMillis() - getLast(app) < 2 * 60 * 1000L) return;
-        sync(app, null, null);
+        foreground = true;
+        if (!ready(app)) return;
+        if (System.currentTimeMillis() - getLast(app) >= MIN_GAP_OPEN) trySync(app);
+        MAIN.removeCallbacks(PERIODIC);
+        MAIN.postDelayed(PERIODIC, EVERY);
+    }
+
+    /** Called when the app goes to the background: stops the timer, and sends anything waiting. */
+    public static void background(Context c) {
+        foreground = false;
+        MAIN.removeCallbacks(PERIODIC);
+        Context app = c.getApplicationContext();
+        if (ready(app)) {
+            MAIN.removeCallbacks(SOON);
+            trySync(app);
+        }
     }
 }

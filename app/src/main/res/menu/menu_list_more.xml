@@ -65,6 +65,10 @@
                 android:id="@+id/share_histogram"
                 android:title="@string/fab_share_distribution" />
 
+            <item
+                android:id="@+id/share_session"
+                android:title="@string/fab_share_session" />
+
         </menu>
 
     </item>

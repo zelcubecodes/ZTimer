@@ -394,6 +394,21 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         return numInserted;
     }
 
+    /**
+     * Runs several database changes as one transaction. Doing thousands of changes one by one is
+     * very slow; in one transaction it takes a moment. Call this from a background thread.
+     */
+    public void runInTransaction(Runnable changes) {
+        final SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            changes.run();
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
     public int updateSolve(Solve solve) {
         SQLiteDatabase db = this.getWritableDatabase();
 
