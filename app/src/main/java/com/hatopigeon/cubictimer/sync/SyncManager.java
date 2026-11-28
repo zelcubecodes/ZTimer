@@ -51,6 +51,7 @@ public final class SyncManager {
     private static final int BATCH = 500;
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static volatile boolean busy = false;
+    private static volatile boolean rerun = false;
 
     private SyncManager() {
     }
@@ -176,35 +177,92 @@ public final class SyncManager {
     }
 
     private static void saveState(Context c, Map<String, String> m) {
-        try (java.io.Writer w = new java.io.OutputStreamWriter(new java.io.FileOutputStream(stateFile(c)), StandardCharsets.UTF_8)) {
-            for (Map.Entry<String, String> e : m.entrySet()) w.write(e.getKey() + "\t" + e.getValue() + "\n");
-        } catch (Exception ignored) {
+        saveStateSafely(c, m);
+    }
+
+    /** A failure worth trying again (no connection, timeout, server hiccup). */
+    private static final class Transient extends Exception {
+        Transient(String m) {
+            super(m);
         }
     }
 
-    private static JSONObject rpc(Context c, JSONObject body) throws Exception {
+    private static JSONObject rpcOnce(Context c, JSONObject body) throws Exception {
         String base = c.getString(R.string.sync_supabase_url).trim();
         if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
         String key = c.getString(R.string.sync_supabase_key).trim();
-        HttpURLConnection con = (HttpURLConnection) new URL(base + "/rest/v1/rpc/zt_sync").openConnection();
-        con.setConnectTimeout(15000);
-        con.setReadTimeout(30000);
-        con.setRequestMethod("POST");
-        con.setRequestProperty("Content-Type", "application/json");
-        con.setRequestProperty("apikey", key);
-        con.setRequestProperty("Authorization", "Bearer " + key);
-        con.setDoOutput(true);
-        try (OutputStream os = con.getOutputStream()) {
-            os.write(body.toString().getBytes(StandardCharsets.UTF_8));
+        HttpURLConnection con = null;
+        try {
+            con = (HttpURLConnection) new URL(base + "/rest/v1/rpc/zt_sync").openConnection();
+            con.setConnectTimeout(15000);
+            con.setReadTimeout(40000);
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setRequestProperty("apikey", key);
+            con.setRequestProperty("Authorization", "Bearer " + key);
+            con.setDoOutput(true);
+            try (OutputStream os = con.getOutputStream()) {
+                os.write(body.toString().getBytes(StandardCharsets.UTF_8));
+            }
+            int code = con.getResponseCode();
+            if (code < 200 || code >= 300) {
+                // say what the server really said, not only the number
+                String msg = "";
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getErrorStream(), StandardCharsets.UTF_8))) {
+                    StringBuilder eb = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null && eb.length() < 2000) eb.append(line);
+                    JSONObject j = new JSONObject(eb.toString());
+                    msg = j.optString("message", j.optString("error", ""));
+                } catch (Exception ignored) {
+                    // no readable message
+                }
+                String text = "Server answered " + code + (msg.isEmpty() ? "" : ": " + (msg.length() > 120 ? msg.substring(0, 120) : msg));
+                if (code >= 500 || code == 429 || code == 408) throw new Transient(text);
+                throw new Exception(text);
+            }
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+            }
+            return new JSONObject(sb.toString());
+        } catch (java.io.IOException e) {
+            throw new Transient(e instanceof java.net.SocketTimeoutException
+                    ? "The server took too long to answer." : "No connection to the sync server.");
+        } finally {
+            if (con != null) con.disconnect();
         }
-        int code = con.getResponseCode();
-        if (code < 200 || code >= 300) throw new Exception("Server answered " + code);
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = br.readLine()) != null) sb.append(line);
+    }
+
+    /** Like rpcOnce, but a hiccup is tried again twice (after 1.2 s, then 2.4 s) before giving up. */
+    private static JSONObject rpc(Context c, JSONObject body) throws Exception {
+        for (int tries = 1; ; tries++) {
+            try {
+                return rpcOnce(c, body);
+            } catch (Transient e) {
+                if (tries > 2) throw new Exception(e.getMessage());
+                Thread.sleep(1200L * tries);
+            }
         }
-        return new JSONObject(sb.toString());
+    }
+
+    private static void saveStateSafely(Context c, Map<String, String> m) {
+        // written to a temporary file first, so a crash in the middle can never leave a half-written state
+        File f = stateFile(c), tmp = new File(f.getPath() + ".tmp");
+        try (java.io.Writer w = new java.io.OutputStreamWriter(new java.io.FileOutputStream(tmp), StandardCharsets.UTF_8)) {
+            for (Map.Entry<String, String> e : m.entrySet()) w.write(e.getKey() + "\t" + e.getValue() + "\n");
+        } catch (Exception e) {
+            //noinspection ResultOfMethodCallIgnored
+            tmp.delete();
+            return;
+        }
+        if (!tmp.renameTo(f)) {
+            //noinspection ResultOfMethodCallIgnored
+            f.delete();
+            //noinspection ResultOfMethodCallIgnored
+            tmp.renameTo(f);
+        }
     }
 
     // ------------------------------------------------------------------ the sync
@@ -222,6 +280,7 @@ public final class SyncManager {
             return;
         }
         if (busy) {
+            rerun = true;   // something changed while syncing: go again as soon as this round ends
             post(cb, false, "Already syncing.");
             return;
         }
@@ -234,6 +293,10 @@ public final class SyncManager {
                 post(cb, false, e.getMessage() == null ? "Could not sync." : e.getMessage());
             } finally {
                 busy = false;
+                if (rerun) {
+                    rerun = false;
+                    scheduleSoon(c, 3000);
+                }
             }
         }).start();
     }
@@ -295,6 +358,11 @@ public final class SyncManager {
                 String e = r.optString("error");
                 if ("nick_taken".equals(e)) throw new Exception("That nickname is already taken.");
                 if ("bad_nick".equals(e)) throw new Exception("Nicknames are 3 to 20 letters, numbers or _.");
+                if ("too_many".equals(e)) throw new Exception("Too many solves in one go, please try again.");
+                if ("server".equals(e)) {
+                    String d = r.optString("detail", "");
+                    throw new Exception("The server had a problem" + (d.isEmpty() ? "." : ": " + d));
+                }
                 throw new Exception("The server refused the sync code.");
             }
             nickToSend = null;
@@ -381,6 +449,12 @@ public final class SyncManager {
     private static volatile boolean foreground = false;
     private static boolean watching = false;
     private static int failures = 0;
+    private static volatile String lastError = "";
+
+    /** The last problem an automatic sync ran into (empty when the last one worked). */
+    public static String getLastError() {
+        return lastError;
+    }
 
     private static final Runnable PERIODIC = new Runnable() {
         @Override
@@ -396,13 +470,52 @@ public final class SyncManager {
         return configured(c) && !getCode(c).isEmpty();
     }
 
+    /** True when the phone has a working internet connection (or when we cannot tell). */
+    private static boolean online(Context c) {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return true;
+            android.net.Network n = cm.getActiveNetwork();
+            if (n == null) return false;
+            android.net.NetworkCapabilities nc = cm.getNetworkCapabilities(n);
+            return nc == null || nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    private static boolean netWatching = false;
+
+    /** Syncs again a moment after the internet comes back, so changes made offline are not left waiting. */
+    private static synchronized void watchNetwork(final Context c) {
+        if (netWatching) return;
+        netWatching = true;
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return;
+            cm.registerDefaultNetworkCallback(new android.net.ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(android.net.Network network) {
+                    MAIN.post(() -> scheduleSoon(c, 2500));
+                }
+            });
+        } catch (Exception ignored) {
+            // no network watching on this phone, the timers still work
+        }
+    }
+
     /** One quiet round in the background. A failure is tried again later, a little later each time. */
     private static void trySync(final Context c) {
         if (!ready(c)) return;
+        if (!online(c)) return;   // offline: the network callback brings us back when it returns
         sync(c, null, (ok, msg) -> {
             if (ok) {
                 failures = 0;
+                lastError = "";
             } else if (!"Already syncing.".equals(msg)) {
+                lastError = msg == null ? "" : msg;
+                // a wrong sync code will not fix itself, so do not keep asking
+                if (msg != null && msg.contains("refused the sync code")) return;
                 failures = Math.min(failures + 1, 5);
                 scheduleSoon(c, Math.min(5 * 60 * 1000L, 10 * 1000L * (1L << failures)));
             }
@@ -428,6 +541,8 @@ public final class SyncManager {
     public static synchronized void watch() {
         if (watching) return;
         watching = true;
+        Context app = CubicTimer.getAppContext();
+        if (app != null) watchNetwork(app.getApplicationContext());
         TTIntent.registerReceiver(new android.content.BroadcastReceiver() {
             @Override
             public void onReceive(Context context, android.content.Intent intent) {
