@@ -23,11 +23,32 @@
   function persist() { save(st); }
   function configured() { return !!(CFG.url && CFG.key); }
 
-  function rpc(body) {
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function once(body) {
     var ctl = window.AbortController ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, 45000) : null;
     return fetch(CFG.url.replace(/\/$/, '') + '/rest/v1/rpc/zt_sync', {
       method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CFG.key, Authorization: 'Bearer ' + CFG.key }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined
-    }).then(function (r) { clearTimeout(to); if (!r.ok) throw new Error('Server answered ' + r.status); return r.json(); }, function (e) { clearTimeout(to); throw new Error(e && e.name === 'AbortError' ? 'The server took too long to answer.' : 'No connection to the sync server.'); });
+    }).then(function (r) {
+      clearTimeout(to);
+      if (r.ok) return r.json();
+      /* say what the server really said, not only the number */
+      return r.text().then(function (t) {
+        var m = ''; try { var j = JSON.parse(t); m = j.message || j.error || ''; } catch (e) {}
+        var err = new Error('Server answered ' + r.status + (m ? ': ' + String(m).slice(0, 120) : '')); err.status = r.status; throw err;
+      });
+    }, function (e) { clearTimeout(to); var err = new Error(e && e.name === 'AbortError' ? 'The server took too long to answer.' : 'No connection to the sync server.'); err.transient = true; throw err; });
+  }
+  /* a hiccup (timeout, no connection, 5xx, too many requests) is tried again twice before giving up */
+  function rpc(body) {
+    var tries = 0;
+    function go() {
+      return once(body).catch(function (e) {
+        var retry = e.transient || e.status === 429 || (e.status >= 500 && e.status < 600);
+        if (!retry || ++tries > 2) throw e;
+        return wait(1200 * tries).then(go);
+      });
+    }
+    return go();
   }
 
   /* ---- read everything the website has, in the app's format ---- */
@@ -45,7 +66,7 @@
       sess.forEach(function (S) {
         if (SKIP[S.scr] || SKIP[toApp(S.scr)]) return;
         S.times.forEach(function (e, i) {
-          var pen = e[0][0], tm = e[0][1], scrm = e[1] || '', com = e[2] || '', ts = e[3] || 0, date = ts * 1000;
+          var pen = e[0][0], tm = Math.round(Number(e[0][1])) || 0, scrm = e[1] || '', com = e[2] || '', ts = Math.floor(Number(e[3])) || 0, date = ts * 1000;
           var key = S.scr + '|' + S.cat + '|' + ts + '|' + tm + '|' + fnv(scrm);
           var row = { key: key, sess: S, i: i, puzzle: toApp(S.scr), category: S.cat, time: tm, penalty: pen2app(pen), date: date, scramble: scrm, comment: com, history: false };
           row.uid = st.map[key] || uidOf(date, tm, scrm);
@@ -53,7 +74,11 @@
           rows.push(row);
         });
       });
-      return { rows: rows, sessions: sess };
+      /* two solves with the same uid (same moment, time and scramble) are one solve to the server: keep the last */
+      var seen = {}, uniq = [];
+      rows.forEach(function (r) { seen[r.uid] = r; });
+      rows.forEach(function (r) { if (seen[r.uid] === r) uniq.push(r); });
+      return { rows: uniq, sessions: sess };
     });
   }
   function wire(r) { return { uid: r.uid, puzzle: r.puzzle, category: r.category, time: r.time, penalty: r.penalty, date: r.date, scramble: r.scramble, comment: r.comment, history: false }; }
@@ -84,7 +109,7 @@
         return get.then(function () {
           var out = [], did = false;
           old.forEach(function (e) {
-            var key = g.scr + '|' + g.cat + '|' + (e[3] || 0) + '|' + e[0][1] + '|' + fnv(e[1] || ''), uid = st.map[key] || uidOf((e[3] || 0) * 1000, e[0][1], e[1] || '');
+            var et = Math.round(Number(e[0][1])) || 0, ets = Math.floor(Number(e[3])) || 0, key = g.scr + '|' + g.cat + '|' + ets + '|' + et + '|' + fnv(e[1] || ''), uid = st.map[key] || uidOf(ets * 1000, et, e[1] || '');
             if (g.dels[uid]) { did = true; changed++; return; }
             var ed = g.edits[uid];
             if (ed) { e = [[pen2web(ed.penalty), ed.time], ed.scramble || '', ed.comment || '', e[3]]; did = true; changed++; }
@@ -122,9 +147,9 @@
       var items = push.map(wire).concat(gone.map(function (u) { return { uid: u, deleted: true, puzzle: 'other', time: 0, date: 0 }; }));
       var since = st.since || null, nick = opts.nick !== undefined ? opts.nick : st.nick || null, i = 0, nickSaved = null;
       function step() {
-        var batch = items.slice(i, i + 1000); i += 1000;
+        var batch = items.slice(i, i + 500); i += 500;
         return rpc({ p_code: st.code, p_nick: nick, p_since: since, p_solves: batch }).then(function (r) {
-          if (r.error) { var e = new Error(r.error === 'nick_taken' ? 'That nickname is already taken.' : r.error === 'bad_nick' ? 'Nicknames are 3 to 20 letters, numbers or _.' : 'The server refused the sync code.'); e.code = r.error; throw e; }
+          if (r.error) { var e = new Error(r.error === 'nick_taken' ? 'That nickname is already taken.' : r.error === 'bad_nick' ? 'Nicknames are 3 to 20 letters, numbers or _.' : r.error === 'bad_code' ? 'The server refused the sync code.' : r.error === 'too_many' ? 'Too many solves in one go, please try again.' : 'The server had a problem' + (r.detail ? ': ' + r.detail : '.')); e.code = r.error; throw e; }
           nick = null; nickSaved = r.nick; sent += batch.length; since = r.server_time || since;
           (r.solves || []).forEach(function (s) { pulled.push(s); });
           if (r.more) return step();
@@ -146,9 +171,9 @@
         st.map[scr + '|' + cat + '|' + ts + '|' + p.time + '|' + fnv(p.scramble || '')] = p.uid;
         st.hashes[p.uid] = fnv([p.puzzle, cat, p.time, pen2app(pen2web(p.penalty)), ts * 1000, p.scramble || '', p.comment || ''].join('\u0001'));
       });
-      st.since = res.since; st.last = Date.now(); persist(); busy = false;
+      st.since = res.since; st.last = Date.now(); st.err = ''; persist(); busy = false;
       return { sent: sent, got: res.pulled.length, applied: res.applied };
-    }).catch(function (e) { busy = false; persist(); throw e; });
+    }).catch(function (e) { busy = false; st.err = e && e.message || ''; persist(); throw e; });
   }
 
   function makeCode() {

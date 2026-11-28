@@ -1635,7 +1635,7 @@
       var n = card('Nickname').appendTo(body), nin = $('<input type="text" class="zsync-in" maxlength="20" placeholder="Pick a nickname (optional)">').val(st.nick || '').appendTo(n);
       n.append($('<p class="zp-note"></p>').text('3 to 20 letters, numbers or _. Nicknames are unique and will be used for friends and racing.'));
       var nickB = ibtn('check', 'Save nickname').appendTo(n).on('click', function () { S.sync(window.ZT_BRIDGE, { nick: nin.val().trim() }).then(function () { flashBtn(nickB, 'check', 'Saved', 'check', 'Save nickname'); }, function (e) { anim(nickB, 'zshake'); anim(nin, 'zshake'); toast(e.message); }); });
-      var s = card('Sync').appendTo(body), syncB = ibtn('sync', 'Sync now', 'pri').appendTo(s), status = $('<p class="zsync-stat"></p>').text('Last synced: ' + ago(st.last)).appendTo(s);
+      var s = card('Sync').appendTo(body), syncB = ibtn('sync', 'Sync now', 'pri').appendTo(s), status = $('<p class="zsync-stat"></p>').text('Last synced: ' + ago(st.last) + (st.err ? '. Last problem: ' + st.err : '')).appendTo(s);
       function rest() { syncB.removeClass('ok').html(ic('sync', 18) + '<span></span>'); syncB.find('span').text('Sync now'); }
       syncB.on('click', function () {
         syncB.find('svg').addClass('zspin'); syncB.find('span').text('Syncing...'); status.removeClass('ok err').text('Talking to the server...');
@@ -1662,25 +1662,32 @@
   }
   /* automatic sync: when the site opens, a few seconds after the solves change, when you come back to the tab,
      when the network returns, and every 2 minutes while the tab is open. A failed sync tries again, a little later each time. */
-  var autoT = null, autoRetry = 0, lastAuto = 0;
+  var autoT = null, autoRetry = 0, lastAuto = 0, autoDirty = false;
   function autoOn() { var S = window.ZTSync; return !!(S && S.configured() && S.state().code && S.state().auto !== false); }
   function runAuto() {
     if (!autoOn()) return;
-    lastAuto = Date.now();
+    if (navigator.onLine === false) return;   /* the 'online' event brings us back here */
+    lastAuto = Date.now(); autoDirty = false;
     window.ZTSync.sync(window.ZT_BRIDGE).then(function (r) {
       if (r && r.busy) { autoSoon(3000); return; }
       autoRetry = 0;
+      if (autoDirty) autoSoon(4000);          /* solves changed while we were syncing: go again */
       if (r && r.applied) { lastSig = ''; if (current === 'solves' || current === 'stats') rerenderPage(); }
     }, function (e) {
-      if (e && /code|set up/i.test(e.message || '')) return;
+      if (e && /code|set up/i.test(e.message || '') && !/problem|answered/i.test(e.message || '')) return;
+      autoDirty = true;
       autoRetry = Math.min(autoRetry + 1, 5); autoSoon(Math.min(300000, 10000 * Math.pow(2, autoRetry)));
     });
   }
   function autoSoon(ms) { if (!autoOn()) return; clearTimeout(autoT); autoT = setTimeout(runAuto, ms); }
-  function autoSync() { autoSoon(6000); }
+  function autoSync() { autoDirty = true; autoSoon(6000); }
   function autoWatch() {
-    document.addEventListener('visibilitychange', function () { if (!document.hidden && Date.now() - lastAuto > 30000) autoSoon(800); });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { if (autoDirty) autoSoon(200); }   /* leaving the tab: send what is waiting */
+      else if (Date.now() - lastAuto > 30000) autoSoon(800);
+    });
     window.addEventListener('online', function () { autoSoon(1500); });
+    window.addEventListener('pagehide', function () { if (autoDirty && autoOn()) runAuto(); });
     setInterval(function () { if (!document.hidden && navigator.onLine !== false && Date.now() - lastAuto > 110000) autoSoon(100); }, 30000);
   }
 
