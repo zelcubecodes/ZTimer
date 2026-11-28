@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Picture;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -17,6 +18,7 @@ import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.PictureDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
@@ -227,32 +229,54 @@ public final class SolveCard {
         }
     }
 
+    /** Paints the picture at its natural size at (0,0). The caller scales the canvas. */
+    private static void paintNatural(Canvas c, Drawable image, Picture pic, int iw, int ih) {
+        if (pic != null) {
+            c.drawPicture(pic);
+        } else {
+            Rect old = image.copyBounds();
+            image.setBounds(0, 0, iw, ih);
+            image.draw(c);
+            image.setBounds(old);
+        }
+    }
+
     /**
-     * Draws a scramble picture as large as it fits and really centred: the picture is drawn once at its final
-     * size, its empty margins are measured and left out. The website does exactly the same.
+     * Draws a scramble picture as large as it fits and really centred in {@code area}.
+     *
+     * Android does not scale a vector picture to the bounds of its drawable (an ImageView does that with a
+     * matrix), so the picture is painted at its natural size under a scaled canvas. First it is painted small to
+     * find what is really drawn (its empty margins are left out), then once at the final size. This keeps it
+     * sharp, and it works whatever size the drawable reports.
      */
     private static void drawImageFit(Canvas c, Drawable image, RectF area) {
         if (image == null || area.width() < 40f || area.height() < 40f) return;
         try {
-            Drawable d = image.getConstantState() != null ? image.getConstantState().newDrawable().mutate() : image;
-            Rect oldBounds = d.copyBounds();
-            int iw = d.getIntrinsicWidth(), ih = d.getIntrinsicHeight();
+            int iw = image.getIntrinsicWidth(), ih = image.getIntrinsicHeight();
+            Picture pic = image instanceof PictureDrawable ? ((PictureDrawable) image).getPicture() : null;
+            if (pic != null && pic.getWidth() > 0 && pic.getHeight() > 0) {
+                iw = pic.getWidth();
+                ih = pic.getHeight();
+            }
             if (iw <= 0 || ih <= 0) {
                 iw = 300;
                 ih = 300;
             }
-            float s = Math.min(area.width() / iw, area.height() / ih);
-            int bw = Math.max(1, Math.round(iw * s)), bh = Math.max(1, Math.round(ih * s));
-            Bitmap bmp = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888);
-            d.setBounds(0, 0, bw, bh);
-            d.draw(new Canvas(bmp));
-            d.setBounds(oldBounds);
-            int[] px = new int[bw * bh];
-            bmp.getPixels(px, 0, bw, 0, 0, bw, bh);
-            int minX = bw, minY = bh, maxX = -1, maxY = -1;
-            for (int y = 0; y < bh; y++) {
-                for (int x = 0; x < bw; x++) {
-                    if ((px[y * bw + x] >>> 24) > 10) {
+            // 1. what is painted, measured on a small copy
+            RectF tight = new RectF(0, 0, iw, ih);
+            float probe = 600f / Math.max(iw, ih);
+            int pw = Math.max(1, Math.round(iw * probe)), ph = Math.max(1, Math.round(ih * probe));
+            Bitmap pb = Bitmap.createBitmap(pw, ph, Bitmap.Config.ARGB_8888);
+            Canvas pc = new Canvas(pb);
+            pc.scale(probe, probe);
+            paintNatural(pc, image, pic, iw, ih);
+            int[] px = new int[pw * ph];
+            pb.getPixels(px, 0, pw, 0, 0, pw, ph);
+            pb.recycle();
+            int minX = pw, minY = ph, maxX = -1, maxY = -1;
+            for (int y = 0; y < ph; y++) {
+                for (int x = 0; x < pw; x++) {
+                    if ((px[y * pw + x] >>> 24) > 10) {
                         if (x < minX) minX = x;
                         if (x > maxX) maxX = x;
                         if (y < minY) minY = y;
@@ -260,14 +284,21 @@ public final class SolveCard {
                     }
                 }
             }
-            Rect src = new Rect(0, 0, bw, bh);
-            if (maxX >= minX && maxY >= minY && maxX - minX + 1 >= bw * 0.4f && maxY - minY + 1 >= bh * 0.4f) {
-                src = new Rect(minX, minY, maxX + 1, maxY + 1);
+            if (maxX >= minX && maxY >= minY) {
+                tight = new RectF(minX / probe, minY / probe, (maxX + 1) / probe, (maxY + 1) / probe);
             }
-            float dw = src.width(), dh = src.height();
+            // 2. the final drawing: the painted part fills the area, centred
+            float tw = tight.width(), th = tight.height();
+            if (tw <= 0f || th <= 0f) return;
+            float s = Math.min(area.width() / tw, area.height() / th);
+            float dw = tw * s, dh = th * s;
             float left = area.centerX() - dw / 2f, top = area.centerY() - dh / 2f;
-            c.drawBitmap(bmp, src, new RectF(left, top, left + dw, top + dh), new Paint(Paint.FILTER_BITMAP_FLAG));
-            bmp.recycle();
+            c.save();
+            c.clipRect(left, top, left + dw, top + dh);
+            c.translate(left - tight.left * s, top - tight.top * s);
+            c.scale(s, s);
+            paintNatural(c, image, pic, iw, ih);
+            c.restore();
         } catch (Throwable ignored) {
             // the card is still fine without the picture
         }
