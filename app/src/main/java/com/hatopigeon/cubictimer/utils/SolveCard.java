@@ -304,6 +304,33 @@ public final class SolveCard {
         }
     }
 
+    /**
+     * The comment of a solve, centred and wrapped over as many lines as it needs (up to 8), so a long comment is
+     * never cut off at the sides. It starts at a comfortable size and gets smaller before it gets cut short.
+     * Returns null when there is no comment.
+     */
+    private static StaticLayout commentLayout(String comment, int color, Typeface face, int width) {
+        if (comment == null || comment.trim().isEmpty()) return null;
+        String cm = comment.trim();
+        if (cm.length() > 500) cm = cm.substring(0, 498) + "...";
+        String text = "\u201C" + cm + "\u201D";
+        TextPaint cp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        cp.setColor(color);
+        cp.setAlpha(230);
+        cp.setTypeface(face);
+        cp.setTextSkewX(-0.2f);
+        StaticLayout lay = null;
+        for (float size = 34f; size >= 24f; size -= 2f) {
+            cp.setTextSize(size);
+            lay = StaticLayout.Builder.obtain(text, 0, text.length(), cp, Math.max(10, width))
+                    .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                    .setLineSpacing(size * 0.3f, 1f)
+                    .setMaxLines(8).setEllipsize(android.text.TextUtils.TruncateAt.END).build();
+            if (lay.getLineCount() <= 3) break;   // short enough at this size
+        }
+        return lay;
+    }
+
     private static Body solveBody(final Solve solve, final Drawable image, final List<String> badges) {
         return (c, a, fg) -> {
             float y = a.top;
@@ -328,19 +355,13 @@ public final class SolveCard {
             layout.draw(c);
             c.restore();
             y += ph + 28f;
-            String cm = solve.getComment();
-            if (cm != null && !cm.trim().isEmpty()) {
-                cm = cm.trim();
-                if (cm.length() > 60) cm = cm.substring(0, 58) + "...";
-                TextPaint cp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-                cp.setColor(fg);
-                cp.setAlpha(230);
-                cp.setTypeface(sMed);
-                cp.setTextSkewX(-0.2f);
-                cp.setTextSize(34f);
-                cp.setTextAlign(Paint.Align.CENTER);
-                c.drawText("\u201C" + cm + "\u201D", a.centerX(), y + 30f, cp);
-                y += 60f;
+            StaticLayout cmLayout = commentLayout(solve.getComment(), fg, sMed, (int) (a.width() - 40f));
+            if (cmLayout != null) {
+                c.save();
+                c.translate(a.left + 20f, y);
+                cmLayout.draw(c);
+                c.restore();
+                y += cmLayout.getHeight() + 28f;
             }
             drawImageFit(c, image, new RectF(a.left, y, a.right, a.bottom));
         };
@@ -521,6 +542,17 @@ public final class SolveCard {
         }
         if (plus2) badges.add("+2");
         s.body = solveBody(solve, scrambleImage, badges.size() > 4 ? badges.subList(0, 4) : badges);
+        // a long comment gets its own room: the card grows by what the comment needs beyond one line,
+        // so the scramble picture keeps its size
+        try {
+            Typeface face = ResourcesCompat.getFont(ctx, R.font.quicksand_medium);
+            StaticLayout cl = commentLayout(solve.getComment(), 0xFF000000, face, W - 2 * M - 40);
+            if (cl != null && cl.getHeight() > 70) {
+                s.height = H0 + Math.min(cl.getHeight() - 70, 420);
+            }
+        } catch (Throwable ignored) {
+            // the standard height then
+        }
         s.fileName = "solve-" + solve.getDate();
         s.title = ctx.getString(R.string.list_options_item_share);
         return s;
