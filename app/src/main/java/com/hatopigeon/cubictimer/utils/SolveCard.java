@@ -1,6 +1,7 @@
 package com.hatopigeon.cubictimer.utils;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Context;
@@ -15,6 +16,7 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
@@ -24,14 +26,13 @@ import android.text.TextPaint;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.HorizontalScrollView;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.content.res.ResourcesCompat;
@@ -41,6 +42,7 @@ import com.hatopigeon.cubictimer.CubicTimer;
 import com.hatopigeon.cubictimer.items.Solve;
 import com.hatopigeon.cubictimer.stats.AverageCalculatorSuper;
 import com.hatopigeon.cubictimer.stats.Statistics;
+import com.hatopigeon.cubictimer.wca.WcaUi;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -64,7 +66,7 @@ import static com.hatopigeon.cubictimer.stats.AverageCalculatorSuper.tr;
  */
 public final class SolveCard {
     private static final int W = 1080;
-    private static final int H = 1350;
+    private static final int H0 = 1350;
     private static final int M = 64;
 
     private static Typeface sBold;
@@ -99,6 +101,8 @@ public final class SolveCard {
         Body body;
         String fileName = "card";
         String title = "Solve card";
+        /** 0 = the standard 1080 x 1350; a card with many rows is taller so every row stays readable */
+        int height = 0;
     }
 
     // ------------------------------------------------------------------ drawing
@@ -117,6 +121,7 @@ public final class SolveCard {
     }
 
     private static Bitmap render(Context ctx, Spec spec) {
+        final int H = spec.height > 0 ? spec.height : H0;
         Bitmap bmp = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bmp);
         int start = ThemeUtils.fetchAttrColor(ctx, R.attr.colorMainGradientStart);
@@ -327,43 +332,48 @@ public final class SolveCard {
             float ch = Math.min(150f, (a.height() - gap * (rows - 1)) / rows);
             float th = rows * ch + (rows - 1) * gap;
             float y0 = a.top + Math.max(0f, (a.height() - th) / 2f);
+            float rowR = 28f, pad = 16f, chip = Math.min(56f, ch - 2f * pad);
+            float chipR = Math.max(rowR - pad, 2f);              // inner radius = outer radius - padding
             Paint white = fill(0xFFFFFFFF, 235);
+            Paint chipBg = fill(0xFFE9ECF8, 255);
             TextPaint num = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-            num.setColor(0xFF7B7F9E);
+            num.setColor(0xFF5A5F82);
             num.setTypeface(sBold);
-            num.setTextSize(32f);
+            num.setTextAlign(Paint.Align.CENTER);
+            num.setTextSize(chip * 0.54f);
             TextPaint tp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
             tp.setColor(0xFF1B1B2B);
             tp.setTypeface(sBold);
             float tsz = Math.min(56f, Math.round(ch * 0.5f));
             tp.setTextSize(tsz);
-            float numW = 80f, timeW = 0f;
+            float timeX = pad + chip + 24f, timeW = 0f;
             for (int k = 0; k < rows; k++) {
                 String t = marks[k] ? "(" + items.get(k) + ")" : items.get(k);
                 timeW = Math.max(timeW, tp.measureText(t));
             }
             TextPaint sp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-            sp.setColor(0xFF4A4E6B);
+            sp.setColor(0xFF22253A);
             sp.setTypeface(sMed);
             for (int k = 0; k < rows; k++) {
                 float x = a.left, y = y0 + k * (ch + gap);
-                c.drawRoundRect(new RectF(x, y, a.right, y + ch), 28f, 28f, white);
-                c.drawText(String.valueOf(k + 1), x + 28f, y + ch / 2f + 11f, num);
+                c.drawRoundRect(new RectF(x, y, a.right, y + ch), rowR, rowR, white);
+                float cy = y + ch / 2f;
+                c.drawRoundRect(new RectF(x + pad, cy - chip / 2f, x + pad + chip, cy + chip / 2f), chipR, chipR, chipBg);
+                c.drawText(String.valueOf(k + 1), x + pad + chip / 2f, cy + num.getTextSize() * 0.35f, num);
                 String t = marks[k] ? "(" + items.get(k) + ")" : items.get(k);
-                c.drawText(t, x + numW, y + ch / 2f + tsz * 0.35f, tp);
+                c.drawText(t, x + timeX, cy + tsz * 0.35f, tp);
                 String scr = scrambles != null && k < scrambles.length ? scrambles[k] : null;
                 if (scr == null || scr.trim().isEmpty()) continue;
-                float sx = x + numW + timeW + 36f;
+                float sx = x + timeX + timeW + 32f;
                 int sw = (int) (a.right - 28f - sx);
-                float budget = ch - 14f;
+                float budget = ch - 16f;
                 StaticLayout lay = null;
-                for (float size = 26f; size >= 13f; size -= 1f) {
+                for (float size = 30f; size >= 14f; size -= 1f) {
                     sp.setTextSize(size);
-                    sp.setTextScaleX(1f);
                     float spacing = sp.getFontSpacing();
                     lay = scrambleLayout(scr, sp, sw, 0);
                     if (lay.getHeight() <= budget) break;
-                    if (size <= 13f) {
+                    if (size <= 14f) {
                         lay = scrambleLayout(scr, sp, sw, Math.max(1, (int) (budget / spacing)));
                     }
                 }
@@ -499,6 +509,7 @@ public final class SolveCard {
             marks[i] = n >= 5 && (i == bestIdx || i == worstIdx);
         }
         s.body = listBody(items, marks, scrambles);
+        if (n > 6) s.height = 372 + 150 + n * 112 + (n - 1) * 10;
         s.fileName = "ao" + n;
         s.title = "Ao" + n;
         return s;
@@ -656,8 +667,11 @@ public final class SolveCard {
         return new File(dir, "ztimer-" + name + ".png");
     }
 
-    /** Sends the picture to another app. {@code pkg} names a specific app, or null to show the share sheet. */
-    private static void share(Context ctx, Bitmap bmp, String name, String pkg) {
+    /**
+     * Sends the picture to another app. {@code pkg} names a specific app, or null to show the share sheet.
+     * Returns false if that app is not installed or something went wrong.
+     */
+    private static boolean share(Context ctx, Bitmap bmp, String name, String pkg) {
         try {
             File f = cacheFile(ctx, name);
             try (OutputStream os = new FileOutputStream(f)) {
@@ -668,25 +682,28 @@ public final class SolveCard {
             send.setType("image/png");
             send.putExtra(Intent.EXTRA_STREAM, uri);
             send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            if (pkg != null) {
-                send.setPackage(pkg);
-                try {
-                    ctx.startActivity(send);
-                } catch (ActivityNotFoundException e) {
-                    Toast.makeText(ctx, "That app is not installed. Pick another one.", Toast.LENGTH_SHORT).show();
-                    send.setPackage(null);
-                    ctx.startActivity(Intent.createChooser(send, "Share card"));
-                }
-            } else {
+            if (pkg == null) {
                 ctx.startActivity(Intent.createChooser(send, "Share card"));
+                return true;
+            }
+            send.setPackage(pkg);
+            try {
+                ctx.startActivity(send);
+                return true;
+            } catch (ActivityNotFoundException e) {
+                Toast.makeText(ctx, "That app is not installed. Pick another one.", Toast.LENGTH_SHORT).show();
+                send.setPackage(null);
+                ctx.startActivity(Intent.createChooser(send, "Share card"));
+                return false;
             }
         } catch (Exception e) {
             Toast.makeText(ctx, "Could not share the card.", Toast.LENGTH_SHORT).show();
+            return false;
         }
     }
 
-    /** Saves the picture to the gallery (Pictures/ZTimer). */
-    private static void save(Context ctx, Bitmap bmp, String base) {
+    /** Saves the picture to the gallery (Pictures/ZTimer). Returns whether it worked. */
+    private static boolean save(Context ctx, Bitmap bmp, String base) {
         String name = "ztimer-" + base + "-" + System.currentTimeMillis() + ".png";
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -699,7 +716,6 @@ public final class SolveCard {
                 try (OutputStream os = ctx.getContentResolver().openOutputStream(uri)) {
                     bmp.compress(Bitmap.CompressFormat.PNG, 100, os);
                 }
-                Toast.makeText(ctx, "Saved to Pictures/ZTimer", Toast.LENGTH_SHORT).show();
             } else {
                 // Older phones: the gallery folder needs a storage permission this app does not ask for,
                 // so keep it in the app's own picture folder and say where it is.
@@ -711,59 +727,149 @@ public final class SolveCard {
                 }
                 Toast.makeText(ctx, "Saved to " + f.getAbsolutePath(), Toast.LENGTH_LONG).show();
             }
+            return true;
         } catch (Exception e) {
             Toast.makeText(ctx, "Could not save the card.", Toast.LENGTH_SHORT).show();
+            return false;
         }
     }
 
-    private static int dp(Context ctx, int v) {
-        return ThemeUtils.dpToPix(ctx, v);
+    // ------------------------------------------------------------------ the pop-up
+
+    /** A rounded button with an icon and a label, built from the same tokens as the app's pills. */
+    private static LinearLayout actionButton(WcaUi ui, int iconRes, String label, boolean primary) {
+        LinearLayout b = new LinearLayout(ui.ctx);
+        b.setOrientation(LinearLayout.HORIZONTAL);
+        b.setGravity(Gravity.CENTER);
+        b.setMinimumHeight(ui.dp(44));
+        b.setPadding(ui.dp(16), 0, ui.dp(16), 0);
+        GradientDrawable g = ui.rounded(primary ? ui.highlight : ui.itemBg, ui.dp(22));
+        g.setStroke(ui.dp(1), primary ? ui.accent : ((ui.itemText & 0x00FFFFFF) | 0x40000000));
+        b.setBackground(g);
+        b.setClickable(true);
+        ImageView icon = new ImageView(ui.ctx);
+        icon.setImageDrawable(ui.tinted(iconRes, 18, ui.safe));
+        icon.setTag("icon");
+        b.addView(icon, ui.lp(ui.dp(18), ui.dp(18), 0, 0, 8, 0));
+        TextView t = ui.text(label, 14, true, 1f);
+        t.setTextColor(ui.safe);
+        t.setTag("label");
+        b.addView(t);
+        ui.pressable(b);
+        return b;
     }
 
-    private static Button button(Context ctx, String label, View.OnClickListener l) {
-        Button b = new Button(ctx);
-        b.setText(label);
-        b.setAllCaps(false);
-        b.setOnClickListener(l);
-        return b;
+    /** One round app icon with its name under it. */
+    private static LinearLayout appItem(WcaUi ui, int iconRes, String label) {
+        LinearLayout item = new LinearLayout(ui.ctx);
+        item.setOrientation(LinearLayout.VERTICAL);
+        item.setGravity(Gravity.CENTER_HORIZONTAL);
+        item.setPadding(ui.dp(2), ui.dp(2), ui.dp(2), ui.dp(2));
+        item.setClickable(true);
+        FrameLayout disc = new FrameLayout(ui.ctx);
+        disc.setBackground(ui.rounded(ui.highlight, ui.dp(24)));
+        disc.setTag("disc");
+        ImageView icon = new ImageView(ui.ctx);
+        icon.setImageDrawable(ui.tinted(iconRes, 24, ui.safe));
+        disc.addView(icon, new FrameLayout.LayoutParams(ui.dp(24), ui.dp(24), Gravity.CENTER));
+        item.addView(disc, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
+        TextView l = ui.text(label, 11, false, 0.85f);
+        l.setGravity(Gravity.CENTER);
+        l.setPadding(0, ui.dp(6), 0, 0);
+        item.addView(l);
+        ui.pressable(item);
+        return item;
     }
 
     /** Shows a card with buttons to save it or send it to Instagram, Facebook, Messenger, WhatsApp or any other app. */
     private static void present(final Activity activity, final Spec spec) {
+        final WcaUi ui = new WcaUi(activity);
         final Bitmap bmp = render(activity, spec);
         final String name = spec.fileName;
+        final float innerR = ui.dp(WcaUi.inner(WcaUi.R_OUTER, WcaUi.INSET));   // 20 - 8 = 12dp: concentric with the pop-up
+
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(activity, 16), dp(activity, 16), dp(activity, 16), dp(activity, 8));
+        root.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(2));
 
+        TextView title = ui.text(spec.title, 18, true, 1f);
+        title.setPadding(ui.dp(4), ui.dp(6), ui.dp(4), ui.dp(10));
+        root.addView(title);
+
+        // the picture, in a rounded frame that fades in
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setBackground(ui.rounded(ui.highlight, innerR));
+        frame.setClipToOutline(true);
         ImageView pic = new ImageView(activity);
         pic.setImageBitmap(bmp);
-        pic.setAdjustViewBounds(true);
         pic.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        root.addView(pic, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        pic.setAdjustViewBounds(true);
+        pic.setMaxHeight((int) (activity.getResources().getDisplayMetrics().heightPixels * 0.5f));
+        frame.addView(pic, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+        root.addView(frame, ui.matchWrap(0, 0, 0, 12));
+        frame.setAlpha(0f);
+        frame.setScaleX(0.96f);
+        frame.setScaleY(0.96f);
+        frame.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(240)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
 
-        LinearLayout top = new LinearLayout(activity);
-        top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setGravity(Gravity.CENTER);
-        top.addView(button(activity, "Save image", v -> save(activity, bmp, name)));
-        top.addView(button(activity, "Share...", v -> share(activity, bmp, name, null)));
-        root.addView(top);
+        // save and share
+        LinearLayout actions = new LinearLayout(activity);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        final LinearLayout saveBtn = actionButton(ui, R.drawable.ic_share_save, "Save", true);
+        LinearLayout sendBtn = actionButton(ui, R.drawable.ic_share_send, "Share...", true);
+        actions.addView(saveBtn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        actions.addView(new View(activity), new LinearLayout.LayoutParams(ui.dp(8), 1));
+        actions.addView(sendBtn, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        root.addView(actions);
+        saveBtn.setOnClickListener(v -> {
+            boolean ok = save(activity, bmp, name);
+            final ImageView ic = saveBtn.findViewWithTag("icon");
+            final TextView lb = saveBtn.findViewWithTag("label");
+            if (ok) {
+                ic.setImageDrawable(ui.tinted(R.drawable.ic_share_check, 18, ui.accent));
+                lb.setText("Saved");
+                ui.pop(saveBtn);
+                saveBtn.postDelayed(() -> {
+                    ic.setImageDrawable(ui.tinted(R.drawable.ic_share_save, 18, ui.safe));
+                    lb.setText("Save");
+                }, 1800);
+            } else {
+                ui.shake(saveBtn);
+            }
+        });
+        sendBtn.setOnClickListener(v -> share(activity, bmp, name, null));
 
-        HorizontalScrollView scroll = new HorizontalScrollView(activity);
-        scroll.setHorizontalScrollBarEnabled(false);
+        // the apps, evenly spaced and aligned on their centres
+        TextView sendTo = ui.text("Send to", 12, true, 0.7f);
+        sendTo.setPadding(ui.dp(4), ui.dp(16), 0, ui.dp(8));
+        root.addView(sendTo);
         LinearLayout apps = new LinearLayout(activity);
         apps.setOrientation(LinearLayout.HORIZONTAL);
-        final String[][] targets = {
-                {"Instagram", "com.instagram.android"}, {"Facebook", "com.facebook.katana"},
-                {"Messenger", "com.facebook.orca"}, {"WhatsApp", "com.whatsapp"}};
-        for (final String[] t : targets) {
-            apps.addView(button(activity, t[0], v -> share(activity, bmp, name, t[1])));
+        final String[] labels = {"Instagram", "Facebook", "Messenger", "WhatsApp"};
+        final String[] pkgs = {"com.instagram.android", "com.facebook.katana", "com.facebook.orca", "com.whatsapp"};
+        final int[] icons = {R.drawable.ic_share_instagram, R.drawable.ic_share_facebook,
+                R.drawable.ic_share_messenger, R.drawable.ic_share_whatsapp};
+        for (int i = 0; i < labels.length; i++) {
+            final String pkg = pkgs[i];
+            final LinearLayout item = appItem(ui, icons[i], labels[i]);
+            item.setOnClickListener(v -> {
+                View disc = item.findViewWithTag("disc");
+                if (share(activity, bmp, name, pkg)) ui.pop(disc); else ui.shake(disc);
+            });
+            apps.addView(item, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         }
-        scroll.addView(apps);
-        root.addView(scroll);
+        root.addView(apps);
+
+        final TextView done = ui.pill("Done", false);
+        root.addView(done, ui.matchWrap(0, 16, 0, 4));
 
         ScrollView sv = new ScrollView(activity);
+        sv.setVerticalScrollBarEnabled(false);
         sv.addView(root);
-        new AlertDialog.Builder(activity).setTitle(spec.title).setView(sv).setPositiveButton("Close", null).show();
+        final Dialog dialog = ui.dialog(sv);
+        done.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
     }
 }
