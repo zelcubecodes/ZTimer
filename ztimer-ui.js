@@ -290,6 +290,28 @@
     show('timer');
     setTimeout(function () { try { kernel.pushSignal('scrfix', x.scr); toast('Scramble loaded in the timer'); } catch (e) {} }, 250);
   }
+  /* ---- one outline icon set, the same shapes as the app (24 x 24, round ends) ---- */
+  var ICONS = {
+    save: '<path d="M12 4v11M7.5 11.5L12 16l4.5-4.5M5 20h14"/>',
+    send: '<path d="M12 15V4M8 7.5L12 4l4 3.5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    sync: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.5h-4.5"/>',
+    instagram: '<path d="M8 3h8a5 5 0 0 1 5 5v8a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5z"/><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="M17.4 6.6h.01" stroke-width="2.6"/>',
+    facebook: '<path d="M14.5 21v-8h2.7l.5-3.3h-3.2V7.9c0-.9.4-1.6 1.7-1.6h1.6V3.4c-.3 0-1.3-.2-2.4-.2-2.5 0-4.2 1.5-4.2 4.3v2.2H8.3V13h2.9v8"/>',
+    messenger: '<path d="M12 3C7 3 3 6.7 3 11.4c0 2.6 1.3 4.9 3.3 6.4V21l3-1.7c.8.2 1.7.3 2.7.3 5 0 9-3.7 9-8.2S17 3 12 3z"/><path d="M7 13.5l3.6-3.8 2.8 2.4 3.6-3.4"/>',
+    whatsapp: '<path d="M3.2 20.8l1.4-4.6A8.6 8.6 0 1 1 8 19.5z"/><path d="M9.4 8.7c-.3.6-.1 1.5.9 2.9 1 1.4 2 2.1 3 2.5.7.3 1.3.1 1.6-.3l.3-.7-1.7-.9-.7.6c-.9-.4-1.6-1.1-2-2l.6-.7-.8-1.7z"/>',
+    telegram: '<path d="M20.5 4L3.5 10.8l5.3 2 1.6 5.2 2.6-3.3 4.6 3.3z"/><path d="M8.8 12.8L20.5 4"/>',
+    x: '<path d="M5 4.5l14 15M19 4.5l-14 15"/>'
+  };
+  function ic(name, size) { return '<svg class="zic" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + '</svg>'; }
+  function ibtn(icn, label, cls) { var b = $('<button class="zsh-btn"></button>').addClass(cls || ''); b.html(ic(icn, 18) + '<span></span>'); b.find('span').text(label); return b; }
+  /* short animations that confirm what happened: pop = done, shake = did not work */
+  function anim(el, cls) { el.removeClass('zbump zshake'); void el[0].offsetWidth; el.addClass(cls); }
+  function flashBtn(b, icn, label, backIcn, backLabel) {
+    b.addClass('ok').html(ic(icn, 18) + '<span></span>'); b.find('span').text(label); anim(b, 'zbump');
+    setTimeout(function () { b.removeClass('ok').html(ic(backIcn, 18) + '<span></span>'); b.find('span').text(backLabel); }, 1800);
+  }
+
   /* ---- Solve cards: pictures that can be saved or sent to other apps. One look for all of them:
      the time in a box at the top left, date and event beside it, the content in the middle, logo and name bottom right ---- */
   var CARD_FONT = 'Quicksand, "Segoe UI", Arial, sans-serif', MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -314,7 +336,7 @@
   }
   /* spec: { big: 'the time', side: [[text, weight, size, alpha], ...], body: function (c, area) } */
   function cardCanvas(spec, logo) {
-    var W = 1080, H = 1350, M = 64, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    var W = 1080, H = spec.h || 1350, M = 64, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     var c = cv.getContext('2d'), cs = getComputedStyle(document.documentElement), A = cs.getPropertyValue('--zt-a').trim() || '#1959ff', B = cs.getPropertyValue('--zt-b').trim() || '#3b12ff', fgc = cs.getPropertyValue('--zt-fg').trim() || '#fff';
     var g = c.createLinearGradient(0, 0, W * 0.6, H); g.addColorStop(0, A); g.addColorStop(1, B); c.fillStyle = g; c.fillRect(0, 0, W, H);
     c.textBaseline = 'alphabetic';
@@ -374,23 +396,25 @@
     } catch (e) {}
     c.drawImage(off, sx, sy, sw, sh, ax + aw / 2 - sw / 2, ay + ah / 2 - sh / 2, sw, sh);
   }
-  /* one row per solve: its number, its time and, beside the time, the scramble of that solve */
+  /* one row per solve: its number in a chip, its time and, beside the time, the scramble of that solve */
   function bodyList(items) {
     return function (c, A) {
-      var rows = items.length, gap = rows > 6 ? 10 : 16, ch = Math.min(150, (A.h - gap * (rows - 1)) / rows), th = rows * ch + (rows - 1) * gap, y0 = A.y + Math.max(0, (A.h - th) / 2), tsz = Math.min(56, Math.round(ch * 0.5)), numW = 80, timeW = 0;
+      var rows = items.length, gap = rows > 6 ? 10 : 16, ch = Math.min(150, (A.h - gap * (rows - 1)) / rows), th = rows * ch + (rows - 1) * gap, y0 = A.y + Math.max(0, (A.h - th) / 2),
+          rowR = 28, pad = 16, chip = Math.min(56, ch - 2 * pad), chipR = Math.max(rowR - pad, 2), tsz = Math.min(56, Math.round(ch * 0.5)), timeX = pad + chip + 24, timeW = 0;
       c.font = '700 ' + tsz + 'px ' + CARD_FONT;
       items.forEach(function (it) { timeW = Math.max(timeW, c.measureText(it.mark ? '(' + it.t + ')' : it.t).width); });
       items.forEach(function (it, k) {
-        var x = A.x, y = y0 + k * (ch + gap);
-        c.fillStyle = 'rgba(255,255,255,.92)'; rr(c, x, y, A.w, ch, 28); c.fill();
-        c.textAlign = 'left'; c.fillStyle = '#7b7f9e'; c.font = '700 32px ' + CARD_FONT; c.fillText(String(k + 1), x + 28, y + ch / 2 + 11);
-        c.fillStyle = '#1b1b2b'; c.font = '700 ' + tsz + 'px ' + CARD_FONT; c.fillText(it.mark ? '(' + it.t + ')' : it.t, x + numW, y + ch / 2 + tsz * 0.35);
+        var x = A.x, y = y0 + k * (ch + gap), cy = y + ch / 2, nsz = Math.round(chip * 0.54);
+        c.fillStyle = 'rgba(255,255,255,.92)'; rr(c, x, y, A.w, ch, rowR); c.fill();
+        c.fillStyle = '#e9ecf8'; rr(c, x + pad, cy - chip / 2, chip, chip, chipR); c.fill();
+        c.textAlign = 'center'; c.fillStyle = '#5a5f82'; c.font = '700 ' + nsz + 'px ' + CARD_FONT; c.fillText(String(k + 1), x + pad + chip / 2, cy + nsz * 0.35);
+        c.textAlign = 'left'; c.fillStyle = '#1b1b2b'; c.font = '700 ' + tsz + 'px ' + CARD_FONT; c.fillText(it.mark ? '(' + it.t + ')' : it.t, x + timeX, cy + tsz * 0.35);
         if (it.scr) {
-          var sx = x + numW + timeW + 36, sw = A.x + A.w - 28 - sx, size, lines, lh;
-          for (size = 26; size >= 13; size--) { c.font = '600 ' + size + 'px ' + CARD_FONT; lines = wrapText(c, it.scr, sw); lh = size * 1.25; if (lines.length * lh <= ch - 14) break; }
-          var maxL = Math.max(1, Math.floor((ch - 14) / lh));
+          var sx = x + timeX + timeW + 32, sw = A.x + A.w - 28 - sx, size, lines, lh;
+          for (size = 30; size >= 14; size--) { c.font = '600 ' + size + 'px ' + CARD_FONT; lines = wrapText(c, it.scr, sw); lh = size * 1.25; if (lines.length * lh <= ch - 16) break; }
+          var maxL = Math.max(1, Math.floor((ch - 16) / lh));
           if (lines.length > maxL) { lines = lines.slice(0, maxL); lines[maxL - 1] = lines[maxL - 1].replace(/\s*\S*$/, '') + ' ...'; }
-          c.fillStyle = '#4a4e6b';
+          c.fillStyle = '#22253a';
           lines.forEach(function (l, j) { c.fillText(l, sx, y + (ch - lines.length * lh) / 2 + lh * (j + 0.8)); });
         }
       });
@@ -443,7 +467,7 @@
     var last = a.slice(-n), trim = Math.ceil(n * 0.05), idx = last.map(function (_, k) { return k; }).sort(function (u, v) { return (last[u].t === last[v].t ? 0 : last[u].t < last[v].t ? -1 : 1) || u - v; }), mark = {};
     if (n >= 5) { for (var k = 0; k < trim; k++) { mark[idx[k]] = 1; mark[idx[n - 1 - k]] = 1; } }
     var items = last.map(function (x, k) { return { t: timeText(x.t) + (x.pen > 0 ? '+' : ''), mark: !!mark[k], scr: x.scr || '' }; }), d0 = last[0].ts, d1 = last[n - 1].ts;
-    return { big: timeText(avgOf(a, a.length - 1, n)), side: [[eventName(), '700', 50, 1], ['Average of ' + n, '700', 44, 0.95], [d1 ? (d0 && fmtDate(d0) !== fmtDate(d1) ? fmtDate(d0) + ' - ' + fmtDate(d1) : fmtDate(d1)) : '', '600', 38, 0.85]], body: bodyList(items) };
+    return { big: timeText(avgOf(a, a.length - 1, n)), side: [[eventName(), '700', 50, 1], ['Average of ' + n, '700', 44, 0.95], [d1 ? (d0 && fmtDate(d0) !== fmtDate(d1) ? fmtDate(d0) + ' - ' + fmtDate(d1) : fmtDate(d1)) : '', '600', 38, 0.85]], body: bodyList(items), h: n > 6 ? 372 + 150 + n * 112 + (n - 1) * 10 : 0 };
   }
   function distSpec(a) {
     var vals = a.filter(function (x) { return x.t !== Infinity; }).map(function (x) { return x.t; }), r = compute(a), ts = a.length ? a[a.length - 1].ts : 0;
@@ -459,26 +483,32 @@
 
   /* ---- the pop-up that shows a card with its buttons ---- */
   function openCard(spec, name, text, title) {
-    var ov = $('<div class="zmodal zapp"></div>'), card = $('<div class="zm-card zapp-card zcard"></div>').appendTo(ov);
-    card.append($('<div class="zapp-head"></div>').append($('<b></b>').text(title || 'Solve card')));
-    var holder = $('<div class="zcard-pic"></div>').appendTo(card), cv = null, blob = null;
+    var ov = $('<div class="zmodal zsh-ov"></div>'), card = $('<div class="zsh"></div>').appendTo(ov);
+    card.append($('<div class="zsh-title"></div>').text(title || 'Solve card'));
+    var holder = $('<div class="zsh-pic"></div>').appendTo(card), cv = null, blob = null;
     withLogo(function (logo) { cv = cardCanvas(spec, logo); holder.empty().append($(cv)); cv.toBlob(function (b) { blob = b; }, 'image/png'); });
-    function save() { if (!cv) return; var a = document.createElement('a'); a.download = name; a.href = cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove(); toast('Saved ' + name); }
+    function save() { if (!cv) return false; var a = document.createElement('a'); a.download = name; a.href = cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove(); return true; }
     function shareImg() {
-      if (!blob) return; var f = new File([blob], name, { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], title: title || 'My solve', text: text }).catch(function () {});
-      else { save(); toast('Your browser cannot send pictures to apps. The card was saved, post it from your gallery.'); }
+      if (!blob) return false; var f = new File([blob], name, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: title || 'My solve', text: text }).catch(function () {}); return true; }
+      save(); toast('Your browser cannot send pictures to apps, so the card was saved. Post it from your gallery.'); return false;
     }
     var txt = encodeURIComponent(text), site = encodeURIComponent(location.origin + location.pathname);
-    var row = $('<div class="zcard-btns"></div>').appendTo(card);
-    function b(label, fn, cls) { return $('<button class="zcard-b"></button>').addClass(cls || '').text(label).on('click', fn).appendTo(row); }
-    b('Save image', save, 'pri'); b('Share to app...', shareImg, 'pri');
-    var q = $('<div class="zcard-q"></div>').appendTo(card);
-    [['Instagram', shareImg], ['Facebook', shareImg], ['Messenger', shareImg],
-      ['WhatsApp', function () { window.open('https://wa.me/?text=' + txt, '_blank'); }], ['Telegram', function () { window.open('https://t.me/share/url?url=' + site + '&text=' + txt, '_blank'); }], ['X', function () { window.open('https://twitter.com/intent/tweet?text=' + txt, '_blank'); }]]
-      .forEach(function (s) { $('<button class="zcard-s"></button>').text(s[0]).on('click', s[1]).appendTo(q); });
-    card.append($('<p class="zp-note zcard-note"></p>').text('Instagram, Facebook and Messenger take the picture through your phone\u2019s share sheet. WhatsApp, Telegram and X send the text.'));
-    card.append($('<div class="zm-btns"></div>').append($('<button class="zm-btn">Close</button>').on('click', function () { ov.remove(); })));
+    var row = $('<div class="zsh-row"></div>').appendTo(card);
+    var saveB = ibtn('save', 'Save', 'pri').appendTo(row).on('click', function () { if (save()) flashBtn(saveB, 'check', 'Saved', 'save', 'Save'); else anim(saveB, 'zshake'); });
+    var sendB = ibtn('send', 'Share...', 'pri').appendTo(row).on('click', function () { if (!shareImg()) anim(sendB, 'zshake'); });
+    card.append($('<div class="zsh-lab">Send to</div>'));
+    var apps = $('<div class="zsh-apps"></div>').appendTo(card);
+    [['instagram', 'Instagram', shareImg], ['facebook', 'Facebook', shareImg], ['messenger', 'Messenger', shareImg],
+      ['whatsapp', 'WhatsApp', function () { window.open('https://wa.me/?text=' + txt, '_blank'); return true; }],
+      ['telegram', 'Telegram', function () { window.open('https://t.me/share/url?url=' + site + '&text=' + txt, '_blank'); return true; }],
+      ['x', 'X', function () { window.open('https://twitter.com/intent/tweet?text=' + txt, '_blank'); return true; }]]
+      .forEach(function (a) {
+        var b = $('<button class="zsh-app"></button>').append($('<span class="zsh-disc"></span>').html(ic(a[0], 24)), $('<span class="zsh-name"></span>').text(a[1])).appendTo(apps);
+        b.on('click', function () { var d = b.find('.zsh-disc'); if (a[2]()) anim(d, 'zbump'); else anim(d, 'zshake'); });
+      });
+    card.append($('<p class="zsh-note"></p>').text('Instagram, Facebook and Messenger take the picture through your phone\u2019s share sheet. WhatsApp, Telegram and X send the text.'));
+    card.append($('<button class="zsh-done">Done</button>').on('click', function () { ov.remove(); }));
     ov.on('click', function (e) { if (e.target === ov[0]) ov.remove(); }).appendTo('body');
   }
   function slug(s) { return String(s).replace(/[^0-9a-z]+/gi, '-').replace(/^-|-$/g, '') || 'card'; }
@@ -1585,28 +1615,38 @@
   }
   function renderSync(p) {
     var body = p.find('.zp-body').empty(), S = window.ZTSync, st = S ? S.state() : {};
-    p.find('.zp-sub').text('Share your solves with the app');
+    p.find('.zp-sub').text('The same solves on your phone and in the browser');
+    function card(title) { return $('<div class="zocard zsy"></div>').append($('<h3></h3>').text(title)); }
     if (!S || !S.configured()) {
-      body.append($('<div class="zocard"></div>').append($('<h3>Server not set up</h3>'), $('<p class="zp-note"></p>').text('Open ztimer-sync-config.js, paste your Supabase project URL and anon key, and upload it. The steps are in supabase/README.md.')));
+      body.append(card('Server not set up').append($('<p class="zp-note"></p>').text('Open ztimer-sync-config.js, paste your Supabase project URL and anon key, and upload it. The steps are in supabase/README.md.')));
     } else if (!st.code) {
-      var c1 = $('<div class="zocard"></div>').append($('<h3>Get started</h3>')).appendTo(body);
-      c1.append($('<p class="zp-note"></p>').text('A sync code links this browser and your app. No email or password. Keep the code private: anyone with it can see your solves.'));
-      c1.append($('<button class="zshare"></button>').append($('<span>Create a new sync code</span>')).on('click', function () { S.setCode(S.makeCode()); renderSync(p); }));
-      var inp = $('<input type="text" class="zsync-in" placeholder="Enter the code from your app" autocapitalize="characters">').appendTo(c1);
-      c1.append($('<button class="zshare"></button>').append($('<span>Use this code</span>')).on('click', function () { if (S.setCode(inp.val())) renderSync(p); else toast('That code looks too short.'); }));
+      var c1 = card('Link this browser and your app').appendTo(body);
+      c1.append($('<p class="zp-note"></p>').text('A sync code links them. No email or password. Keep the code private: anyone with it can see your solves.'));
+      ibtn('sync', 'Create a new sync code', 'pri').appendTo(c1).on('click', function () { S.setCode(S.makeCode()); renderSync(p); });
+      var c2 = card('Already have a code?').appendTo(body);
+      var inp = $('<input type="text" class="zsync-in" placeholder="Enter the code from your app" autocapitalize="characters">').appendTo(c2);
+      var useB = ibtn('check', 'Use this code').appendTo(c2).on('click', function () { if (S.setCode(inp.val())) renderSync(p); else { anim(inp, 'zshake'); anim(useB, 'zshake'); toast('That code looks too short.'); } });
     } else {
-      var c = $('<div class="zocard"></div>').append($('<h3>Your sync code</h3>')).appendTo(body);
-      c.append($('<div class="zsync-code"></div>').text(st.code));
-      c.append($('<button class="zshare"></button>').append($('<span>Copy code</span>')).on('click', function () { try { navigator.clipboard.writeText(st.code); toast('Code copied'); } catch (e) { toast('Copy it by hand.'); } }));
-      var n = $('<div class="zocard"></div>').append($('<h3>Nickname</h3>')).appendTo(body), nin = $('<input type="text" class="zsync-in" maxlength="20" placeholder="Pick a nickname (optional)">').val(st.nick || '').appendTo(n);
+      var c = card('Your sync code').appendTo(body);
+      var codeB = $('<button class="zsync-code" title="Tap to copy"></button>').text(st.code).appendTo(c), hint = $('<p class="zsync-hint">Tap the code to copy it</p>').appendTo(c);
+      codeB.on('click', function () {
+        try { navigator.clipboard.writeText(st.code); hint.text('Copied').addClass('ok'); anim(codeB, 'zbump'); setTimeout(function () { hint.text('Tap the code to copy it').removeClass('ok'); }, 1600); } catch (e) { toast('Copy it by hand.'); }
+      });
+      var n = card('Nickname').appendTo(body), nin = $('<input type="text" class="zsync-in" maxlength="20" placeholder="Pick a nickname (optional)">').val(st.nick || '').appendTo(n);
       n.append($('<p class="zp-note"></p>').text('3 to 20 letters, numbers or _. Nicknames are unique and will be used for friends and racing.'));
-      n.append($('<button class="zshare"></button>').append($('<span>Save nickname</span>')).on('click', function () { S.sync(window.ZT_BRIDGE, { nick: nin.val().trim() }).then(function () { toast('Nickname saved'); renderSync(p); }, function (e) { toast(e.message); }); }));
-      var s = $('<div class="zocard"></div>').append($('<h3>Sync</h3>')).appendTo(body), status = $('<p class="zp-note"></p>').text('Last synced: ' + ago(st.last)).appendTo(s);
-      s.append($('<button class="zshare"></button>').append($('<span>Sync now</span>')).on('click', function () {
-        status.text('Syncing...'); S.sync(window.ZT_BRIDGE).then(function (r) { status.text(r.busy ? 'Already syncing...' : 'Done. Sent ' + r.sent + ', received ' + r.got + '.'); if (r.applied) toast('Added ' + r.applied + ' solves from your other devices'); }, function (e) { status.text(e.message || 'Could not sync.'); });
-      }));
+      var nickB = ibtn('check', 'Save nickname').appendTo(n).on('click', function () { S.sync(window.ZT_BRIDGE, { nick: nin.val().trim() }).then(function () { flashBtn(nickB, 'check', 'Saved', 'check', 'Save nickname'); }, function (e) { anim(nickB, 'zshake'); anim(nin, 'zshake'); toast(e.message); }); });
+      var s = card('Sync').appendTo(body), syncB = ibtn('sync', 'Sync now', 'pri').appendTo(s), status = $('<p class="zsync-stat"></p>').text('Last synced: ' + ago(st.last)).appendTo(s);
+      function rest() { syncB.removeClass('ok').html(ic('sync', 18) + '<span></span>'); syncB.find('span').text('Sync now'); }
+      syncB.on('click', function () {
+        syncB.find('svg').addClass('zspin'); syncB.find('span').text('Syncing...'); status.removeClass('ok err').text('Talking to the server...');
+        S.sync(window.ZT_BRIDGE).then(function (r) {
+          if (r.busy) { rest(); status.text('Already syncing...'); return; }
+          status.addClass('ok').text('Done. Sent ' + r.sent + ', received ' + r.got + '.'); flashBtn(syncB, 'check', 'Synced', 'sync', 'Sync now');
+          if (r.applied) toast('Added ' + r.applied + ' solves from your other devices');
+        }, function (e) { rest(); syncB.find('span').text('Try again'); anim(syncB, 'zshake'); status.addClass('err').text(e.message || 'Could not sync.'); });
+      });
       s.append(appRow({ t: 'sw', title: 'Sync automatically', sum: 'When the site opens, after each solve, and when you come back to it', get: function () { return st.auto !== false; }, set: function (v) { S.setAuto(v); } }, p));
-      s.append($('<button class="zshare zsync-off"></button>').append($('<span>Stop syncing on this browser</span>')).on('click', function () { if (confirm('Stop syncing here? Your solves stay on this device and on the server.')) { S.signOut(); renderSync(p); } }));
+      ibtn('x', 'Stop syncing on this browser', 'zsync-off').appendTo(s).on('click', function () { if (confirm('Stop syncing here? Your solves stay on this device and on the server.')) { S.signOut(); renderSync(p); } });
     }
     var imp = $('<div class="zocard"></div>').append($('<h3>Import from other timers</h3>')).appendTo(body);
     imp.append($('<p class="zp-note"></p>').text('csTimer exports work from Export or import. For other timers, load a text or CSV file with one time per line (12.34, 1:02.45, DNF, 9.87+). The times go into the current category.'));

@@ -862,3 +862,55 @@ html.zt-dark .zw-card,html.zt-dark .zw-search,html.zt-dark .zw-sel,html.zt-dark 
 .zw-recv{display:flex;align-items:center;gap:8px}.zw-recv b{font-size:22px}
 .zw-recn{font-weight:700;margin:2px 0}
 .zw-col{display:flex;flex-direction:column;gap:2px}
+
+/* ---- zt40: share pop-up, sync screen, small confirming animations ----
+   Same tokens as the app: 20 pop-up corners, inner shapes = outer radius - padding (20 - 8 = 12), accent blue, pill buttons. */
+@keyframes zshIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes zshFade{from{opacity:0}to{opacity:1}}
+@keyframes zPop{0%{transform:scale(.9)}55%{transform:scale(1.05)}100%{transform:scale(1)}}
+@keyframes zShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+@keyframes zSpin{to{transform:rotate(360deg)}}
+.zbump{animation:zPop .3s ease-out}
+.zshake{animation:zShake .34s}
+.zspin{animation:zSpin .8s linear infinite}
+.zic{display:block;flex:none}
+.zsh-ov{animation:zshFade .18s ease-out}
+.zsh{width:min(400px,100%);max-height:92vh;overflow:auto;box-sizing:border-box;background:#fff;color:var(--zt-ink);border-radius:20px;padding:8px;box-shadow:0 12px 40px rgba(0,0,80,.45);animation:zshIn .26s cubic-bezier(.2,.8,.2,1)}
+.zsh-title{font-size:18px;font-weight:700;padding:8px 6px 10px;color:var(--zt-ink)}
+.zsh-pic{border-radius:12px;background:#eef2ff;overflow:hidden;display:flex;justify-content:center;align-items:center;min-height:120px}
+.zsh-pic canvas{max-width:100%;max-height:44vh;width:auto;height:auto;display:block;animation:zshFade .3s ease-out}
+.zsh-row{display:flex;gap:8px;margin-top:12px}
+.zsh-btn{flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box;padding:0 16px;border-radius:22px;border:1px solid rgba(60,60,100,.28);background:#fff;color:var(--zt-ink);font-family:inherit;font-weight:700;font-size:14px;line-height:1;cursor:pointer;transition:transform .12s,background .2s,border-color .2s,color .2s;-webkit-tap-highlight-color:transparent}
+.zsh-btn.pri{border-color:var(--zt-link);background:#eef2ff}
+.zsh-btn:active{transform:scale(.96)}
+.zsh-btn.ok{color:var(--zt-link);border-color:var(--zt-link)}
+.zsh-btn.zsync-off{color:#c62828;border-color:rgba(198,40,40,.4);background:#fff}
+.zsh-lab{font-size:12px;font-weight:700;opacity:.7;padding:16px 4px 8px}
+.zsh-apps{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
+.zsh-app{display:flex;flex-direction:column;align-items:center;gap:6px;padding:2px;border:0;background:none;color:inherit;font-family:inherit;cursor:pointer;transition:transform .12s;-webkit-tap-highlight-color:transparent}
+.zsh-app:active{transform:scale(.94)}
+.zsh-disc{width:44px;height:44px;border-radius:22px;background:#eef2ff;display:flex;align-items:center;justify-content:center;color:var(--zt-ink)}
+.zsh-name{font-size:10.5px;font-weight:700;opacity:.85;white-space:nowrap}
+.zsh-note{margin:10px 6px 0;font-size:11px;line-height:1.4;opacity:.6}
+.zsh-done{display:block;width:100%;margin:14px 0 2px;min-height:40px;border-radius:20px;border:1px solid rgba(60,60,100,.28);background:#fff;color:var(--zt-ink);font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:transform .12s}
+.zsh-done:active{transform:scale(.96)}
+/* sync screen */
+.zsy{border-radius:20px;padding:0 0 12px}
+.zsy h3{padding:14px 12px 6px}
+.zsy>.zp-note{padding:0 12px 8px;margin:0}
+.zsy>.zsh-btn,.zsy>.zsync-code,.zsy>.zsync-in{width:calc(100% - 24px);margin:6px 12px 0;box-sizing:border-box}
+.zsy .zopt{margin-top:6px}
+.zsy .zsync-code{display:block;border:0;border-radius:8px;cursor:pointer;font-family:ui-monospace,Menlo,Consolas,monospace;transition:transform .12s;-webkit-tap-highlight-color:transparent}
+.zsy .zsync-code:active{transform:scale(.97)}
+.zsy .zsync-in{border-radius:8px;height:44px}
+.zsync-hint,.zsync-stat{margin:6px 12px 0;font-size:12px;font-weight:700;opacity:.7;text-align:center;transition:color .2s,opacity .2s}
+.zsync-hint.ok,.zsync-stat.ok{color:var(--zt-link);opacity:1}
+.zsync-stat.err{color:#c62828;opacity:1}
+@media (prefers-reduced-motion:reduce){.zsh,.zsh-ov,.zsh-pic canvas,.zbump,.zshake,.zspin{animation:none!important}}
+html.zt-dark .zsh{background:#1f1f1f!important;color:rgba(255,255,255,.9)!important}
+html.zt-dark .zsh-title,html.zt-dark .zsh-disc,html.zt-dark .zsh-btn,html.zt-dark .zsh-done{color:rgba(255,255,255,.92)!important}
+html.zt-dark .zsh-btn,html.zt-dark .zsh-done{background:#2b2b2b!important;border-color:rgba(255,255,255,.18)!important}
+html.zt-dark .zsh-btn.pri{background:#26335e!important;border-color:#6d8dff!important}
+html.zt-dark .zsh-btn.ok{color:#9db4ff!important}
+html.zt-dark .zsh-pic,html.zt-dark .zsh-disc{background:#2b2b2b!important}
+html.zt-dark .zsync-hint.ok,html.zt-dark .zsync-stat.ok{color:#9db4ff!important}
